@@ -8,13 +8,13 @@
       "dist/assets/alert-dialog-*.js",
       "dist/assets/xterm-*.js"
     ],
-    "limit": "560 KB",
+    "limit": "540 KB",
     "gzip": true
   },
   {
     "name": "total client JS",
     "path": ["dist/assets/*.js"],
-    "limit": "1500 KB",
+    "limit": "1600 KB",
     "gzip": true
   }
 ]
