@@ -6,9 +6,11 @@ import { usePreferencesStore } from "@/modules/settings/preferences";
 import {
   AiScanIcon,
   InformationCircleIcon,
-  Settings01Icon,
-  UserMultiple02Icon,
   KeyboardIcon,
+  PaintBoardIcon,
+  Settings01Icon,
+  SourceCodeIcon,
+  UserMultiple02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
@@ -16,14 +18,18 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AboutSection } from "./sections/AboutSection";
 import { AgentsSection } from "./sections/AgentsSection";
+import { EditorSection } from "./sections/EditorSection";
 import { GeneralSection } from "./sections/GeneralSection";
 import { ModelsSection } from "./sections/ModelsSection";
 import { ShortcutsSection } from "./sections/ShortcutsSection";
+import { ThemesSection } from "./sections/ThemesSection";
 
 function useTabs() {
   const { t } = useTranslation();
   return [
     { id: "general" as SettingsTab, label: t("settings.tabs.general"), icon: Settings01Icon, component: GeneralSection },
+    { id: "editor" as SettingsTab, label: t("settings.tabs.editor"), icon: SourceCodeIcon, component: EditorSection },
+    { id: "themes" as SettingsTab, label: t("settings.tabs.themes"), icon: PaintBoardIcon, component: ThemesSection },
     { id: "shortcuts" as SettingsTab, label: t("settings.tabs.shortcuts"), icon: KeyboardIcon, component: ShortcutsSection },
     { id: "models" as SettingsTab, label: t("settings.tabs.models"), icon: AiScanIcon, component: ModelsSection },
     { id: "agents" as SettingsTab, label: t("settings.tabs.agents"), icon: UserMultiple02Icon, component: AgentsSection },
@@ -33,6 +39,8 @@ function useTabs() {
 
 const VALID_TABS: SettingsTab[] = [
   "general",
+  "editor",
+  "themes",
   "shortcuts",
   "models",
   "agents",
@@ -53,7 +61,7 @@ export function SettingsApp() {
   const [active, setActive] = useState<SettingsTab>(readInitialTab);
   const init = usePreferencesStore((s) => s.init);
   const tabs = useTabs();
-  const ActiveSection = tabs.find(t => t.id === active)?.component;
+  const ActiveSection = tabs.find((t) => t.id === active)?.component;
 
   useEffect(() => {
     void init();
@@ -82,8 +90,9 @@ export function SettingsApp() {
     <div className="flex h-screen flex-col overflow-hidden bg-background text-foreground select-none">
       <header
         data-tauri-drag-region
-        className={`flex h-11 shrink-0 items-center border-b border-border/60 bg-card/60 ${IS_MAC ? "pr-3 pl-22" : "pr-0 pl-3"
-          }`}
+        className={`flex h-11 shrink-0 items-center border-b border-border/60 bg-card/60 ${
+          IS_MAC ? "pr-3 pl-22" : "pr-0 pl-3"
+        }`}
       >
         <Tabs
           value={active}

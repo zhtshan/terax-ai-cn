@@ -1,8 +1,30 @@
 # Changelog
 
-All notable changes to Terax. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
+All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
-## [0.5.9] — 2026
+## [0.8.5] - 2026-07-23
+
+### Added
+- 完整中文语言支持（zh-CN）：全界面、设置、编辑器、AI 面板、终端、快捷键面板、主题描述、提示文案
+- 新增 `src/i18n/` 目录：`i18n/index.ts` + `locales/en.json` + `locales/zh.json`（793 个 key，中英完全对等）
+- 设置 - 通用 - Language 加入中/英切换 dropdown
+
+### Changed
+- 所有 UI 文案改由 react-i18next 渲染，切换语言可即时生效
+- 部分 Radix / forwardRef 组件通过 `useTranslation` reactive hook 确保刷新
+- `.gitignore` 强化：新增 `src-tauri/target/`、`src-tauri/gen/`、`.env*`、IDE、OS、`release/`
+
+### Fixed
+- 修复 `nonExplicitSupportedLngs: true` 导致 zh-CN 找不到资源、falls back 到 en 的 bug
+- 修复语言切换后部分组件（如 forwardRef、Radix Select）不刷新的问题
+
+## [0.6.6] - 2026-05-17
+
+### Added
+- 首次正式发布中文汉化版本，对应上游 v0.6.6
+- GitHub Releases 提供 Windows 便携版
+
+## [0.5.9] - 2026
 
 ## Added
 - Window management for linux
@@ -11,7 +33,7 @@ All notable changes to Terax. Format loosely follows [Keep a Changelog](https://
 - Secrets (keyring) redesign
 - Auto updater stabilization
 
-## [0.5.8] — 2026
+## [0.5.8] - 2026
 
 ### Added
 - Auto-updater wired into release builds.
@@ -27,7 +49,7 @@ All notable changes to Terax. Format loosely follows [Keep a Changelog](https://
 
 ### Changed
 - Default working directory for new sessions is now `$HOME`.
-- Stabilized shell init scripts (zsh / bash / pwsh) — fewer edge cases on first prompt.
+- Stabilized shell init scripts (zsh / bash / pwsh) - fewer edge cases on first prompt.
 
 ## [0.5.6]
 
@@ -105,7 +127,7 @@ All notable changes to Terax. Format loosely follows [Keep a Changelog](https://
 ## [0.3.9]
 
 ### Added
-- AI edit diffs — preview and approve agent edits before applying.
+- AI edit diffs - preview and approve agent edits before applying.
 
 ## [0.3.8]
 
@@ -151,7 +173,7 @@ All notable changes to Terax. Format loosely follows [Keep a Changelog](https://
 ## [0.2.9]
 
 ### Added
-- Tauri keyring integration — API keys now stored in the OS keychain.
+- Tauri keyring integration - API keys now stored in the OS keychain.
 
 ### Changed
 - Internal renaming pass.

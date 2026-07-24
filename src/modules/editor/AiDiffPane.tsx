@@ -1,17 +1,20 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { AiDiffStatus } from "@/modules/tabs";
 import { presentableDiff, unifiedMergeView } from "@codemirror/merge";
-import { EditorState } from "@codemirror/state";
+import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { Cancel01Icon, Tick02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
-import { useEffect, useMemo, useRef } from "react";
-import { buildSharedExtensions, languageCompartment } from "./lib/extensions";
-import { resolveLanguage } from "./lib/languageResolver";
-import { EDITOR_THEME_EXT } from "./lib/themes";
+import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  buildSharedExtensions,
+  DEFAULT_INDENT,
+  languageCompartment,
+} from "./lib/extensions";
+import { resolveLanguage, resolveLanguageSync } from "./lib/languageResolver";
+import { useEditorThemeExt } from "./lib/useEditorThemeExt";
 
 type Props = {
   path: string;
@@ -23,9 +26,12 @@ type Props = {
   onReject: () => void;
 };
 
-// Override default merge styles: replace the default 2px linear-gradient
-// underline with proper block backgrounds. Reads cleaner — especially for
-// pure insertions, where the underline-style marker looked decorative.
+const SHARED_EXT: readonly Extension[] = buildSharedExtensions();
+const READONLY_EXT: Extension[] = [
+  EditorState.readOnly.of(true),
+  EditorView.editable.of(false),
+];
+
 const DIFF_THEME = EditorView.theme({
   // ".cm-changedLine": {
   //   backgroundColor:
@@ -89,18 +95,30 @@ export function AiDiffPane({
   onReject,
 }: Props) {
   const cmRef = useRef<ReactCodeMirrorRef>(null);
-  const editorThemeId = usePreferencesStore((s) => s.editorTheme);
-  const themeExt = EDITOR_THEME_EXT[editorThemeId] ?? EDITOR_THEME_EXT.atomone;
+  const themeExt = useEditorThemeExt();
 
-  // The merge extension diffs the current document against `original`.
-  // We bake originalContent into the extension once on mount; if the AI
-  // updates its proposal, the surrounding bridge re-creates the tab.
+  // Language resolves before mount; reconfiguring after would leave the
+  // merge view's deleted-chunk widgets unhighlighted.
+  const [lang, setLang] = useState<Extension | null>(
+    () => resolveLanguageSync(path)?.ext ?? null,
+  );
+  useEffect(() => {
+    if (lang) return;
+    let cancelled = false;
+    resolveLanguage(path).then((res) => {
+      if (!cancelled && res) setLang(res.ext);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [path, lang]);
+
   const extensions = useMemo(
     () => [
-      ...buildSharedExtensions(),
-      languageCompartment.of([]),
-      EditorState.readOnly.of(true),
-      EditorView.editable.of(false),
+      ...SHARED_EXT,
+      DEFAULT_INDENT,
+      languageCompartment.of(lang ?? []),
+      ...READONLY_EXT,
       unifiedMergeView({
         original: originalContent,
         mergeControls: false,
@@ -111,24 +129,8 @@ export function AiDiffPane({
       }),
       DIFF_THEME,
     ],
-    [originalContent],
+    [originalContent, lang],
   );
-
-  // Resolve language by path (same approach as EditorPane).
-  useEffect(() => {
-    let cancelled = false;
-    resolveLanguage(path).then((ext) => {
-      if (cancelled) return;
-      const view = cmRef.current?.view;
-      if (!view) return;
-      view.dispatch({
-        effects: languageCompartment.reconfigure(ext ?? []),
-      });
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [path]);
 
   const stats = useMemo(
     () => computeLineStats(originalContent, proposedContent),

@@ -11,9 +11,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { AGENT_ICONS } from "@/modules/ai/components/AgentSwitcher";
 import {
-  BUILTIN_AGENTS,
   type Agent,
   type AgentIconId,
+  BUILTIN_AGENTS,
 } from "@/modules/ai/lib/agents";
 import {
   isValidHandle,
@@ -36,7 +36,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
-import { useTranslation } from "react-i18next";
+import { Trans, useTranslation } from "react-i18next";
 import { SectionHeader } from "../components/SectionHeader";
 
 const ICON_OPTIONS: AgentIconId[] = [
@@ -121,7 +121,13 @@ export function AgentsSection() {
           <div className="flex flex-col">
             <Label>{t("settings.agents.snippets")}</Label>
             <span className="text-[10.5px] text-muted-foreground">
-              {t("settings.agents.snippetsDesc")}
+              <Trans i18nKey="settings.agents.snippetsDesc">
+                Reusable instructions you can drop into any prompt with{" "}
+                <code className="rounded bg-muted/50 px-1 font-mono">
+                  #handle
+                </code>
+                .
+              </Trans>
             </span>
           </div>
           <Button
@@ -145,7 +151,10 @@ export function AgentsSection() {
 
         {snippets.length === 0 ? (
           <div className="rounded-lg border border-dashed border-border/60 bg-card/30 px-4 py-6 text-center text-[11px] text-muted-foreground">
-            {t("settings.agents.noSnippets")}
+            <Trans i18nKey="settings.agents.noSnippets">
+              No snippets yet. Create one and insert it with{" "}
+              <code className="font-mono">#handle</code> in the AI input.
+            </Trans>
           </div>
         ) : (
           <ul className="flex flex-col gap-1.5">
@@ -340,7 +349,7 @@ function AgentEditorDialog({
             {isNew ? t("settings.agents.newAgent") : t("settings.agents.editAgent")}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-3">
+        <div className="-mx-2 max-h-[calc(100vh-14rem)] overflow-y-auto px-2 flex flex-col gap-3">
           <div className="flex gap-2">
             <div className="flex flex-col gap-1">
               <Label>{t("settings.agents.icon")}</Label>
@@ -454,7 +463,7 @@ function SnippetEditorDialog({
               : t("settings.agents.newSnippet")}
           </DialogTitle>
         </DialogHeader>
-        <div className="flex flex-col gap-3">
+        <div className="-mx-2 max-h-[calc(100vh-14rem)] overflow-y-auto px-2 flex flex-col gap-3">
           <div className="flex gap-2">
             <div className="flex w-32 flex-col gap-1">
               <Label>{t("settings.agents.handle")}</Label>
@@ -470,7 +479,7 @@ function SnippetEditorDialog({
                       handle: normalizeHandle(e.target.value),
                     })
                   }
-                  placeholder="review"
+                  placeholder={t("settings.agents.handlePlaceholder")}
                   className="h-8 pl-5 font-mono text-[11.5px]"
                 />
               </div>

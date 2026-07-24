@@ -5,7 +5,7 @@
   <p><strong>开源轻量级跨平台 AI 原生终端 (ADE)</strong></p>
 
   <p>
-    <img src="https://img.shields.io/badge/版本-0.6.6--cn-blue" alt="版本" />
+    <img src="https://img.shields.io/badge/版本-0.8.5--cn-blue" alt="版本" />
     <img src="https://img.shields.io/badge/协议-Apache--2.0-green" alt="协议" />
     <img src="https://img.shields.io/badge/平台-Windows-lightgrey" alt="平台" />
   </p>

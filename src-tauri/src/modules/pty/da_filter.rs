@@ -1,11 +1,15 @@
 const ESC: u8 = 0x1b;
 const LBRACKET: u8 = 0x5b;
 const FINAL_C: u8 = 0x63;
+const FINAL_N: u8 = 0x6e;
 const PREFIX_GT: u8 = 0x3e;
 const PREFIX_EQ: u8 = 0x3d;
 
 const DA1_REPLY: &[u8] = b"\x1b[?1;2c";
 const DA2_REPLY: &[u8] = b"\x1b[>0;276;0c";
+// pwsh/PSReadLine blocks on a startup cursor-position query (ESC[6n) before any
+// renderer slot is bound to answer it; on a fresh console the cursor is at home.
+const DSR_CPR_REPLY: &[u8] = b"\x1b[1;1R";
 
 const HOLD_MAX: usize = 256;
 
@@ -19,6 +23,8 @@ enum State {
 pub struct DaFilter {
     state: State,
     hold: Vec<u8>,
+    cpr_replied: bool,
+    saw_output: bool,
 }
 
 impl DaFilter {
@@ -26,6 +32,8 @@ impl DaFilter {
         DaFilter {
             state: State::Idle,
             hold: Vec::with_capacity(16),
+            cpr_replied: false,
+            saw_output: false,
         }
     }
 
@@ -37,6 +45,9 @@ impl DaFilter {
     ) {
         if matches!(self.state, State::Idle) && !input.contains(&ESC) {
             out.extend_from_slice(input);
+            if !input.is_empty() {
+                self.saw_output = true;
+            }
             return;
         }
 
@@ -73,8 +84,9 @@ impl DaFilter {
                             let middle = &self.hold[2..self.hold.len() - 1];
                             let is_response =
                                 middle.contains(&b'?') || middle.contains(&b';');
+                            let is_startup_query = !self.saw_output && out.is_empty();
                             let prefix = middle.first().copied().unwrap_or(0);
-                            if is_response {
+                            if is_response || !is_startup_query {
                                 out.extend_from_slice(&self.hold);
                             } else {
                                 match prefix {
@@ -84,6 +96,15 @@ impl DaFilter {
                                     _ => out.extend_from_slice(&self.hold),
                                 }
                             }
+                        } else if b == FINAL_N
+                            && self.hold.len() == 4
+                            && self.hold[2] == b'6'
+                            && !self.cpr_replied
+                            && !self.saw_output
+                            && out.is_empty()
+                        {
+                            respond(DSR_CPR_REPLY);
+                            self.cpr_replied = true;
                         } else {
                             out.extend_from_slice(&self.hold);
                         }
@@ -96,6 +117,9 @@ impl DaFilter {
                     }
                 }
             }
+        }
+        if !out.is_empty() {
+            self.saw_output = true;
         }
     }
 }
@@ -152,11 +176,34 @@ mod tests {
     }
 
     #[test]
-    fn embedded_da_preserves_surrounding() {
+    fn da_after_output_in_same_chunk_passes_through() {
         let mut f = DaFilter::new();
-        let (out, replies) = run(&mut f, b"pre\x1b[0cpost");
-        assert_eq!(out, b"prepost");
-        assert_eq!(replies, vec![DA1_REPLY.to_vec()]);
+        let input = b"pre\x1b[0cpost";
+        let (out, replies) = run(&mut f, input);
+        assert_eq!(out, input);
+        assert!(replies.is_empty());
+    }
+
+    #[test]
+    fn da_after_osc_queries_passes_through() {
+        let mut f = DaFilter::new();
+        let input = b"\x1b]10;?\x07\x1b]11;?\x07\x1b[c";
+        let (out, replies) = run(&mut f, input);
+        assert_eq!(out, input);
+        assert!(replies.is_empty());
+    }
+
+    #[test]
+    fn da_after_output_in_prior_chunk_passes_through() {
+        let mut f = DaFilter::new();
+        let (initial, initial_replies) = run(&mut f, b"prompt");
+        assert_eq!(initial, b"prompt");
+        assert!(initial_replies.is_empty());
+
+        let input = b"\x1b[c";
+        let (out, replies) = run(&mut f, input);
+        assert_eq!(out, input);
+        assert!(replies.is_empty());
     }
 
     #[test]
@@ -187,11 +234,12 @@ mod tests {
     }
 
     #[test]
-    fn double_esc() {
+    fn da_after_escape_passes_through() {
         let mut f = DaFilter::new();
-        let (out, replies) = run(&mut f, b"\x1b\x1b[c");
-        assert_eq!(out, b"\x1b");
-        assert_eq!(replies, vec![DA1_REPLY.to_vec()]);
+        let input = b"\x1b\x1b[c";
+        let (out, replies) = run(&mut f, input);
+        assert_eq!(out, input);
+        assert!(replies.is_empty());
     }
 
     #[test]
@@ -226,5 +274,67 @@ mod tests {
         let (out, replies) = run(&mut f, &input);
         assert_eq!(out.len(), HOLD_MAX + 2);
         assert!(replies.is_empty());
+    }
+
+    #[test]
+    fn cpr_startup_answered_and_swallowed() {
+        let mut f = DaFilter::new();
+        let (out, replies) = run(&mut f, b"\x1b[6n");
+        assert!(out.is_empty());
+        assert_eq!(replies, vec![DSR_CPR_REPLY.to_vec()]);
+    }
+
+    #[test]
+    fn cpr_answered_only_once() {
+        let mut f = DaFilter::new();
+        let (_, r1) = run(&mut f, b"\x1b[6n");
+        assert_eq!(r1, vec![DSR_CPR_REPLY.to_vec()]);
+        let (out, r2) = run(&mut f, b"\x1b[6n");
+        assert_eq!(out, b"\x1b[6n");
+        assert!(r2.is_empty());
+    }
+
+    #[test]
+    fn cpr_passes_through_after_output() {
+        let mut f = DaFilter::new();
+        let (o1, _) = run(&mut f, b"PS C:\\> ");
+        assert_eq!(o1, b"PS C:\\> ");
+        let (out, replies) = run(&mut f, b"\x1b[6n");
+        assert_eq!(out, b"\x1b[6n");
+        assert!(replies.is_empty());
+    }
+
+    #[test]
+    fn cpr_passes_through_when_output_precedes_in_same_chunk() {
+        let mut f = DaFilter::new();
+        let (out, replies) = run(&mut f, b"hi\x1b[6n");
+        assert_eq!(out, b"hi\x1b[6n");
+        assert!(replies.is_empty());
+    }
+
+    #[test]
+    fn cpr_answered_when_split_across_reads() {
+        let mut f = DaFilter::new();
+        let (o1, r1) = run(&mut f, b"\x1b[6");
+        assert!(o1.is_empty() && r1.is_empty());
+        let (o2, r2) = run(&mut f, b"n");
+        assert!(o2.is_empty());
+        assert_eq!(r2, vec![DSR_CPR_REPLY.to_vec()]);
+    }
+
+    #[test]
+    fn other_dsr_passes_through() {
+        let mut f = DaFilter::new();
+        let (out, replies) = run(&mut f, b"\x1b[5n");
+        assert_eq!(out, b"\x1b[5n");
+        assert!(replies.is_empty());
+    }
+
+    #[test]
+    fn da_still_answered_with_cpr_logic() {
+        let mut f = DaFilter::new();
+        let (out, replies) = run(&mut f, b"\x1b[c");
+        assert!(out.is_empty());
+        assert_eq!(replies, vec![DA1_REPLY.to_vec()]);
     }
 }

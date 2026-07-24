@@ -49,6 +49,20 @@ export function currentWorkspaceEnv(): WorkspaceEnv {
   return useWorkspaceEnvStore.getState().env;
 }
 
+export function workspaceScopeKey(env: WorkspaceEnv): string {
+  return env.kind === "wsl" ? `wsl:${env.distro}` : "local";
+}
+
+export function parseWorkspaceScopeKey(key: string): WorkspaceEnv {
+  return key.startsWith("wsl:")
+    ? { kind: "wsl", distro: key.slice("wsl:".length) }
+    : LOCAL_WORKSPACE;
+}
+
+export function currentWorkspaceScopeKey(): string {
+  return workspaceScopeKey(currentWorkspaceEnv());
+}
+
 export async function getWslHome(distro: string): Promise<string> {
   return invoke<string>("wsl_home", { distro });
 }

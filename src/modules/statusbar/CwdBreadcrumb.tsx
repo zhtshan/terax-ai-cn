@@ -13,6 +13,8 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { usePreferencesStore } from "@/modules/settings/preferences";
+import { currentWorkspaceEnv } from "@/modules/workspace";
 import {
   ArrowDown01Icon,
   Folder01Icon,
@@ -22,8 +24,7 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useState } from "react";
-import { currentWorkspaceEnv } from "@/modules/workspace";
-import { usePreferencesStore } from "@/modules/settings/preferences";
+import { useTranslation } from "react-i18next";
 import { segmentsFromCwd } from "./lib/pathUtils";
 
 type Props = {
@@ -34,17 +35,18 @@ type Props = {
 };
 
 function dirname(path: string): string {
-  const i = path.lastIndexOf("/");
+  const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
   if (i <= 0) return "/";
   return path.slice(0, i);
 }
 
 function basename(path: string): string {
-  const i = path.lastIndexOf("/");
+  const i = Math.max(path.lastIndexOf("/"), path.lastIndexOf("\\"));
   return i === -1 ? path : path.slice(i + 1);
 }
 
 export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
+  const { t } = useTranslation();
   // File mode: dir segments navigate; filename is the terminal leaf.
   if (filePath) {
     const dir = dirname(filePath);
@@ -66,10 +68,7 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
             <CollapsedSegments segments={middle} onCd={onCd} />
           ) : null}
           {middle.map((s) => (
-            <span
-              key={s.fullPath}
-              className="contents max-md:hidden"
-            >
+            <span key={s.fullPath} className="contents max-md:hidden">
               <BreadcrumbSegment
                 label={s.label}
                 isHome={s.isHome}
@@ -87,7 +86,7 @@ export function CwdBreadcrumb({ cwd, filePath, home, onCd }: Props) {
 
   if (!cwd) {
     return (
-      <span className="text-xs text-muted-foreground/70">no directory</span>
+      <span className="text-xs text-muted-foreground/70">{t("statusbar.noDirectory")}</span>
     );
   }
 
@@ -144,11 +143,7 @@ function BreadcrumbSegment({
     <>
       <BreadcrumbItem>
         <BreadcrumbLink asChild>
-          <button
-            type="button"
-            onClick={onClick}
-            className="cursor-pointer"
-          >
+          <button type="button" onClick={onClick} className="cursor-pointer">
             <Badge
               variant="outline"
               className="gap-1 text-muted-foreground hover:text-foreground"

@@ -1,7 +1,9 @@
 import {
+  type AutocompleteProviderId,
   DEFAULT_AUTOCOMPLETE_MODEL,
   LMSTUDIO_DEFAULT_BASE_URL,
-  type AutocompleteProviderId,
+  modelSupportsTemperature,
+  modelUsesReasoningTokens,
 } from "@/modules/ai/config";
 import { buildLanguageModel } from "@/modules/ai/lib/agent";
 import { EMPTY_PROVIDER_KEYS } from "@/modules/ai/lib/keyring";
@@ -15,9 +17,11 @@ import {
 export type CompletionDeps = {
   provider: AutocompleteProviderId;
   modelId: string;
-  /** API key for the configured provider, or null for keyless (LM Studio). */
   apiKey: string | null;
   lmstudioBaseURL: string;
+  mlxBaseURL?: string;
+  ollamaBaseURL?: string;
+  openaiCompatibleBaseURL?: string;
 };
 
 const MAX_OUTPUT_TOKENS_DEFAULT = 128;
@@ -34,21 +38,24 @@ export async function requestCompletion(
   const modelId =
     deps.modelId.trim() || DEFAULT_AUTOCOMPLETE_MODEL[deps.provider] || "";
   if (!modelId) {
-    throw new Error(
-      `No autocomplete model id set for ${deps.provider}.`,
-    );
+    throw new Error(`No autocomplete model id set for ${deps.provider}.`);
   }
   const keys = { ...EMPTY_PROVIDER_KEYS, [deps.provider]: deps.apiKey };
   const model = await buildLanguageModel(deps.provider, keys, modelId, {
     lmstudioBaseURL: deps.lmstudioBaseURL || LMSTUDIO_DEFAULT_BASE_URL,
+    mlxBaseURL: deps.mlxBaseURL,
+    ollamaBaseURL: deps.ollamaBaseURL,
+    openaiCompatibleBaseURL: deps.openaiCompatibleBaseURL,
   });
 
-  const isReasoning = /\bgpt-oss\b/i.test(modelId);
+  const isReasoning = modelUsesReasoningTokens(deps.provider, modelId);
   const providerOptions = isReasoning
     ? {
+        anthropic: { effort: "low" },
         cerebras: { reasoningEffort: "low" },
         groq: { reasoningEffort: "low" },
         openai: { reasoningEffort: "low" },
+        xai: { reasoningEffort: "low" },
       }
     : undefined;
 
@@ -61,7 +68,9 @@ export async function requestCompletion(
       : MAX_OUTPUT_TOKENS_DEFAULT,
     maxRetries: 0,
     abortSignal: signal,
-    temperature: 0.2,
+    ...(modelSupportsTemperature(deps.provider, modelId)
+      ? { temperature: 0.1 }
+      : {}),
     ...(providerOptions ? { providerOptions } : {}),
   });
 

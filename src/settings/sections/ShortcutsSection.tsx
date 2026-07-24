@@ -1,25 +1,3 @@
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
-import { usePreferencesStore } from "@/modules/settings/preferences";
-import { setShortcuts } from "@/modules/settings/store";
-import {
-  getBindingTokens,
-  SHORTCUTS,
-  SHORTCUT_GROUPS,
-  type KeyBinding,
-  type Shortcut,
-  type ShortcutId,
-} from "@/modules/shortcuts/shortcuts";
-import {
-  ArrowTurnBackwardIcon,
-  Search01Icon,
-  Delete02Icon,
-} from "@hugeicons/core-free-icons";
-import { HugeiconsIcon } from "@hugeicons/react";
-import { useEffect, useState, useMemo } from "react";
-import { useTranslation } from "react-i18next";
-import { SectionHeader } from "../components/SectionHeader";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +8,28 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import { usePreferencesStore } from "@/modules/settings/preferences";
+import { setShortcuts } from "@/modules/settings/store";
+import {
+  getBindingTokens,
+  type KeyBinding,
+  SHORTCUT_GROUPS,
+  SHORTCUTS,
+  type Shortcut,
+  type ShortcutId,
+} from "@/modules/shortcuts/shortcuts";
+import {
+  ArrowTurnBackwardIcon,
+  Delete02Icon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { SectionHeader } from "../components/SectionHeader";
 
 export function ShortcutsSection() {
   const { t } = useTranslation();
@@ -39,16 +39,18 @@ export function ShortcutsSection() {
   const [resetDialogOpen, setResetDialogOpen] = useState(false);
 
   const filteredShortcuts = useMemo(() => {
-    // Filter out internal/non-overridable shortcuts like tab.selectByIndex
+    // Filter out internal/non-overridable shortcuts like tab.selectByIndex.
     const base = SHORTCUTS.filter((s) => s.id !== "tab.selectByIndex");
     if (!search) return base;
     const lower = search.toLowerCase();
-    return base.filter(
-      (s) =>
-        s.label.toLowerCase().includes(lower) ||
+    return base.filter((s) => {
+      const label = t(`shortcuts.labels.${s.id}`, { defaultValue: s.label });
+      return (
+        label.toLowerCase().includes(lower) ||
         s.group.toLowerCase().includes(lower)
-    );
-  }, [search]);
+      );
+    });
+  }, [search, t]);
 
   const onRecord = (id: ShortcutId, binding: KeyBinding) => {
     const next = { ...userShortcuts, [id]: [binding] };
@@ -117,7 +119,7 @@ export function ShortcutsSection() {
           return (
             <div key={group} className="flex flex-col gap-3">
               <h3 className="text-[11px] font-semibold tracking-wider text-muted-foreground uppercase">
-                {group}
+                {t(`shortcuts.groups.${group}`, { defaultValue: group })}
               </h3>
               <div className="flex flex-col divide-y divide-border/40 rounded-lg border border-border/60 bg-card/40 overflow-hidden">
                 {items.map((s) => (
@@ -190,7 +192,9 @@ function ShortcutRow({
   return (
     <div className="group flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-muted/30">
       <div className="flex flex-col gap-0.5">
-        <span className="text-[12.5px] font-medium">{shortcut.label}</span>
+        <span className="text-[12.5px] font-medium">
+        {t(`shortcuts.labels.${shortcut.id}`, { defaultValue: shortcut.label })}
+      </span>
       </div>
 
       <div className="flex items-center gap-2">
