@@ -35,7 +35,7 @@
   "bundle": {
     "active": true,
     "targets": "all",
-    "createUpdaterArtifacts": true,
+    "createUpdaterArtifacts": false,
     "copyright": "Copyright 2026 Crynta",
     "license": "Apache-2.0",
     "publisher": "Crynta",
@@ -100,15 +100,8 @@
           "html", "htm", "css", "scss", "sass", "less", "vue", "svelte",
           "xml", "yaml", "yml", "toml", "ini", "cfg", "conf", "properties",
           "sh", "bash", "zsh", "sql", "graphql", "proto"
-        ]
-      }
-    ]
-  },
-  "plugins": {
-    "updater": {
-      "endpoints": [
-        "https://github.com/crynta/terax-ai/releases/latest/download/latest.json"
       ]
     }
-  }
+  ]
+}
 }
