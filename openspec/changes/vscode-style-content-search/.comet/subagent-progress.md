@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P5 Task 5.4 — App.tsx 渲染 <SearchPanel /> 分支
-- OpenSpec task: （与 5.1 共属 "sidebar 集成"）
+- Plan task: P5 Task 5.5 — 切换 tab 不丢失搜索状态（state hoist 到 App 层 + SearchPanel 改受控）
+- OpenSpec task: 切换 tab 不丢失当前搜索状态（保留输入与结果在内存）
 
 ## Completed tasks
 
@@ -31,6 +31,7 @@
 - ✅ Task 5.1 — sidebar types.ts (commit efd40c1)
 - ✅ Task 5.2 — useSidebarPanel accepts "search" (commit 1a53fbd)
 - ✅ Task 5.3 — SidebarRail Search item (commit b9f6bad)
+- ✅ Task 5.4 — App.tsx SearchPanel branch (commit 5bc2060)
 
 ## Pre-flight notes
 
