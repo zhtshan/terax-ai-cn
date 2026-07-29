@@ -173,6 +173,45 @@ describe("useSearchRun", () => {
     expect(searchContent).not.toHaveBeenCalled();
   });
 
+  it("cancels_stale_results_when_input_becomes_null", async () => {
+    // Regression for I2: when input transitions to null while a previous
+    // search is in flight, the early-return path must bump the generation
+    // so the stale promise resolves to a stale myGen and is discarded.
+    let resolveSearch!: (res: GrepResponse) => void;
+    searchContent.mockImplementation(
+      () => new Promise<GrepResponse>((resolve) => {
+        resolveSearch = resolve;
+      }),
+    );
+
+    const { rerender, result } = renderHook(
+      ({ input }: { input: SearchInput | null }) =>
+        useSearchRun({ input, debounceMs: 100 }),
+      { initialProps: { input: { ...sampleInput, pattern: "first" } } },
+    );
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(100);
+    });
+    expect(searchContent).toHaveBeenCalledTimes(1);
+
+    // Clear input — early return path must bump generation.
+    rerender({ input: null });
+
+    const staleResponse: GrepResponse = {
+      hits: [{ path: "/stale.ts", rel: "stale.ts", line: 0, text: "first" }],
+      truncated: false,
+      files_scanned: 0,
+    };
+    await act(async () => {
+      resolveSearch(staleResponse);
+    });
+
+    expect(result.current.results).toBeNull();
+    expect(result.current.loading).toBe(false);
+    expect(result.current.error).toBeNull();
+  });
+
   it("retry() bumps the retry token and re-fires the search", async () => {
     searchContent.mockResolvedValue(sampleResponse);
 

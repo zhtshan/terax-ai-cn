@@ -28,6 +28,10 @@ export function useSearchRun(options: UseSearchRunOptions): UseSearchRunState {
   // biome-ignore lint/correctness/useExhaustiveDependencies: retryToken is a manual re-run trigger (does not need to be read inside the effect)
   useEffect(() => {
     if (!enabled || !input) {
+      // Bump the generation so any in-flight promise from a previous query
+      // resolves against a stale generation and is silently dropped instead
+      // of overwriting the cleared results below.
+      generationRef.current += 1;
       setResults(null);
       setLoading(false);
       setError(null);
