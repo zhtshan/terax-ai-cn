@@ -10,15 +10,16 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P1 Task 1.2 — `HARD_MAX_RESULTS` 从 2000 提升到 20000
-- OpenSpec task: `HARD_MAX_RESULTS` 从 2000 提升到 20000，跑现有测试确认无回归
+- Plan task: P1 Task 1.3 — 抽出公共 `build_matcher` helper
+- OpenSpec task: 在 `grep.rs` 抽出公共 search helper（参数化 matcher + include glob + exclude glob + cancel）
 
 ## Completed tasks
 
 - ✅ Task 1.1 — write_atomic visibility + grep.rs use (commit ab5c31e)
-  - DONE_WITH_CONCERNS: implementer found package name is `terax` not `terax-tauri`; cargo-nextest not installed (use `cargo test --locked` fallback per TERAX.md)
-  - unused import warning expected (resolved by Task 1.5)
-  - Validated: `cargo build --locked` from src-tauri passes
+  - DONE_WITH_CONCERNS: package name is `terax` not `terax-tauri`; cargo-nextest not installed
+- ✅ Task 1.2 — HARD_MAX_RESULTS 2000 → 20000 (commit e67134e)
+  - DONE; clean TDD red/green
+  - Note: test fn name auto-renamed to snake_case (`hard_max_results_constant_is_20000`) for clippy; commit body explains
 
 ## Pre-flight notes
 
