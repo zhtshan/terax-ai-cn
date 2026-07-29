@@ -321,14 +321,8 @@ fn fs_search_content_inner(
 
     let matcher = build_matcher(&pattern, regex, case_sensitive, whole_word)?;
 
-    let include_slice: &[String] = match include.as_ref() {
-        Some(s) => std::slice::from_ref(s),
-        None => &[],
-    };
-    let exclude_slice: &[String] = match exclude.as_ref() {
-        Some(s) => std::slice::from_ref(s),
-        None => &[],
-    };
+    let include_slice: &[String] = include.as_slice();
+    let exclude_slice: &[String] = exclude.as_slice();
     let include_globs = build_globset(include_slice)?;
     let exclude_globs = build_globset(exclude_slice)?;
 
@@ -428,14 +422,8 @@ fn fs_replace_all_inner(
 
     let matcher = build_matcher(&pattern, regex, case_sensitive, whole_word)?;
 
-    let include_slice: &[String] = match include.as_ref() {
-        Some(s) => std::slice::from_ref(s),
-        None => &[],
-    };
-    let exclude_slice: &[String] = match exclude.as_ref() {
-        Some(s) => std::slice::from_ref(s),
-        None => &[],
-    };
+    let include_slice: &[String] = include.as_slice();
+    let exclude_slice: &[String] = exclude.as_slice();
     let include_globs = build_globset(include_slice)?;
     let exclude_globs = build_globset(exclude_slice)?;
 
@@ -489,7 +477,7 @@ fn fs_replace_all_inner(
         // can't shift the byte offsets that later line numbers refer to. With
         // split-by-'\n' the index-based mutation is order-independent, but
         // sorting matches the spec.
-        line_hits.sort_by(|a, b| b.0.cmp(&a.0));
+        line_hits.sort_by_key(|h| std::cmp::Reverse(h.0));
 
         let mut count = 0usize;
         for (line_no, _) in &line_hits {
