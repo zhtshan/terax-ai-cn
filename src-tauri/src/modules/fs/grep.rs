@@ -1154,4 +1154,72 @@ mod tests {
         let after = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
         assert_eq!(after, "BAZ\nBAZ\nbar\nBAZ\n");
     }
+
+    /// Contract lock: `fs_replace_all` trusts its caller — the frontend
+    /// (`useReplaceRun`) is the single source of deny-list enforcement. The
+    /// backend must NOT re-introduce a secret-path deny-list of its own;
+    /// `fs_write_file` already routes through `write_atomic` without one, and
+    /// `fs_replace_all` reuses `write_atomic` for the same reason. If a future
+    /// refactor adds a server-side deny-list here, this test will fail and
+    /// signal that the architectural contract has been violated.
+    ///
+    /// Note: the deny-list lives in the frontend
+    /// `src/modules/ai/lib/security.ts` (`SECRET_BASENAME_PATTERNS`) and is
+    /// applied by `checkWritableCanonical` before any IPC call. The backend
+    /// intentionally does not duplicate that check.
+    ///
+    /// We use `secrets.json` (which matches `/^secrets?\.(json|ya?ml|toml|env)/i`
+    /// in the front-end deny-list) rather than `.env` because the search
+    /// walker also applies `.hidden(true)` and would skip a hidden file for
+    /// the unrelated reason that it starts with a dot. The deny-list contract
+    /// we want to lock is separate from the ignore-walker's hidden-file
+    /// policy.
+    #[test]
+    fn fs_replace_all_does_not_block_secret_paths_server_side() {
+        let dir = tempfile::tempdir().unwrap();
+        // File name matches the front-end deny-list pattern for secrets —
+        // the backend must NOT inspect this name and must complete the
+        // replacement as it would for any other file.
+        std::fs::write(
+            dir.path().join("secrets.json"),
+            "{\"token\": \"find me here\"}\n",
+        )
+        .unwrap();
+
+        let resp = fs_replace_all_inner(
+            "find".into(),
+            "REPLACED".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            true,  // case_sensitive
+            false, // whole_word
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all must succeed — server does not deny-list");
+
+        assert_eq!(
+            resp.files_changed.len(),
+            1,
+            "fs_replace_all trusts its caller; secrets.json MUST be rewritten, \
+             got files_changed={:?}",
+            resp.files_changed
+        );
+        assert!(
+            resp.errors.is_empty(),
+            "no server-side deny-list means no spurious errors, got errors={:?}",
+            resp.errors
+        );
+        assert_eq!(
+            resp.total_replacements, 1,
+            "single line containing 'find' should be replaced"
+        );
+
+        let after = std::fs::read_to_string(dir.path().join("secrets.json")).unwrap();
+        assert_eq!(
+            after, "{\"token\": \"REPLACED me here\"}\n",
+            "secrets.json content must be rewritten by the server; deny-list is a frontend concern"
+        );
+    }
 }
