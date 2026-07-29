@@ -187,7 +187,7 @@ describe("useSearchRun", () => {
     const { rerender, result } = renderHook(
       ({ input }: { input: SearchInput | null }) =>
         useSearchRun({ input, debounceMs: 100 }),
-      { initialProps: { input: { ...sampleInput, pattern: "first" } } },
+      { initialProps: { input: { ...sampleInput, pattern: "first" } as SearchInput | null } },
     );
 
     await act(async () => {
