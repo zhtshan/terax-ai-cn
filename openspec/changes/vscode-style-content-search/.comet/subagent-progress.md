@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P6 Task 6.1 — 新增 searchPanel.* key（英文）
-- OpenSpec task: 新增 i18n key 到 src/i18n/locales/en.json + zh.json（search.*）
+- Plan task: P6 Task 6.2 — 新增 searchPanel.* key（中文）
+- OpenSpec task: （与 6.1 共属 i18n）
 
 ## Completed tasks
 
@@ -35,10 +35,7 @@
 - ✅ Task 5.5 — state hoist (commit dfb11d5)
 - ✅ Task 5.6 — shortcut migration (commit efa3a18) — out-of-scope store.ts touch
 - ✅ Task 5.7 — # mode already clean (empty commit 23c51df)
-
-## Scope violations to flag in verify
-
-- `settings/store.ts` (in Task 5.6 commit efa3a18) — `ModelId` type relaxed to `string` to allow compat model IDs. Looks like a separate concern that should be its own change.
+- ✅ Task 6.1 — en.json i18n (commit 51a4330)
 
 ## Pre-flight notes
 
