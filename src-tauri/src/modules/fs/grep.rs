@@ -65,6 +65,42 @@ fn escape_literal(s: &str) -> String {
     out
 }
 
+/// Build a [`RegexMatcher`] from a user-facing pattern.
+///
+/// Parameters:
+/// - `pattern`: the raw user input.
+/// - `regex`: when true, treat `pattern` as a user-authored regex (no escaping).
+/// - `case_sensitive`: explicit case-sensitivity toggle. When `false`, smart-case
+///   is enabled for literal patterns and plain case-insensitivity for regex.
+/// - `whole_word`: when true (literal mode only), wrap the pattern in `\b…\b`.
+///   In regex mode, the user is expected to add their own word boundaries.
+fn build_matcher(
+    pattern: &str,
+    regex: bool,
+    case_sensitive: bool,
+    whole_word: bool,
+) -> Result<RegexMatcher, String> {
+    let mut builder = RegexMatcherBuilder::new();
+    builder.line_terminator(Some(b'\n'));
+
+    if regex {
+        // User owns the pattern verbatim; smart-case off, case_sensitive explicit.
+        builder.case_smart(false).case_insensitive(!case_sensitive);
+    } else {
+        builder.case_smart(!case_sensitive);
+    }
+
+    let body = if regex {
+        pattern.to_string()
+    } else if whole_word {
+        format!("\\b{}\\b", escape_literal(pattern))
+    } else {
+        escape_literal(pattern)
+    };
+
+    builder.build(&body).map_err(|e| format!("bad pattern: {e}"))
+}
+
 #[allow(clippy::too_many_arguments)]
 fn search_tree(
     root_path: &Path,
@@ -191,11 +227,7 @@ pub fn fs_grep(
         .unwrap_or(DEFAULT_MAX_RESULTS)
         .clamp(1, HARD_MAX_RESULTS);
 
-    let matcher = RegexMatcherBuilder::new()
-        .case_insensitive(case_insensitive.unwrap_or(false))
-        .line_terminator(Some(b'\n'))
-        .build(&pattern)
-        .map_err(|e| format!("bad regex: {e}"))?;
+    let matcher = build_matcher(&pattern, true, !case_insensitive.unwrap_or(false), false)?;
 
     let globs = build_globset(glob.as_deref().unwrap_or(&[]))?;
 
@@ -234,11 +266,7 @@ pub fn fs_grep_interactive(
         .unwrap_or(DEFAULT_MAX_RESULTS)
         .clamp(1, HARD_MAX_RESULTS);
 
-    let matcher = RegexMatcherBuilder::new()
-        .case_smart(true)
-        .line_terminator(Some(b'\n'))
-        .build(&escape_literal(&pattern))
-        .map_err(|e| format!("bad pattern: {e}"))?;
+    let matcher = build_matcher(&pattern, false, false, false)?;
 
     let cancel = || state.generation.load(Ordering::SeqCst) != my_gen;
     Ok(search_tree(
@@ -347,6 +375,7 @@ fn display_path(
 #[cfg(test)]
 mod tests {
     use super::*;
+    use grep_matcher::Matcher;
 
     #[test]
     fn escape_literal_escapes_regex_meta() {
@@ -373,5 +402,64 @@ mod tests {
         let stopped =
             search_tree(dir.path(), &root_display, &ws, &matcher, &None, 100, &|| true);
         assert!(stopped.hits.is_empty(), "cancelled search yields nothing");
+    }
+
+    // -- build_matcher helper tests ------------------------------------------
+
+    #[test]
+    fn build_matcher_escapes_literal_whole_word_off() {
+        // literal + ww=false + plain pattern "plain" → case_smart(true) means:
+        // no uppercase letters → case-insensitive
+        let m = build_matcher("plain", false, false, false).expect("literal matcher ok");
+        // matches exact case
+        let hit = m.is_match(b"plain").unwrap();
+        assert!(hit, "should match 'plain'");
+        // matches different case (smart-case: no uppercase → ci)
+        let hit_ci = m.is_match(b"Plain").unwrap();
+        assert!(hit_ci, "smart-case: lowercase-only pattern should match 'Plain'");
+    }
+
+    #[test]
+    fn build_matcher_wraps_whole_word_when_literal() {
+        // literal + ww=true + "test" → \b...\b wrapped, case_smart
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "is a test.\ntesting\n").unwrap();
+        let matcher = build_matcher("test", false, false, true).expect("literal ww matcher ok");
+        let ws = WorkspaceEnv::from_option(None);
+        let root_display = dir.path().to_string_lossy().to_string();
+        let resp = search_tree(dir.path(), &root_display, &ws, &matcher, &None, 100, &|| false);
+        assert_eq!(resp.hits.len(), 1, "ww=true should match 'test' but not 'testing'");
+        assert!(resp.hits[0].text.contains("test."));
+    }
+
+    #[test]
+    fn build_matcher_passes_regex_through_unchanged() {
+        // regex=true + "[A-Z]+" + case_sensitive=true → regex passes through
+        // unescaped, matches uppercase run; lowercase-only must NOT match.
+        let m = build_matcher("[A-Z]+", true, true, false).expect("regex matcher ok");
+        let hit = m.is_match(b"abc ABC xyz").unwrap();
+        assert!(hit, "regex [A-Z]+ should match uppercase run in 'ABC'");
+        let hit_lower = m.is_match(b"abc").unwrap();
+        assert!(!hit_lower, "regex [A-Z]+ with case_sensitive=true must NOT match lowercase");
+        // Verify the dot metachar is NOT escaped: "a.b" as regex matches "axb".
+        let dot = build_matcher("a.b", true, true, false).expect("dot regex ok");
+        assert!(dot.is_match(b"axb").unwrap(), "'a.b' should match 'axb' (regex, not literal)");
+        // ... and that a literal-escape path would have matched only the literal dots.
+        let lit = build_matcher("a.b", false, false, false).expect("literal ok");
+        assert!(lit.is_match(b"a.b").unwrap(), "literal 'a.b' should match 'a.b'");
+        assert!(!lit.is_match(b"axb").unwrap(), "literal 'a.b' must NOT match 'axb'");
+    }
+
+    #[test]
+    fn build_matcher_case_sensitive_overrides_smart_case_for_regex() {
+        // regex=true + case_sensitive=true + "Foo" → exact case only
+        let m = build_matcher("Foo", true, true, false).expect("regex ci matcher ok");
+        let hit_foo = m.is_match(b"say Foo here").unwrap();
+        assert!(hit_foo, "case_sensitive=true should match exact case 'Foo'");
+        let hit_lower = m.is_match(b"say foo here").unwrap();
+        assert!(
+            !hit_lower,
+            "case_sensitive=true must NOT match 'foo' (smart-case overridden)"
+        );
     }
 }
