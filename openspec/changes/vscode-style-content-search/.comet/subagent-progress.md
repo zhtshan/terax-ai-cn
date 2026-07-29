@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P1 Task 1.8 — 单元测试：fs_replace_all 的部分失败返回结构
-- OpenSpec task: 单元测试：`fs_replace_all` 的部分失败返回结构
+- Plan task: P1 Task 1.9 — Rust 全套检查
+- OpenSpec task: `HARD_MAX_RESULTS` 提升 + Task 1.9 对应 plan 任务
 
 ## Completed tasks
 
@@ -22,7 +22,8 @@
 - ✅ Task 1.5 — fs_replace_all IPC (commit 8d25baa) — DONE_WITH_CONCERNS
 - ✅ Task 1.6 — whole_word integration tests (commit 11f7c97)
 - ✅ Task 1.7 — deny-list contract lock (commit c9c7007)
-  - implementer adapted test fixture from `.env` → `secrets.json` because the walker skips dotfiles (correct observation: `.hidden(true)` is unrelated to deny-list)
+- ✅ Task 1.8 — per-file replacement counts (commit 3f89e62)
+  - Already added in Task 1.5; implementer found the test already passed
 
 ## Pre-flight notes
 
