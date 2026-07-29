@@ -10,7 +10,7 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P3 Task 3.3 — src/modules/search/lib/mode.ts
+- Plan task: P3 Task 3.4 — src/modules/search/lib/highlight.ts
 - OpenSpec task: （plan 中无对应 OpenSpec 行；P3 是前端细节）
 
 ## Completed tasks
@@ -19,6 +19,7 @@
 - ✅ Task 2.1 — IPC handlers registered (commit b5329b6)
 - ✅ Task 3.1 — TS types (commit 0a4e382)
 - ✅ Task 3.2 — api.ts invoke wrappers (commit df27df8)
+- ✅ Task 3.3 — mode.ts (commit ead6f89)
 
 ## Pre-flight notes
 
