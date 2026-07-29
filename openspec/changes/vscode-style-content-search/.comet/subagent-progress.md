@@ -10,7 +10,7 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P5 Task 5.3 — SidebarRail.tsx 新增 Search rail item
+- Plan task: P5 Task 5.4 — App.tsx 渲染 <SearchPanel /> 分支
 - OpenSpec task: （与 5.1 共属 "sidebar 集成"）
 
 ## Completed tasks
@@ -30,6 +30,7 @@
 - ✅ Task 4.7 — index.ts barrel (commit 56ec4e1)
 - ✅ Task 5.1 — sidebar types.ts (commit efd40c1)
 - ✅ Task 5.2 — useSidebarPanel accepts "search" (commit 1a53fbd)
+- ✅ Task 5.3 — SidebarRail Search item (commit b9f6bad)
 
 ## Pre-flight notes
 
