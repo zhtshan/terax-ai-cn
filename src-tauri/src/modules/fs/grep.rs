@@ -108,6 +108,7 @@ fn search_tree(
     workspace: &WorkspaceEnv,
     matcher: &RegexMatcher,
     globs: &Option<GlobSet>,
+    exclude: &Option<GlobSet>,
     cap: usize,
     cancel: &(dyn Fn() -> bool + Sync),
 ) -> GrepResponse {
@@ -128,6 +129,7 @@ fn search_tree(
     walker.run(|| {
         let matcher = matcher.clone();
         let globs = globs.clone();
+        let exclude = exclude.clone();
         let hits = hits.clone();
         let scanned = scanned.clone();
         let truncated = truncated.clone();
@@ -153,6 +155,11 @@ fn search_tree(
             };
             if let Some(set) = globs.as_ref() {
                 if !set.is_match(&rel) {
+                    return WalkState::Continue;
+                }
+            }
+            if let Some(set) = exclude.as_ref() {
+                if set.is_match(&rel) {
                     return WalkState::Continue;
                 }
             }
@@ -237,6 +244,7 @@ pub fn fs_grep(
         &workspace,
         &matcher,
         &globs,
+        &None,
         cap,
         &|| false,
     ))
@@ -275,9 +283,95 @@ pub fn fs_grep_interactive(
         &workspace,
         &matcher,
         &None,
+        &None,
         cap,
         &cancel,
     ))
+}
+
+/// VS Code-style content search. Wraps `search_tree` with `build_matcher` and
+/// an include/exclude glob filter, and reuses `ContentSearchState`'s
+/// generation-based cancellation so a newer query bumps the generation and
+/// in-flight walks quit.
+#[allow(clippy::too_many_arguments)]
+fn fs_search_content_inner(
+    state: &ContentSearchState,
+    pattern: String,
+    root: String,
+    regex: bool,
+    case_sensitive: bool,
+    whole_word: bool,
+    include: Option<String>,
+    exclude: Option<String>,
+    max_results: Option<usize>,
+    workspace: Option<WorkspaceEnv>,
+) -> Result<GrepResponse, String> {
+    if pattern.is_empty() {
+        return Err("empty pattern".into());
+    }
+    let workspace = WorkspaceEnv::from_option(workspace);
+    let root_path = resolve_path(&root, &workspace);
+    if !root_path.is_dir() {
+        return Err(format!("not a directory: {root}"));
+    }
+    let cap = max_results
+        .unwrap_or(DEFAULT_MAX_RESULTS)
+        .clamp(1, HARD_MAX_RESULTS);
+
+    let matcher = build_matcher(&pattern, regex, case_sensitive, whole_word)?;
+
+    let include_slice: &[String] = match include.as_ref() {
+        Some(s) => std::slice::from_ref(s),
+        None => &[],
+    };
+    let exclude_slice: &[String] = match exclude.as_ref() {
+        Some(s) => std::slice::from_ref(s),
+        None => &[],
+    };
+    let include_globs = build_globset(include_slice)?;
+    let exclude_globs = build_globset(exclude_slice)?;
+
+    let my_gen = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
+    let cancel = || state.generation.load(Ordering::SeqCst) != my_gen;
+
+    Ok(search_tree(
+        &root_path,
+        &root,
+        &workspace,
+        &matcher,
+        &include_globs,
+        &exclude_globs,
+        cap,
+        &cancel,
+    ))
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub fn fs_search_content(
+    state: tauri::State<'_, ContentSearchState>,
+    pattern: String,
+    root: String,
+    regex: bool,
+    case_sensitive: bool,
+    whole_word: bool,
+    include: Option<String>,
+    exclude: Option<String>,
+    max_results: Option<usize>,
+    workspace: Option<WorkspaceEnv>,
+) -> Result<GrepResponse, String> {
+    fs_search_content_inner(
+        state.inner(),
+        pattern,
+        root,
+        regex,
+        case_sensitive,
+        whole_word,
+        include,
+        exclude,
+        max_results,
+        workspace,
+    )
 }
 
 #[derive(Serialize)]
@@ -396,11 +490,11 @@ mod tests {
         let ws = WorkspaceEnv::from_option(None);
         let root_display = dir.path().to_string_lossy().to_string();
 
-        let live = search_tree(dir.path(), &root_display, &ws, &matcher, &None, 100, &|| false);
+        let live = search_tree(dir.path(), &root_display, &ws, &matcher, &None, &None, 100, &|| false);
         assert_eq!(live.hits.len(), 1, "uncancelled search finds the match");
 
         let stopped =
-            search_tree(dir.path(), &root_display, &ws, &matcher, &None, 100, &|| true);
+            search_tree(dir.path(), &root_display, &ws, &matcher, &None, &None, 100, &|| true);
         assert!(stopped.hits.is_empty(), "cancelled search yields nothing");
     }
 
@@ -427,7 +521,7 @@ mod tests {
         let matcher = build_matcher("test", false, false, true).expect("literal ww matcher ok");
         let ws = WorkspaceEnv::from_option(None);
         let root_display = dir.path().to_string_lossy().to_string();
-        let resp = search_tree(dir.path(), &root_display, &ws, &matcher, &None, 100, &|| false);
+        let resp = search_tree(dir.path(), &root_display, &ws, &matcher, &None, &None, 100, &|| false);
         assert_eq!(resp.hits.len(), 1, "ww=true should match 'test' but not 'testing'");
         assert!(resp.hits[0].text.contains("test."));
     }
@@ -460,6 +554,123 @@ mod tests {
         assert!(
             !hit_lower,
             "case_sensitive=true must NOT match 'foo' (smart-case overridden)"
+        );
+    }
+
+    // -- fs_search_content tests --------------------------------------------
+
+    #[test]
+    fn fs_search_content_respects_include_glob() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "find me here\n").unwrap();
+        std::fs::write(dir.path().join("b.txt"), "find me too\n").unwrap();
+        std::fs::write(dir.path().join("fs_search.rs"), "find me never\n").unwrap();
+
+        let state = ContentSearchState::default();
+        let resp = fs_search_content_inner(
+            &state,
+            "find".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            true,  // case_sensitive
+            false, // whole_word
+            Some("*.txt".into()),
+            None,
+            Some(100),
+            None,
+        )
+        .expect("include-glob search ok");
+
+        let rels: Vec<&str> = resp.hits.iter().map(|h| h.rel.as_str()).collect();
+        assert!(
+            rels.contains(&"a.txt"),
+            "expected hit on a.txt, got rels={rels:?}"
+        );
+        assert!(
+            rels.contains(&"b.txt"),
+            "expected hit on b.txt, got rels={rels:?}"
+        );
+        assert!(
+            !rels.iter().any(|r| r.contains("fs_search.rs")),
+            "include *.txt must skip fs_search.rs, got rels={rels:?}"
+        );
+        assert_eq!(resp.hits.len(), 2, "exactly 2 .txt hits expected");
+    }
+
+    #[test]
+    fn fs_search_content_respects_exclude_glob() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "find me here\n").unwrap();
+        std::fs::create_dir(dir.path().join("sub")).unwrap();
+        std::fs::write(dir.path().join("sub").join("b.txt"), "find me too\n").unwrap();
+
+        let state = ContentSearchState::default();
+        let resp = fs_search_content_inner(
+            &state,
+            "find".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            true,  // case_sensitive
+            false, // whole_word
+            None,
+            Some("sub/*".into()),
+            Some(100),
+            None,
+        )
+        .expect("exclude-glob search ok");
+
+        let rels: Vec<&str> = resp.hits.iter().map(|h| h.rel.as_str()).collect();
+        assert!(
+            rels.contains(&"a.txt"),
+            "expected hit on a.txt, got rels={rels:?}"
+        );
+        assert!(
+            !rels.iter().any(|r| r.starts_with("sub/")),
+            "exclude sub/* must skip sub/b.txt, got rels={rels:?}"
+        );
+        assert_eq!(resp.hits.len(), 1, "only a.txt expected (sub/* excluded)");
+    }
+
+    #[test]
+    fn fs_search_content_generation_self_cancels() {
+        // Build a directory large enough that the walk takes observable time,
+        // so a generation bump from a sibling thread reliably lands mid-walk.
+        let dir = tempfile::tempdir().unwrap();
+        for i in 0..500 {
+            std::fs::write(dir.path().join(format!("f{i}.txt")), "find me here\n").unwrap();
+        }
+
+        let state = std::sync::Arc::new(ContentSearchState::default());
+
+        // Sibling thread simulates a newer query arriving mid-walk.
+        let state_for_bump = state.clone();
+        let bump_handle = std::thread::spawn(move || {
+            std::thread::sleep(std::time::Duration::from_millis(5));
+            state_for_bump.generation.fetch_add(1, Ordering::SeqCst);
+        });
+
+        let resp = fs_search_content_inner(
+            &state,
+            "find".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            true,  // case_sensitive
+            false, // whole_word
+            None,
+            None,
+            Some(10_000), // generous cap so cancellation is what stops us
+            None,
+        )
+        .expect("search ok");
+
+        bump_handle.join().unwrap();
+
+        // Without cancellation, all 500 files match (1 line each = 500 hits).
+        // With cancellation, hits.len() < 500.
+        assert!(
+            resp.hits.len() < 500,
+            "search should have been cancelled mid-walk, got {} hits (expected < 500)",
+            resp.hits.len()
         );
     }
 }
