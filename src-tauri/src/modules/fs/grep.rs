@@ -15,7 +15,7 @@ use crate::modules::workspace::{resolve_path, WorkspaceEnv};
 
 const FILE_SIZE_CAP: u64 = 5 * 1024 * 1024;
 const DEFAULT_MAX_RESULTS: usize = 200;
-const HARD_MAX_RESULTS: usize = 2000;
+const HARD_MAX_RESULTS: usize = 20000;
 
 /// Supersession counter for interactive content search. Each new interactive
 /// query bumps the generation; in-flight walks observe the change and quit,
@@ -352,6 +352,11 @@ mod tests {
     fn escape_literal_escapes_regex_meta() {
         assert_eq!(escape_literal("a.b(c)"), "a\\.b\\(c\\)");
         assert_eq!(escape_literal("plain text"), "plain text");
+    }
+
+    #[test]
+    fn hard_max_results_constant_is_20000() {
+        assert_eq!(HARD_MAX_RESULTS, 20000);
     }
 
     #[test]
