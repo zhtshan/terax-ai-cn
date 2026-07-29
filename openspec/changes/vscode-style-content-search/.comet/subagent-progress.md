@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P1 Task 1.6 — 单元测试：whole_word 的 regex / 字面量两条路径（重派：首次 BLOCKED 因 implementer 误把 TDD skill 缺失判为 blocker）
-- OpenSpec task: 单元测试：whole_word 的 regex / 字面量两条路径
+- Plan task: P1 Task 1.7 — 单元测试：fs_replace_all 的 secret-path 拒绝路径（**关键**：锁"后端不重复 deny-list"契约——见 Design Doc §8）
+- OpenSpec task: 单元测试：`fs_replace_all` 的 secret-path 拒绝路径
 
 ## Completed tasks
 
@@ -20,6 +20,8 @@
 - ✅ Task 1.3 — extract build_matcher helper (commit f29ddcc)
 - ✅ Task 1.4 — fs_search_content IPC + search_tree exclude (commit 3957a5a)
 - ✅ Task 1.5 — fs_replace_all IPC (commit 8d25baa) — DONE_WITH_CONCERNS
+- ✅ Task 1.6 — whole_word integration tests (commit 11f7c97)
+  - First-pass GREEN because build_matcher behavior was already locked by Task 1.3 unit tests; this task verifies the end-to-end pipeline inherits it correctly.
 
 ## Pre-flight notes
 

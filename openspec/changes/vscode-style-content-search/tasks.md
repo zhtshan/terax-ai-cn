@@ -12,7 +12,7 @@
 - [x] 实现 `fs_replace_all` 命令（内部搜索 + 原子写 + secret-path 拒绝 + workspace 鉴权）
 - [ ] 在 `src-tauri/src/lib.rs` 注册两个新命令
 - [x] 单元测试：`whole_word` 的 regex / 字面量两条路径
-- [ ] 单元测试：`fs_replace_all` 的 secret-path 拒绝路径
+- [x] 单元测试：`fs_replace_all` 的 secret-path 拒绝路径
 - [ ] 单元测试：`fs_replace_all` 的部分失败返回结构
 - [ ] `cargo clippy --all-targets --locked -- -D warnings`
 - [ ] `cargo nextest run --locked`
