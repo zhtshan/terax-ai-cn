@@ -10,17 +10,17 @@ export type ReplaceAffectedBarProps = {
   onReplace: () => void;
 };
 
-function summarize(state: ReplaceState, t: (k: string) => string): {
+type Translator = (k: string, options?: Record<string, unknown>) => string;
+
+function summarize(state: ReplaceState, t: Translator): {
   label: string;
   busy: boolean;
 } {
   switch (state.kind) {
     case "idle":
       return { label: t("searchPanel.replaceAll"), busy: false };
-    case "previewing":
-      return { label: t("searchPanel.replaceAll"), busy: false };
     case "running":
-      return { label: "Replacing…", busy: true };
+      return { label: t("searchPanel.replacing"), busy: true };
     case "done":
       return {
         label: `${t("searchPanel.replaceAll")} — ${state.totalReplacements} done`,
@@ -29,12 +29,12 @@ function summarize(state: ReplaceState, t: (k: string) => string): {
     case "partial": {
       const failedCount = state.errors.length;
       return {
-        label: `Partial — ${failedCount} failed`,
+        label: t("searchPanel.partial", { failed: failedCount }),
         busy: false,
       };
     }
     case "error":
-      return { label: `Error: ${state.message}`, busy: false };
+      return { label: t("searchPanel.error", { message: state.message }), busy: false };
   }
 }
 

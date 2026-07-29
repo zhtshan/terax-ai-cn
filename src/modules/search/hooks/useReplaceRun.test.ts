@@ -92,7 +92,27 @@ describe("useReplaceRun", () => {
     expect(result.current.state.kind).toBe("idle");
   });
 
-  it("preview() counts unique files and hits, transitions to previewing", () => {
+  it("double_click_is_idempotent", async () => {
+    // Regression for I3: the deny-list gate is async, so a fast double-click
+    // could enter `replace()` twice before the first call flipped
+    // state.kind to "running". The inFlightRef guard must reject the
+    // second click before it reaches the gate.
+    replaceAll.mockResolvedValue(okResponse);
+
+    // Track every gate invocation as its own pending promise so we can
+    // drain them deterministically (the original variant leaked the last
+    // captured `resolve` and timed out when more than one path needed to
+    // be checked).
+    const pendingGates: Array<() => void> = [];
+    checkWritableCanonical.mockImplementation(
+      () =>
+        new Promise<{ ok: true; canonical: string }>((resolve) => {
+          pendingGates.push(() =>
+            resolve({ ok: true, canonical: "/canon/path" }),
+          );
+        }),
+    );
+
     const { result } = renderHook(() =>
       useReplaceRun({
         results: sampleResponse,
@@ -101,36 +121,36 @@ describe("useReplaceRun", () => {
       }),
     );
 
+    // Fire two synchronous clicks. The first sets inFlightRef=true before
+    // awaiting the gate, so the second must early-return without entering
+    // the gate loop.
+    let first: Promise<void> | undefined;
+    let second: Promise<void> | undefined;
     act(() => {
-      result.current.preview();
+      first = result.current.replace();
+    });
+    act(() => {
+      second = result.current.replace();
     });
 
-    expect(result.current.state.kind).toBe("previewing");
-    if (result.current.state.kind === "previewing") {
-      expect(result.current.state.files).toBe(2);
-      expect(result.current.state.matches).toBe(3);
-    }
-  });
-
-  it("preview() returns to idle when there are no matches", () => {
-    const emptyResults: GrepResponse = {
-      hits: [],
-      truncated: false,
-      files_scanned: 0,
-    };
-    const { result } = renderHook(() =>
-      useReplaceRun({
-        results: emptyResults,
-        replacement: "haystack",
-        input: sampleInput,
-      }),
-    );
-
-    act(() => {
-      result.current.preview();
+    await act(async () => {
+      // Drain pending gate calls in order — each resolution lets the
+      // hook progress to the next iteration (or to replaceAll).
+      while (pendingGates.length > 0) {
+        const resolve = pendingGates.shift();
+        resolve?.();
+        await Promise.resolve();
+      }
+      if (first) await first;
+      if (second) await second;
     });
 
-    expect(result.current.state.kind).toBe("idle");
+    // The gate should have been entered exactly once (first call only).
+    // sampleResponse has two unique paths, so at most 2 gate checks
+    // — but never more, because the second replace() returned early.
+    expect(checkWritableCanonical).toHaveBeenCalledTimes(2);
+    expect(replaceAll).toHaveBeenCalledTimes(1);
+    expect(result.current.state.kind).toBe("done");
   });
 
   it("replace() walks idle → running → done on a successful batch", async () => {
