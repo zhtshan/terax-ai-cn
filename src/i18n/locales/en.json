@@ -609,6 +609,9 @@
     "exclude": "files to exclude",
     "replaceAll": "Replace All",
     "replaceAffected": "{{files}} files, {{matches}} matches",
+    "replacing": "Replacing…",
+    "partial": "Partial — {{failed}} failed",
+    "error": "Error: {{message}}",
     "truncated": "Results truncated",
     "noResults": "No results found",
     "noWorkspace": "Open a folder to search"

@@ -604,6 +604,9 @@
     "exclude": "排除文件",
     "replaceAll": "全部替换",
     "replaceAffected": "将修改 {{files}} 个文件、{{matches}} 个匹配",
+    "replacing": "替换中…",
+    "partial": "部分完成 — {{failed}} 个失败",
+    "error": "错误：{{message}}",
     "truncated": "结果已截断",
     "noResults": "无结果",
     "noWorkspace": "请先打开工作区"
