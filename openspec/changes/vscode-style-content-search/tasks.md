@@ -25,7 +25,7 @@
 ## 前端 — UI 模块
 
 - [ ] 新增 `src/modules/search/index.ts` 公开导出
-- [ ] 新增 `src/modules/search/hooks/useSearchRun.ts`：防抖 + 自取消（沿用 `ContentSearchState` 思路）
+- [x] 新增 `src/modules/search/hooks/useSearchRun.ts`：防抖 + 自取消（沿用 `ContentSearchState` 思路）
 - [ ] 新增 `src/modules/search/hooks/useReplaceRun.ts`：替换状态机（idle / previewing / running / done / error）
 - [ ] 新增 `src/modules/search/SearchInput.tsx`：搜索 + 替换 + 三件套开关 + include/exclude
 - [ ] 新增 `src/modules/search/SearchResults.tsx`：按文件分组、可折叠、行内高亮

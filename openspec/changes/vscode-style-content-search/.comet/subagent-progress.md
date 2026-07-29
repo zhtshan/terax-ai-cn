@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P3 Task 3.4 — src/modules/search/lib/highlight.ts
-- OpenSpec task: （plan 中无对应 OpenSpec 行；P3 是前端细节）
+- Plan task: P4 Task 4.1 — src/modules/search/hooks/useSearchRun.ts
+- OpenSpec task: 新增 src/modules/search/hooks/useSearchRun.ts：防抖 + 自取消
 
 ## Completed tasks
 
@@ -20,6 +20,7 @@
 - ✅ Task 3.1 — TS types (commit 0a4e382)
 - ✅ Task 3.2 — api.ts invoke wrappers (commit df27df8)
 - ✅ Task 3.3 — mode.ts (commit ead6f89)
+- ✅ Task 3.4 — highlight.ts + tests (commit 3268569)
 
 ## Pre-flight notes
 
