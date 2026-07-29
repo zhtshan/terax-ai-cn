@@ -85,6 +85,7 @@ export function SearchInput({ value, onChange, stats, rootPath }: SearchInputPro
           value={value.pattern}
           onChange={(e) => onChange({ ...value, pattern: e.target.value })}
           placeholder={t("searchPanel.search")}
+          data-search-input="pattern"
           className="h-7 pl-7 pr-2 text-xs"
         />
       </div>
