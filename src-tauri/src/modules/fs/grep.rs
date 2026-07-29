@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
+use grep_matcher::Matcher;
 use grep_regex::{RegexMatcher, RegexMatcherBuilder};
 use grep_searcher::sinks::UTF8;
 use grep_searcher::{BinaryDetection, SearcherBuilder};
@@ -374,6 +375,199 @@ pub fn fs_search_content(
     )
 }
 
+#[derive(Debug, Serialize)]
+pub struct ReplaceFileResult {
+    pub path: String,
+    pub replacements: usize,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ReplaceError {
+    pub path: String,
+    pub reason: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct ReplaceResponse {
+    pub files_changed: Vec<ReplaceFileResult>,
+    pub errors: Vec<ReplaceError>,
+    pub total_replacements: usize,
+    pub truncated: bool,
+}
+
+/// Replace every occurrence (one per matching line) of `pattern` with
+/// `replacement` across all matching files under `root`, then atomically
+/// rewrite each file. Errors are collected per file; the call as a whole
+/// succeeds even if individual files fail. Workspace authorization is
+/// provided upstream by the IPC wrapper that uses `fs::file::fs_write_file`'s
+/// resolve/secret-path chain; this inner function just resolves the root.
+#[allow(clippy::too_many_arguments)]
+fn fs_replace_all_inner(
+    pattern: String,
+    replacement: String,
+    root: String,
+    regex: bool,
+    case_sensitive: bool,
+    whole_word: bool,
+    include: Option<String>,
+    exclude: Option<String>,
+    workspace: Option<WorkspaceEnv>,
+) -> Result<ReplaceResponse, String> {
+    if pattern.is_empty() {
+        return Err("empty pattern".into());
+    }
+    if replacement.is_empty() {
+        return Err("empty replacement".into());
+    }
+
+    let workspace = WorkspaceEnv::from_option(workspace);
+    let root_path = resolve_path(&root, &workspace);
+    if !root_path.is_dir() {
+        return Err(format!("not a directory: {root}"));
+    }
+
+    let matcher = build_matcher(&pattern, regex, case_sensitive, whole_word)?;
+
+    let include_slice: &[String] = match include.as_ref() {
+        Some(s) => std::slice::from_ref(s),
+        None => &[],
+    };
+    let exclude_slice: &[String] = match exclude.as_ref() {
+        Some(s) => std::slice::from_ref(s),
+        None => &[],
+    };
+    let include_globs = build_globset(include_slice)?;
+    let exclude_globs = build_globset(exclude_slice)?;
+
+    let grep = search_tree(
+        &root_path,
+        &root,
+        &workspace,
+        &matcher,
+        &include_globs,
+        &exclude_globs,
+        HARD_MAX_RESULTS,
+        &|| false,
+    );
+
+    // Group hits by path. The UTF8 sink yields one entry per matching line, so
+    // each (path, line) pair is naturally unique — but we dedupe explicitly to
+    // guarantee "first match per line only" even if a future sink change
+    // surfaces multiple matches on the same line.
+    let mut seen: std::collections::HashSet<(String, u64)> = std::collections::HashSet::new();
+    let mut by_path: std::collections::BTreeMap<String, Vec<(u64, String)>> =
+        std::collections::BTreeMap::new();
+    for hit in &grep.hits {
+        if seen.insert((hit.path.clone(), hit.line)) {
+            by_path
+                .entry(hit.path.clone())
+                .or_default()
+                .push((hit.line, hit.text.clone()));
+        }
+    }
+
+    let mut files_changed: Vec<ReplaceFileResult> = Vec::new();
+    let mut errors: Vec<ReplaceError> = Vec::new();
+    let mut total_replacements: usize = 0;
+
+    for (path_str, mut line_hits) in by_path {
+        let target = std::path::Path::new(&path_str);
+        let content = match std::fs::read_to_string(target) {
+            Ok(s) => s,
+            Err(e) => {
+                errors.push(ReplaceError {
+                    path: path_str,
+                    reason: e.to_string(),
+                });
+                continue;
+            }
+        };
+
+        let mut lines: Vec<String> = content.split('\n').map(String::from).collect();
+
+        // Apply replacements in descending line order so earlier substitutions
+        // can't shift the byte offsets that later line numbers refer to. With
+        // split-by-'\n' the index-based mutation is order-independent, but
+        // sorting matches the spec.
+        line_hits.sort_by(|a, b| b.0.cmp(&a.0));
+
+        let mut count = 0usize;
+        for (line_no, _) in &line_hits {
+            let idx = match line_no.checked_sub(1).and_then(|n| usize::try_from(n).ok()) {
+                Some(i) => i,
+                None => continue,
+            };
+            if idx >= lines.len() {
+                continue;
+            }
+            let new_line = if regex {
+                let mut dst: Vec<u8> = Vec::new();
+                matcher
+                    .replace(lines[idx].as_bytes(), &mut dst, |_, d| {
+                        d.extend_from_slice(replacement.as_bytes());
+                        true
+                    })
+                    .map_err(|e| format!("replace error: {e}"))?;
+                String::from_utf8(dst).map_err(|e| format!("utf8 after replace: {e}"))?
+            } else {
+                lines[idx].replacen(pattern.as_str(), replacement.as_str(), 1)
+            };
+            if new_line != lines[idx] {
+                lines[idx] = new_line;
+                count += 1;
+            }
+        }
+
+        let new_content = lines.join("\n");
+        if let Err(e) = write_atomic(target, new_content.as_bytes()) {
+            errors.push(ReplaceError {
+                path: path_str,
+                reason: e.to_string(),
+            });
+            continue;
+        }
+
+        total_replacements += count;
+        files_changed.push(ReplaceFileResult {
+            path: path_str,
+            replacements: count,
+        });
+    }
+
+    Ok(ReplaceResponse {
+        files_changed,
+        errors,
+        total_replacements,
+        truncated: grep.truncated,
+    })
+}
+
+#[tauri::command]
+#[allow(clippy::too_many_arguments)]
+pub fn fs_replace_all(
+    pattern: String,
+    replacement: String,
+    root: String,
+    regex: bool,
+    case_sensitive: bool,
+    whole_word: bool,
+    include: Option<String>,
+    exclude: Option<String>,
+    workspace: Option<WorkspaceEnv>,
+) -> Result<ReplaceResponse, String> {
+    fs_replace_all_inner(
+        pattern,
+        replacement,
+        root,
+        regex,
+        case_sensitive,
+        whole_word,
+        include,
+        exclude,
+        workspace,
+    )
+}
+
 #[derive(Serialize)]
 pub struct GlobHit {
     pub path: String,
@@ -672,5 +866,213 @@ mod tests {
             "search should have been cancelled mid-walk, got {} hits (expected < 500)",
             resp.hits.len()
         );
+    }
+
+    // -- fs_replace_all tests -----------------------------------------------
+
+    #[cfg(unix)]
+    #[test]
+    fn fs_replace_all_partial_failure_continues_remaining_files() {
+        // Strategy: a.txt lives directly under the (writable) root, while
+        // c.txt lives in a sub-directory that we mark read-only (chmod
+        // 0o555). chmod 0o555 on a directory allows listdir and reads
+        // inside it but blocks new file creation — so the searcher still
+        // finds c.txt (read succeeds), our read_to_string still works
+        // (read on the file is permitted), but write_atomic fails because
+        // NamedTempFile::new_in cannot create the staging file in the
+        // read-only sub-directory. a.txt goes through normally. This is
+        // the closest portable approximation to the spec's "b.txt read
+        // fails after search succeeds" intent.
+        use std::os::unix::fs::PermissionsExt;
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "find me here\n").unwrap();
+        std::fs::create_dir(dir.path().join("locked")).unwrap();
+        std::fs::write(dir.path().join("locked").join("c.txt"), "find me three\n").unwrap();
+
+        let locked = dir.path().join("locked");
+        let mut perms = std::fs::metadata(&locked).unwrap().permissions();
+        perms.set_mode(0o555);
+        std::fs::set_permissions(&locked, perms).unwrap();
+
+        let resp = fs_replace_all_inner(
+            "find".into(),
+            "REPLACED".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            true,  // case_sensitive
+            false, // whole_word
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all ok");
+
+        // Restore perms so tempdir cleanup works.
+        let mut perms = std::fs::metadata(&locked).unwrap().permissions();
+        perms.set_mode(0o755);
+        std::fs::set_permissions(&locked, perms).unwrap();
+
+        assert_eq!(
+            resp.files_changed.len(),
+            1,
+            "expected only a.txt to be writable, got files_changed={:?}",
+            resp.files_changed
+        );
+        assert_eq!(
+            resp.errors.len(),
+            1,
+            "expected 1 write error for locked/c.txt, got errors={:?}",
+            resp.errors
+        );
+        assert_eq!(resp.total_replacements, 1, "only a.txt contributed");
+
+        let a = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
+        let c = std::fs::read_to_string(dir.path().join("locked").join("c.txt")).unwrap();
+        assert_eq!(a, "REPLACED me here\n", "a.txt should be replaced");
+        assert_eq!(c, "find me three\n", "locked/c.txt must remain unchanged on write failure");
+    }
+
+    #[test]
+    fn fs_replace_all_skips_binary_files() {
+        let dir = tempfile::tempdir().unwrap();
+        // PNG header with the word "find" somewhere inside, but null byte forces
+        // binary detection (`BinaryDetection::quit(b'\x00')`).
+        let png = b"\x89PNG\r\n\x1a\n\x00\x00\x00\rIHDR find me here\n";
+        std::fs::write(dir.path().join("img.png"), png).unwrap();
+        std::fs::write(dir.path().join("ok.txt"), "find me too\n").unwrap();
+
+        let resp = fs_replace_all_inner(
+            "find".into(),
+            "REPLACED".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            true,  // case_sensitive
+            false, // whole_word
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all ok");
+
+        // Binary file should be skipped — no hits, not in files_changed, no error.
+        let png_after = std::fs::read(dir.path().join("img.png")).unwrap();
+        assert_eq!(png_after, png, "binary file must remain unchanged");
+        let rels: Vec<&str> = resp
+            .files_changed
+            .iter()
+            .map(|f| std::path::Path::new(&f.path).file_name().unwrap().to_str().unwrap())
+            .collect();
+        assert_eq!(resp.files_changed.len(), 1, "only ok.txt expected");
+        assert!(rels.contains(&"ok.txt"), "ok.txt should be in files_changed");
+        assert!(!rels.contains(&"img.png"), "img.png must be skipped");
+        assert_eq!(resp.errors.len(), 0);
+        assert_eq!(resp.total_replacements, 1);
+        assert!(!resp.truncated);
+    }
+
+    #[test]
+    fn fs_replace_all_respects_exclude_glob() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "find me here\n").unwrap();
+        std::fs::create_dir(dir.path().join("sub")).unwrap();
+        std::fs::write(dir.path().join("sub").join("b.txt"), "find me too\n").unwrap();
+
+        let resp = fs_replace_all_inner(
+            "find".into(),
+            "REPLACED".into(),
+            dir.path().to_string_lossy().to_string(),
+            false,
+            true,
+            false,
+            None,
+            Some("sub/*".into()),
+            None,
+        )
+        .expect("replace_all ok");
+
+        let rels: Vec<&str> = resp
+            .files_changed
+            .iter()
+            .map(|f| std::path::Path::new(&f.path).file_name().unwrap().to_str().unwrap())
+            .collect();
+        assert_eq!(resp.files_changed.len(), 1, "only a.txt expected");
+        assert!(rels.contains(&"a.txt"));
+        let sub_after = std::fs::read_to_string(dir.path().join("sub").join("b.txt")).unwrap();
+        assert_eq!(sub_after, "find me too\n", "sub/b.txt must remain unchanged");
+        assert_eq!(resp.total_replacements, 1);
+    }
+
+    #[test]
+    fn fs_replace_all_zero_match_returns_empty_files_changed() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "no match here\n").unwrap();
+
+        let resp = fs_replace_all_inner(
+            "definitely_not_present".into(),
+            "REPLACED".into(),
+            dir.path().to_string_lossy().to_string(),
+            false,
+            true,
+            false,
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all ok");
+
+        assert!(resp.files_changed.is_empty(), "no files should be touched");
+        assert!(resp.errors.is_empty());
+        assert_eq!(resp.total_replacements, 0);
+        assert!(!resp.truncated);
+    }
+
+    #[test]
+    fn fs_replace_all_first_match_per_line_only() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "abc abc abc\n").unwrap();
+
+        let resp = fs_replace_all_inner(
+            "abc".into(),
+            "XYZ".into(),
+            dir.path().to_string_lossy().to_string(),
+            false,
+            true,
+            false,
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all ok");
+
+        assert_eq!(resp.total_replacements, 1, "only first match per line counts");
+        assert_eq!(resp.files_changed.len(), 1);
+        assert_eq!(resp.files_changed[0].replacements, 1);
+        let after = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
+        assert_eq!(after, "XYZ abc abc\n", "only first abc replaced");
+    }
+
+    #[test]
+    fn fs_replace_all_reports_per_file_replacement_counts() {
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "foo\nfoo\nbar\nfoo\n").unwrap();
+
+        let resp = fs_replace_all_inner(
+            "foo".into(),
+            "BAZ".into(),
+            dir.path().to_string_lossy().to_string(),
+            false,
+            true,
+            false,
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all ok");
+
+        assert_eq!(resp.total_replacements, 3);
+        assert_eq!(resp.files_changed.len(), 1);
+        assert_eq!(resp.files_changed[0].replacements, 3);
+        let after = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
+        assert_eq!(after, "BAZ\nBAZ\nbar\nBAZ\n");
     }
 }
