@@ -34,7 +34,14 @@ import {
   useEditorFileSync,
 } from "@/modules/editor";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
-import { SearchPanel, type SearchPanelHandle } from "@/modules/search";
+import {
+  SearchPanel,
+  type SearchInputOptions,
+  type SearchPanelHandle,
+  buildSearchInput,
+  useReplaceRun,
+  useSearchRun,
+} from "@/modules/search";
 import type { GitHistorySearchHandle } from "@/modules/git-history";
 import {
   Header,
@@ -322,6 +329,36 @@ export default function App() {
   );
 
   useWindowTitle(activeTab, explorerRoot);
+
+  // SearchPanel state hoisted to App so sidebar tab switches don't lose it
+  const [searchOptions, setSearchOptions] = useState<SearchInputOptions>({
+    pattern: "",
+    replacement: "",
+    regex: false,
+    case_sensitive: false,
+    whole_word: false,
+    include: "",
+    exclude: "",
+  });
+
+  const searchBuilt = useMemo(() => {
+    if (!explorerRoot) return null;
+    if (searchOptions.pattern.length === 0) return null;
+    return buildSearchInput({
+      ...searchOptions,
+      root: explorerRoot,
+    });
+  }, [explorerRoot, searchOptions]);
+
+  const searchRun = useSearchRun({
+    input: searchBuilt,
+    enabled: searchBuilt !== null,
+  });
+  const replaceRun = useReplaceRun({
+    results: searchRun.results,
+    replacement: searchOptions.replacement,
+    input: searchBuilt,
+  });
 
   useEffect(() => {
     setActiveSearchAddon(
@@ -1229,6 +1266,13 @@ export default function App() {
                       <SearchPanel
                         ref={searchPanelRef}
                         rootPath={explorerRoot}
+                        options={searchOptions}
+                        onOptionsChange={setSearchOptions}
+                        results={searchRun.results}
+                        loading={searchRun.loading}
+                        error={searchRun.error}
+                        replaceState={replaceRun.state}
+                        onReplace={() => void replaceRun.replace()}
                       />
                     ) : (
                       <SourceControlPanel

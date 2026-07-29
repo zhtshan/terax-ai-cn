@@ -1,10 +1,9 @@
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useState } from "react";
-import { SearchInput, type SearchInputOptions, type SearchInputStats } from "./SearchInput";
+import { forwardRef, useImperativeHandle, useMemo } from "react";
+import { SearchInput, type SearchInputOptions } from "./SearchInput";
 import { SearchResults } from "./SearchResults";
 import { ReplaceAffectedBar } from "./ReplaceAffectedBar";
-import { useSearchRun } from "./hooks/useSearchRun";
-import { useReplaceRun } from "./hooks/useReplaceRun";
-import { buildSearchInput } from "./lib/mode";
+import type { GrepResponse } from "./lib/types";
+import type { ReplaceState } from "./hooks/useReplaceRun";
 
 export type SearchPanelHandle = {
   focusSearchInput: () => void;
@@ -12,22 +11,28 @@ export type SearchPanelHandle = {
 
 export type SearchPanelProps = {
   rootPath: string | null;
+  options: SearchInputOptions;
+  onOptionsChange: (next: SearchInputOptions) => void;
+  results: GrepResponse | null;
+  loading: boolean;
+  error: string | null;
+  replaceState: ReplaceState;
+  onReplace: () => void;
 };
 
 export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(function SearchPanel(
-  { rootPath },
+  {
+    rootPath,
+    options,
+    onOptionsChange,
+    results,
+    loading,
+    error,
+    replaceState,
+    onReplace,
+  },
   ref,
 ) {
-  const [options, setOptions] = useState<SearchInputOptions>({
-    pattern: "",
-    replacement: "",
-    regex: false,
-    case_sensitive: false,
-    whole_word: false,
-    include: "",
-    exclude: "",
-  });
-
   useImperativeHandle(
     ref,
     () => ({
@@ -41,71 +46,49 @@ export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(funct
     [],
   );
 
-  const built = useMemo(() => {
-    if (!rootPath) return null;
-    if (options.pattern.length === 0) return null;
-    return buildSearchInput({
-      ...options,
-      root: rootPath,
-    });
-  }, [options, rootPath]);
-
-  const search = useSearchRun({ input: built, enabled: built !== null });
-  const replace = useReplaceRun({
-    results: search.results,
-    replacement: options.replacement,
-    input: built,
-  });
-
-  const stats: SearchInputStats | null = useMemo(() => {
-    if (!search.results) return null;
+  const stats = useMemo(() => {
+    if (!results) return null;
     return {
-      filesScanned: search.results.files_scanned,
-      totalMatches: search.results.hits.length,
-      truncated: search.results.truncated,
+      filesScanned: results.files_scanned,
+      totalMatches: results.hits.length,
+      truncated: results.truncated,
     };
-  }, [search.results]);
+  }, [results]);
 
   const affectedCounts = useMemo(() => {
-    if (!search.results) return { files: 0, matches: 0 };
+    if (!results) return { files: 0, matches: 0 };
     const byFile = new Map<string, number>();
-    for (const hit of search.results.hits) {
+    for (const hit of results.hits) {
       byFile.set(hit.path, (byFile.get(hit.path) ?? 0) + 1);
     }
-    return { files: byFile.size, matches: search.results.hits.length };
-  }, [search.results]);
-
-  const onReplaceClick = useCallback(() => {
-    void replace.replace();
-  }, [replace]);
+    return { files: byFile.size, matches: results.hits.length };
+  }, [results]);
 
   return (
     <div className="flex h-full min-h-0 flex-col">
-      <SearchInput
-        value={options}
-        onChange={setOptions}
-        stats={stats}
-        rootPath={rootPath}
-      />
-      {search.error ? (
-        <div className="px-3 py-2 text-[11px] text-destructive">{search.error}</div>
+      <SearchInput value={options} onChange={onOptionsChange} stats={stats} rootPath={rootPath} />
+      {error ? (
+        <div className="px-3 py-2 text-[11px] text-destructive">{error}</div>
+      ) : null}
+      {loading ? (
+        <div className="px-3 py-1 text-[11px] text-muted-foreground">Searching…</div>
       ) : null}
       <SearchResults
-        hits={search.results?.hits ?? []}
+        hits={results?.hits ?? []}
         pattern={options.pattern}
         options={{
           regex: options.regex,
           case_sensitive: options.case_sensitive,
           whole_word: options.whole_word,
         }}
-        truncated={search.results?.truncated}
+        truncated={results?.truncated}
       />
       <ReplaceAffectedBar
         replacement={options.replacement}
         affectedFiles={affectedCounts.files}
         totalMatches={affectedCounts.matches}
-        replaceState={replace.state}
-        onReplace={onReplaceClick}
+        replaceState={replaceState}
+        onReplace={onReplace}
       />
     </div>
   );
