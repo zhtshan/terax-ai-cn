@@ -33,7 +33,8 @@ export type ShortcutId =
   | "blocks.prev"
   | "blocks.next"
   | "search.focus"
-  | "explorer.search"
+  | "search.focusPanel"
+  | "explorer.findFiles"
   | "explorer.focus"
   | "view.zoomIn"
   | "view.zoomOut"
@@ -255,8 +256,14 @@ export const SHORTCUTS: Shortcut[] = [
     defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "s" }],
   },
   {
-    id: "explorer.search",
-    label: "Search files",
+    id: "explorer.findFiles",
+    label: "Find files",
+    group: "Search",
+    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "k" }],
+  },
+  {
+    id: "search.focusPanel",
+    label: "Open search panel",
     group: "Search",
     defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "f" }],
   },

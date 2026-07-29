@@ -908,7 +908,7 @@
       "space.next": "Next space",
       "space.prev": "Previous space",
       "space.overview": "Open spaces",
-      "explorer.search": "Search files",
+      "explorer.findFiles": "Find files",
       "search.focus": "Find in tab",
       "ai.toggle": "Toggle AI agent",
       "ai.toggleMini": "Toggle AI chat window",

@@ -908,7 +908,7 @@
       "space.next": "下一个空间",
       "space.prev": "上一个空间",
       "space.overview": "打开空间",
-      "explorer.search": "搜索文件",
+      "explorer.findFiles": "查找文件",
       "search.focus": "在标签页中查找",
       "ai.toggle": "切换 AI 代理",
       "ai.toggleMini": "切换 AI 对话窗口",

@@ -774,6 +774,14 @@ export default function App() {
         if (editor) editor.openSearch();
         else searchInlineRef.current?.focus();
       },
+      "search.focusPanel": () => {
+        const panel = sidebarRef.current;
+        if (panel && panel.getSize().asPercentage <= 0) {
+          panel.resize(`${sidebarWidthRef.current}px`);
+        }
+        persistSidebarView("search");
+        requestAnimationFrame(() => searchPanelRef.current?.focusSearchInput());
+      },
       "ai.toggle": togglePanelAndFocus,
       "ai.toggleMini": () => {
         if (!hasComposer) {
@@ -827,6 +835,7 @@ export default function App() {
       zoomOut,
       zoomReset,
       activateAgentTarget,
+      persistSidebarView,
     ],
   );
 
