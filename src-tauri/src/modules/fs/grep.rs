@@ -9,6 +9,7 @@ use grep_searcher::{BinaryDetection, SearcherBuilder};
 use ignore::{WalkBuilder, WalkState};
 use serde::Serialize;
 
+use super::file::write_atomic;
 use super::to_canon;
 use crate::modules::workspace::{resolve_path, WorkspaceEnv};
 
