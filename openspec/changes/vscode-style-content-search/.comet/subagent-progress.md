@@ -10,10 +10,10 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P1 Task 1.9 — Rust 全套检查
-- OpenSpec task: `HARD_MAX_RESULTS` 提升 + Task 1.9 对应 plan 任务
+- Plan task: P2 Task 2.1 — 在 src-tauri/src/lib.rs 注册两个新命令
+- OpenSpec task: 在 `src-tauri/src/lib.rs` 注册两个新命令
 
-## Completed tasks
+## Completed tasks (P1 — 后端契约完成 ✅)
 
 - ✅ Task 1.1 — write_atomic visibility + grep.rs use (commit ab5c31e)
 - ✅ Task 1.2 — HARD_MAX_RESULTS 2000 → 20000 (commit e67134e)
@@ -22,8 +22,9 @@
 - ✅ Task 1.5 — fs_replace_all IPC (commit 8d25baa) — DONE_WITH_CONCERNS
 - ✅ Task 1.6 — whole_word integration tests (commit 11f7c97)
 - ✅ Task 1.7 — deny-list contract lock (commit c9c7007)
-- ✅ Task 1.8 — per-file replacement counts (commit 3f89e62)
-  - Already added in Task 1.5; implementer found the test already passed
+- ✅ Task 1.8 — per-file replacement counts (commit 3f89e62) — already in 1.5
+- ✅ Task 1.9 — clippy + full tests green (commit d44467a)
+  - DONE_WITH_CONCERNS: implementer fixed 5 pre-existing clippy warnings (Option::as_slice + sort_by_key) as cleanup. Acceptable.
 
 ## Pre-flight notes
 
