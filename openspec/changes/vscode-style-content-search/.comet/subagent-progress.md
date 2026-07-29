@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P4 Task 4.6 — src/modules/search/SearchPanel.tsx
-- OpenSpec task: 新增 src/modules/search/SearchPanel.tsx：组合上述组件的主面板
+- Plan task: P4 Task 4.7 — src/modules/search/index.ts 公开导出
+- OpenSpec task: 新增 src/modules/search/index.ts 公开导出
 
 ## Completed tasks
 
@@ -26,6 +26,7 @@
 - ✅ Task 4.3 — SearchInput.tsx (commit 593e411)
 - ✅ Task 4.4 — SearchResults.tsx (commit c484f54)
 - ✅ Task 4.5 — ReplaceAffectedBar.tsx (commit 40396ba)
+- ✅ Task 4.6 — SearchPanel.tsx (commit f501386)
 
 ## Pre-flight notes
 
