@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P6 Task 6.3 — 前端静态检查
-- OpenSpec task: \`pnpm lint\` / \`pnpm check-types\` / \`pnpm test\`
+- Plan task: P6 Task 6.5 — Rust 端最终回归
+- OpenSpec task: （与 1.9 / 6.5 对应）
 
 ## Completed tasks
 
@@ -37,6 +37,11 @@
 - ✅ Task 5.7 — # mode already clean (empty commit 23c51df)
 - ✅ Task 6.1 — en.json i18n (commit 51a4330)
 - ✅ Task 6.2 — zh.json i18n (commit 4356b46)
+- ✅ Task 6.3 — frontend lint + check-types + tests (commit 13f648e)
+
+## Skipped
+
+- **Plan Task 6.4 — 手动跑通验收场景 1-15**: build 阶段不做手工 UI 验收；deferred to verify phase. Marked as `<!-- manual-verify-deferred -->` in plan checkbox.
 
 ## Pre-flight notes
 
