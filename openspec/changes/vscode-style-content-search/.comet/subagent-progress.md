@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P1 Task 1.7 — 单元测试：fs_replace_all 的 secret-path 拒绝路径（**关键**：锁"后端不重复 deny-list"契约——见 Design Doc §8）
-- OpenSpec task: 单元测试：`fs_replace_all` 的 secret-path 拒绝路径
+- Plan task: P1 Task 1.8 — 单元测试：fs_replace_all 的部分失败返回结构
+- OpenSpec task: 单元测试：`fs_replace_all` 的部分失败返回结构
 
 ## Completed tasks
 
@@ -21,7 +21,8 @@
 - ✅ Task 1.4 — fs_search_content IPC + search_tree exclude (commit 3957a5a)
 - ✅ Task 1.5 — fs_replace_all IPC (commit 8d25baa) — DONE_WITH_CONCERNS
 - ✅ Task 1.6 — whole_word integration tests (commit 11f7c97)
-  - First-pass GREEN because build_matcher behavior was already locked by Task 1.3 unit tests; this task verifies the end-to-end pipeline inherits it correctly.
+- ✅ Task 1.7 — deny-list contract lock (commit c9c7007)
+  - implementer adapted test fixture from `.env` → `secrets.json` because the walker skips dotfiles (correct observation: `.hidden(true)` is unrelated to deny-list)
 
 ## Pre-flight notes
 
