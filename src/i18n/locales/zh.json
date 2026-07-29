@@ -594,6 +594,20 @@
     "clearSearch": "清除搜索",
     "gitHistory": "Git 历史"
   },
+  "searchPanel": {
+    "search": "搜索",
+    "replace": "替换",
+    "regex": "正则表达式",
+    "caseSensitive": "区分大小写",
+    "wholeWord": "全字匹配",
+    "include": "包含文件",
+    "exclude": "排除文件",
+    "replaceAll": "全部替换",
+    "replaceAffected": "将修改 {{files}} 个文件、{{matches}} 个匹配",
+    "truncated": "结果已截断",
+    "noResults": "无结果",
+    "noWorkspace": "请先打开工作区"
+  },
   "terminal": {
     "watermark": {
       "browseHistory": "浏览命令历史",
@@ -846,6 +860,7 @@
   },
   "sidebar": {
     "files": "文件",
+    "search": "搜索",
     "sourceControl": "源代码管理"
   },
   "themes": {
@@ -910,6 +925,7 @@
       "space.overview": "打开空间",
       "explorer.findFiles": "查找文件",
       "search.focus": "在标签页中查找",
+      "search.focusPanel": "打开搜索面板",
       "ai.toggle": "切换 AI 代理",
       "ai.toggleMini": "切换 AI 对话窗口",
       "ai.askSelection": "向 AI 询问选区",
