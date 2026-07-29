@@ -10,10 +10,10 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P2 Task 2.1 — 在 src-tauri/src/lib.rs 注册两个新命令
-- OpenSpec task: 在 `src-tauri/src/lib.rs` 注册两个新命令
+- Plan task: P3 Task 3.1 — src/modules/search/lib/types.ts
+- OpenSpec task: 新增 src/modules/search/lib/types.ts：与后端结构对齐的 TS 类型
 
-## Completed tasks (P1 — 后端契约完成 ✅)
+## Completed tasks (P1 + P2 后端全绿 ✅)
 
 - ✅ Task 1.1 — write_atomic visibility + grep.rs use (commit ab5c31e)
 - ✅ Task 1.2 — HARD_MAX_RESULTS 2000 → 20000 (commit e67134e)
@@ -22,9 +22,9 @@
 - ✅ Task 1.5 — fs_replace_all IPC (commit 8d25baa) — DONE_WITH_CONCERNS
 - ✅ Task 1.6 — whole_word integration tests (commit 11f7c97)
 - ✅ Task 1.7 — deny-list contract lock (commit c9c7007)
-- ✅ Task 1.8 — per-file replacement counts (commit 3f89e62) — already in 1.5
+- ✅ Task 1.8 — per-file replacement counts (commit 3f89e62)
 - ✅ Task 1.9 — clippy + full tests green (commit d44467a)
-  - DONE_WITH_CONCERNS: implementer fixed 5 pre-existing clippy warnings (Option::as_slice + sort_by_key) as cleanup. Acceptable.
+- ✅ Task 2.1 — IPC handlers registered in lib.rs (commit b5329b6)
 
 ## Pre-flight notes
 
