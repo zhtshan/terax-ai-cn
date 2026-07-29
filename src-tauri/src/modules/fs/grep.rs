@@ -826,6 +826,85 @@ mod tests {
     }
 
     #[test]
+    fn fs_search_content_whole_word_literal_excludes_partial_match() {
+        // End-to-end check that build_matcher correctly wraps literal patterns
+        // with \b…\b when whole_word=true. "testing" contains "test" as a
+        // prefix substring but is NOT a whole-word match — the helper must
+        // exclude it.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("a.txt"),
+            "this is a test.\ntesting 123\n",
+        )
+        .unwrap();
+
+        let state = ContentSearchState::default();
+        let resp = fs_search_content_inner(
+            &state,
+            "test".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            false, // case_sensitive (smart-case: lowercase only → ci)
+            true,  // whole_word
+            None,
+            None,
+            Some(100),
+            None,
+        )
+        .expect("whole-word literal search ok");
+
+        assert_eq!(
+            resp.hits.len(),
+            1,
+            "whole_word=true on literal 'test' must match 'test.' but not 'testing', got hits={:?}",
+            resp.hits.iter().map(|h| (&h.rel, h.line, &h.text)).collect::<Vec<_>>()
+        );
+        assert_eq!(resp.hits[0].line, 1, "should match line 1 only");
+        assert!(
+            resp.hits[0].text.contains("test."),
+            "matched line should be the whole-word one, got {:?}",
+            resp.hits[0].text
+        );
+    }
+
+    #[test]
+    fn fs_search_content_whole_word_regex_passes_through() {
+        // In regex mode, build_matcher does NOT auto-wrap with \b — that's the
+        // caller's responsibility. If the caller passes a \b-bounded pattern,
+        // end-to-end behaviour matches the literal whole_word path.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(
+            dir.path().join("a.txt"),
+            "this is a test.\ntesting 123\n",
+        )
+        .unwrap();
+
+        let state = ContentSearchState::default();
+        let resp = fs_search_content_inner(
+            &state,
+            r"\btest\b".into(),
+            dir.path().to_string_lossy().to_string(),
+            true,  // regex
+            true,  // case_sensitive
+            true,  // whole_word (no-op for regex — caller already bounded)
+            None,
+            None,
+            Some(100),
+            None,
+        )
+        .expect("regex whole-word search ok");
+
+        assert_eq!(
+            resp.hits.len(),
+            1,
+            "regex \\btest\\b must match only the whole-word line, got hits={:?}",
+            resp.hits.iter().map(|h| (&h.rel, h.line, &h.text)).collect::<Vec<_>>()
+        );
+        assert_eq!(resp.hits[0].line, 1);
+        assert!(resp.hits[0].text.contains("test."));
+    }
+
+    #[test]
     fn fs_search_content_generation_self_cancels() {
         // Build a directory large enough that the walk takes observable time,
         // so a generation bump from a sibling thread reliably lands mid-walk.
