@@ -488,18 +488,31 @@ fn fs_replace_all_inner(
             if idx >= lines.len() {
                 continue;
             }
-            let new_line = if regex {
-                let mut dst: Vec<u8> = Vec::new();
-                matcher
-                    .replace(lines[idx].as_bytes(), &mut dst, |_, d| {
-                        d.extend_from_slice(replacement.as_bytes());
-                        true
-                    })
-                    .map_err(|e| format!("replace error: {e}"))?;
-                String::from_utf8(dst).map_err(|e| format!("utf8 after replace: {e}"))?
-            } else {
-                lines[idx].replacen(pattern.as_str(), replacement.as_str(), 1)
-            };
+            // "First match per line only" — we route both branches through the
+            // matcher so case sensitivity and whole-word semantics stay in
+            // sync with `build_matcher`. We can't use `Matcher::replace`
+            // directly with a stop-on-first callback because the matcher
+            // advances its internal `last_match` to the end of the *next*
+            // match before invoking the callback, so the trailing
+            // haystack slice gets truncated when we return `false`. Instead
+            // we walk `find_iter` ourselves with a one-shot guard.
+            let mut dst: Vec<u8> = Vec::with_capacity(lines[idx].len());
+            let mut done = false;
+            let mut last_end: usize = 0;
+            matcher
+                .find_iter(lines[idx].as_bytes(), |m| {
+                    if done {
+                        return false;
+                    }
+                    dst.extend_from_slice(&lines[idx].as_bytes()[last_end..m.start()]);
+                    dst.extend_from_slice(replacement.as_bytes());
+                    last_end = m.end();
+                    done = true;
+                    false
+                })
+                .map_err(|e| format!("replace error: {e}"))?;
+            dst.extend_from_slice(&lines[idx].as_bytes()[last_end..]);
+            let new_line = String::from_utf8(dst).map_err(|e| format!("utf8 after replace: {e}"))?;
             if new_line != lines[idx] {
                 lines[idx] = new_line;
                 count += 1;
@@ -1116,6 +1129,70 @@ mod tests {
         assert_eq!(resp.files_changed[0].replacements, 1);
         let after = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
         assert_eq!(after, "XYZ abc abc\n", "only first abc replaced");
+    }
+
+    #[test]
+    fn fs_replace_all_first_match_per_line_only_regex_mode() {
+        // Regression for C1: regex mode used `Matcher::replace` with a
+        // callback that always returned `true`, so all matches on a line were
+        // rewritten even though the spec only allows the first one per line.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "foo foo foo\n").unwrap();
+
+        let resp = fs_replace_all_inner(
+            "foo".into(),
+            "XXX".into(),
+            dir.path().to_string_lossy().to_string(),
+            true,
+            true,
+            false,
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all ok");
+
+        assert_eq!(resp.total_replacements, 1, "only first match per line counts");
+        assert_eq!(resp.files_changed.len(), 1);
+        assert_eq!(resp.files_changed[0].replacements, 1);
+        let after = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
+        assert_eq!(
+            after, "XXX foo foo\n",
+            "regex mode must also stop after the first match"
+        );
+    }
+
+    #[test]
+    fn fs_replace_all_literal_case_insensitive_replaces_uppercase_hit() {
+        // Regression for I1: the literal branch used `String::replacen`,
+        // which is byte-level / case-sensitive. `build_matcher` honors
+        // `case_sensitive=false` (smart-case), so a search for `test` would
+        // match `TEST` but the replacement would silently no-op.
+        let dir = tempfile::tempdir().unwrap();
+        std::fs::write(dir.path().join("a.txt"), "TEST line\n").unwrap();
+
+        let resp = fs_replace_all_inner(
+            "test".into(),
+            "REPLACED".into(),
+            dir.path().to_string_lossy().to_string(),
+            false, // regex
+            false, // case_sensitive — smart-case enabled
+            false, // whole_word
+            None,
+            None,
+            None,
+        )
+        .expect("replace_all ok");
+
+        assert_eq!(
+            resp.total_replacements, 1,
+            "uppercase TEST must be replaced when case_sensitive=false"
+        );
+        let after = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
+        assert_eq!(
+            after, "REPLACED line\n",
+            "literal case-insensitive replace must mirror the search semantics"
+        );
     }
 
     #[test]
