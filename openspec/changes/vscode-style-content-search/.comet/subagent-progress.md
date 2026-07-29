@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P4 Task 4.2 — src/modules/search/hooks/useReplaceRun.ts
-- OpenSpec task: 新增 src/modules/search/hooks/useReplaceRun.ts：替换状态机（idle / previewing / running / done / error）
+- Plan task: P4 Task 4.3 — src/modules/search/SearchInput.tsx
+- OpenSpec task: 新增 src/modules/search/SearchInput.tsx：搜索 + 替换 + 三件套开关 + include/exclude
 
 ## Completed tasks
 
@@ -22,8 +22,7 @@
 - ✅ Task 3.3 — mode.ts (commit ead6f89)
 - ✅ Task 3.4 — highlight.ts + tests (commit 3268569)
 - ✅ Task 4.1 — useSearchRun hook + tests (commit bffd9ff)
-  - DONE_WITH_CONCERNS: added @testing-library/react + happy-dom as dev deps (project didn't have them); lockfile update committed in 56eeb44
-  - Acceptable — hook tests need a DOM environment
+- ✅ Task 4.2 — useReplaceRun hook + 11 tests (commit 4501f3a)
 
 ## Pre-flight notes
 
