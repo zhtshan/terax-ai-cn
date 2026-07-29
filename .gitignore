@@ -19,6 +19,11 @@ release/
 src-tauri/target/
 src-tauri/gen/
 
+# Tauri updater signing key (secret, never commit)
+.tauri-updater-key
+.tauri-updater-key.pub
+.tauri-updater-key.password
+
 # TypeScript incremental
 *.tsbuildinfo
 
