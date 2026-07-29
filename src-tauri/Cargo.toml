@@ -83,7 +83,6 @@ windows-sys = { version = "0.61", features = [
 
 [target.'cfg(not(any(target_os = "android", target_os = "ios")))'.dependencies]
 tauri-plugin-autostart = "2"
-tauri-plugin-updater = "2"
 tauri-plugin-window-state = "2"
 
 [profile.dev]
