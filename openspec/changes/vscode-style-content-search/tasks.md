@@ -29,7 +29,7 @@
 - [x] 新增 `src/modules/search/hooks/useReplaceRun.ts`：替换状态机（idle / previewing / running / done / error）
 - [x] 新增 `src/modules/search/SearchInput.tsx`：搜索 + 替换 + 三件套开关 + include/exclude
 - [x] 新增 `src/modules/search/SearchResults.tsx`：按文件分组、可折叠、行内高亮
-- [ ] 新增 `src/modules/search/ReplaceAffectedBar.tsx`：预览文件清单 + Replace All
+- [x] 新增 `src/modules/search/ReplaceAffectedBar.tsx`：预览文件清单 + Replace All
 - [ ] 新增 `src/modules/search/SearchPanel.tsx`：组合上述组件的主面板
 
 ## 前端 — 集成

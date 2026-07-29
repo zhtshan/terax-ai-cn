@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P4 Task 4.4 — src/modules/search/SearchResults.tsx
-- OpenSpec task: 新增 src/modules/search/SearchResults.tsx：按文件分组、可折叠、行内高亮
+- Plan task: P4 Task 4.5 — src/modules/search/ReplaceAffectedBar.tsx
+- OpenSpec task: 新增 src/modules/search/ReplaceAffectedBar.tsx：预览文件清单 + Replace All
 
 ## Completed tasks
 
@@ -24,7 +24,7 @@
 - ✅ Task 4.1 — useSearchRun hook + tests (commit bffd9ff)
 - ✅ Task 4.2 — useReplaceRun hook + 11 tests (commit 4501f3a)
 - ✅ Task 4.3 — SearchInput.tsx (commit 593e411)
-  - DONE_WITH_CONCERNS: i18n keys missing (expected; Task 6.1/6.2), QuotesIcon as whole-word icon (acceptable; can polish later)
+- ✅ Task 4.4 — SearchResults.tsx (commit c484f54)
 
 ## Pre-flight notes
 
