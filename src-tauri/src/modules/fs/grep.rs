@@ -1133,11 +1133,11 @@ mod tests {
     #[test]
     fn fs_replace_all_reports_per_file_replacement_counts() {
         let dir = tempfile::tempdir().unwrap();
-        std::fs::write(dir.path().join("a.txt"), "foo\nfoo\nbar\nfoo\n").unwrap();
+        std::fs::write(dir.path().join("a.txt"), "foo bar\nfoo baz\n").unwrap();
 
         let resp = fs_replace_all_inner(
             "foo".into(),
-            "BAZ".into(),
+            "XXX".into(),
             dir.path().to_string_lossy().to_string(),
             false,
             true,
@@ -1148,11 +1148,12 @@ mod tests {
         )
         .expect("replace_all ok");
 
-        assert_eq!(resp.total_replacements, 3);
         assert_eq!(resp.files_changed.len(), 1);
-        assert_eq!(resp.files_changed[0].replacements, 3);
+        assert_eq!(resp.files_changed[0].replacements, 2);
+        assert_eq!(resp.total_replacements, 2);
         let after = std::fs::read_to_string(dir.path().join("a.txt")).unwrap();
-        assert_eq!(after, "BAZ\nBAZ\nbar\nBAZ\n");
+        assert_eq!(after, "XXX bar\nXXX baz\n");
+        assert!(resp.errors.is_empty());
     }
 
     /// Contract lock: `fs_replace_all` trusts its caller — the frontend
