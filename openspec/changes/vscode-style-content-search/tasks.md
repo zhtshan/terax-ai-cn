@@ -19,7 +19,7 @@
 
 ## 前端 — IPC 客户端
 
-- [ ] 新增 `src/modules/search/lib/api.ts`：封装 `fs_search_content` / `fs_replace_all` 的 invoke 包装（含 WorkspaceEnv 注入）
+- [x] 新增 `src/modules/search/lib/api.ts`：封装 `fs_search_content` / `fs_replace_all` 的 invoke 包装（含 WorkspaceEnv 注入）
 - [x] 新增 `src/modules/search/lib/types.ts`：与后端结构对齐的 TS 类型
 
 ## 前端 — UI 模块

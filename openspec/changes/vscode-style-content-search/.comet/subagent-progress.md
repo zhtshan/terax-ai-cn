@@ -10,21 +10,14 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P3 Task 3.1 — src/modules/search/lib/types.ts
-- OpenSpec task: 新增 src/modules/search/lib/types.ts：与后端结构对齐的 TS 类型
+- Plan task: P3 Task 3.2 — src/modules/search/lib/api.ts
+- OpenSpec task: 新增 src/modules/search/lib/api.ts：封装 fs_search_content / fs_replace_all 的 invoke 包装
 
-## Completed tasks (P1 + P2 后端全绿 ✅)
+## Completed tasks
 
-- ✅ Task 1.1 — write_atomic visibility + grep.rs use (commit ab5c31e)
-- ✅ Task 1.2 — HARD_MAX_RESULTS 2000 → 20000 (commit e67134e)
-- ✅ Task 1.3 — extract build_matcher helper (commit f29ddcc)
-- ✅ Task 1.4 — fs_search_content IPC + search_tree exclude (commit 3957a5a)
-- ✅ Task 1.5 — fs_replace_all IPC (commit 8d25baa) — DONE_WITH_CONCERNS
-- ✅ Task 1.6 — whole_word integration tests (commit 11f7c97)
-- ✅ Task 1.7 — deny-list contract lock (commit c9c7007)
-- ✅ Task 1.8 — per-file replacement counts (commit 3f89e62)
-- ✅ Task 1.9 — clippy + full tests green (commit d44467a)
-- ✅ Task 2.1 — IPC handlers registered in lib.rs (commit b5329b6)
+- ✅ Tasks 1.1–1.9 (P1 后端契约 + 单测 + clippy)
+- ✅ Task 2.1 — IPC handlers registered (commit b5329b6)
+- ✅ Task 3.1 — TS types (commit 0a4e382)
 
 ## Pre-flight notes
 
