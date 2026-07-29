@@ -10,14 +10,15 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P3 Task 3.2 — src/modules/search/lib/api.ts
-- OpenSpec task: 新增 src/modules/search/lib/api.ts：封装 fs_search_content / fs_replace_all 的 invoke 包装
+- Plan task: P3 Task 3.3 — src/modules/search/lib/mode.ts
+- OpenSpec task: （plan 中无对应 OpenSpec 行；P3 是前端细节）
 
 ## Completed tasks
 
 - ✅ Tasks 1.1–1.9 (P1 后端契约 + 单测 + clippy)
 - ✅ Task 2.1 — IPC handlers registered (commit b5329b6)
 - ✅ Task 3.1 — TS types (commit 0a4e382)
+- ✅ Task 3.2 — api.ts invoke wrappers (commit df27df8)
 
 ## Pre-flight notes
 
