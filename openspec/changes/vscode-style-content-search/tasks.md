@@ -42,7 +42,7 @@
 
 ## 端到端验证
 
-- [ ] `pnpm lint`
-- [ ] `pnpm check-types`
-- [ ] `pnpm test`
+- [x] `pnpm lint`
+- [x] `pnpm check-types`
+- [x] `pnpm test`
 - [ ] 手动跑通验收场景 1-12（见 proposal.md）

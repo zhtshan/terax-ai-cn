@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P6 Task 6.2 — 新增 searchPanel.* key（中文）
-- OpenSpec task: （与 6.1 共属 i18n）
+- Plan task: P6 Task 6.3 — 前端静态检查
+- OpenSpec task: \`pnpm lint\` / \`pnpm check-types\` / \`pnpm test\`
 
 ## Completed tasks
 
@@ -36,6 +36,7 @@
 - ✅ Task 5.6 — shortcut migration (commit efa3a18) — out-of-scope store.ts touch
 - ✅ Task 5.7 — # mode already clean (empty commit 23c51df)
 - ✅ Task 6.1 — en.json i18n (commit 51a4330)
+- ✅ Task 6.2 — zh.json i18n (commit 4356b46)
 
 ## Pre-flight notes
 
