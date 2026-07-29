@@ -495,6 +495,7 @@
   },
   "sidebar": {
     "files": "Files",
+    "search": "Search",
     "sourceControl": "Source Control"
   },
   "agents": {
@@ -597,6 +598,20 @@
     "searchWithKey": "Search ({{key}})",
     "clearSearch": "Clear search",
     "gitHistory": "Git search"
+  },
+  "searchPanel": {
+    "search": "Search",
+    "replace": "Replace",
+    "regex": "Use Regular Expression",
+    "caseSensitive": "Match Case",
+    "wholeWord": "Match Whole Word",
+    "include": "files to include",
+    "exclude": "files to exclude",
+    "replaceAll": "Replace All",
+    "replaceAffected": "{{files}} files, {{matches}} matches",
+    "truncated": "Results truncated",
+    "noResults": "No results found",
+    "noWorkspace": "Open a folder to search"
   },
   "terminal": {
     "watermark": {
@@ -910,6 +925,7 @@
       "space.overview": "Open spaces",
       "explorer.findFiles": "Find files",
       "search.focus": "Find in tab",
+      "search.focusPanel": "Open search panel",
       "ai.toggle": "Toggle AI agent",
       "ai.toggleMini": "Toggle AI chat window",
       "ai.askSelection": "Ask AI about selection",
