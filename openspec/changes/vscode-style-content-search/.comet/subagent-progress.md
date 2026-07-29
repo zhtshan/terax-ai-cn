@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P4 Task 4.5 — src/modules/search/ReplaceAffectedBar.tsx
-- OpenSpec task: 新增 src/modules/search/ReplaceAffectedBar.tsx：预览文件清单 + Replace All
+- Plan task: P4 Task 4.6 — src/modules/search/SearchPanel.tsx
+- OpenSpec task: 新增 src/modules/search/SearchPanel.tsx：组合上述组件的主面板
 
 ## Completed tasks
 
@@ -25,6 +25,7 @@
 - ✅ Task 4.2 — useReplaceRun hook + 11 tests (commit 4501f3a)
 - ✅ Task 4.3 — SearchInput.tsx (commit 593e411)
 - ✅ Task 4.4 — SearchResults.tsx (commit c484f54)
+- ✅ Task 4.5 — ReplaceAffectedBar.tsx (commit 40396ba)
 
 ## Pre-flight notes
 
