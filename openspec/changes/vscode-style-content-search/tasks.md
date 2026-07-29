@@ -9,7 +9,7 @@
 - [x] `HARD_MAX_RESULTS` 从 2000 提升到 20000，跑现有测试确认无回归
 - [x] 在 `grep.rs` 抽出公共 search helper（参数化 matcher + include glob + exclude glob + cancel）
 - [x] 实现 `fs_search_content` 命令（regex / ci / whole_word / include / exclude / max_results）
-- [ ] 实现 `fs_replace_all` 命令（内部搜索 + 原子写 + secret-path 拒绝 + workspace 鉴权）
+- [x] 实现 `fs_replace_all` 命令（内部搜索 + 原子写 + secret-path 拒绝 + workspace 鉴权）
 - [ ] 在 `src-tauri/src/lib.rs` 注册两个新命令
 - [ ] 单元测试：`whole_word` 的 regex / 字面量两条路径
 - [ ] 单元测试：`fs_replace_all` 的 secret-path 拒绝路径

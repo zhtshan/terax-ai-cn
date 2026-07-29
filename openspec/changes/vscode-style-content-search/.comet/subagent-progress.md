@@ -10,18 +10,17 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P1 Task 1.4 — 实现 fs_search_content IPC 命令
-- OpenSpec task: 实现 fs_search_content 命令（regex / ci / whole_word / include / exclude / max_results）
+- Plan task: P1 Task 1.5 — 实现 fs_replace_all IPC 命令
+- OpenSpec task: 实现 fs_replace_all 命令（内部搜索 + 原子写 + secret-path 拒绝 + workspace 鉴权）
 
 ## Completed tasks
 
 - ✅ Task 1.1 — write_atomic visibility + grep.rs use (commit ab5c31e)
-  - DONE_WITH_CONCERNS: package name is `terax` not `terax-tauri`; cargo-nextest not installed
 - ✅ Task 1.2 — HARD_MAX_RESULTS 2000 → 20000 (commit e67134e)
-  - DONE; clean TDD red/green
 - ✅ Task 1.3 — extract build_matcher helper (commit f29ddcc)
-  - DONE; 7/7 grep tests + 34/34 fs lib; 4 new build_matcher tests
-  - Note: unused `use super::file::write_atomic;` still pending — Task 1.5 will use it
+- ✅ Task 1.4 — fs_search_content IPC + search_tree exclude (commit 3957a5a)
+  - implementer refactored: extracted `fs_search_content_inner(&ContentSearchState, ...)` so tests can avoid tauri::State — documented in commit body
+  - unused import warning still present (resolved now by Task 1.5)
 
 ## Pre-flight notes
 
