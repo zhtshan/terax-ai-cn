@@ -34,7 +34,7 @@
 
 ## 前端 — 集成
 
-- [ ] 修改左侧 Explorer 列容器（参考 git-history 的 tab 切换）：在 Explorer / Search 之间切换
+- [x] 修改左侧 Explorer 列容器（参考 git-history 的 tab 切换）：在 Explorer / Search 之间切换
 - [ ] 切换 tab 不丢失当前搜索状态（保留输入与结果在内存）
 - [ ] 新增 `Cmd+Shift+F` / `Ctrl+Shift+F` 快捷键：打开 Search 面板并聚焦输入框（`src/modules/shortcuts/shortcuts.ts`）
 - [ ] 简化 Command Palette `#` 模式：移除 UI 上的开关（保留 `useContentSearch` 调用）

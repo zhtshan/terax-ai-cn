@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P4 Task 4.7 — src/modules/search/index.ts 公开导出
-- OpenSpec task: 新增 src/modules/search/index.ts 公开导出
+- Plan task: P5 Task 5.1 — src/modules/sidebar/types.ts 新增 "search" view
+- OpenSpec task: 修改左侧 Explorer 列容器（参考 git-history 的 tab 切换）：在 Explorer / Search 之间切换
 
 ## Completed tasks
 
@@ -27,6 +27,7 @@
 - ✅ Task 4.4 — SearchResults.tsx (commit c484f54)
 - ✅ Task 4.5 — ReplaceAffectedBar.tsx (commit 40396ba)
 - ✅ Task 4.6 — SearchPanel.tsx (commit f501386)
+- ✅ Task 4.7 — index.ts barrel (commit 56ec4e1)
 
 ## Pre-flight notes
 
