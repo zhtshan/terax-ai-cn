@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P5 Task 5.1 — src/modules/sidebar/types.ts 新增 "search" view
-- OpenSpec task: 修改左侧 Explorer 列容器（参考 git-history 的 tab 切换）：在 Explorer / Search 之间切换
+- Plan task: P5 Task 5.2 — useSidebarPanel.ts 接受 "search" 分支
+- OpenSpec task: （plan 中无单独 OpenSpec 行；与 5.1 共属 "sidebar 集成"）
 
 ## Completed tasks
 
@@ -28,6 +28,7 @@
 - ✅ Task 4.5 — ReplaceAffectedBar.tsx (commit 40396ba)
 - ✅ Task 4.6 — SearchPanel.tsx (commit f501386)
 - ✅ Task 4.7 — index.ts barrel (commit 56ec4e1)
+- ✅ Task 5.1 — sidebar types.ts (commit efd40c1)
 
 ## Pre-flight notes
 
