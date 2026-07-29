@@ -10,8 +10,8 @@
 ## Current task
 
 - Phase: implementing
-- Plan task: P5 Task 5.7 — 简化 Command Palette `#` 模式
-- OpenSpec task: 简化 Command Palette `#` 模式：移除 UI 上的开关
+- Plan task: P6 Task 6.1 — 新增 searchPanel.* key（英文）
+- OpenSpec task: 新增 i18n key 到 src/i18n/locales/en.json + zh.json（search.*）
 
 ## Completed tasks
 
@@ -33,12 +33,12 @@
 - ✅ Task 5.3 — SidebarRail Search item (commit b9f6bad)
 - ✅ Task 5.4 — App.tsx SearchPanel branch (commit 5bc2060)
 - ✅ Task 5.5 — state hoist (commit dfb11d5)
-- ✅ Task 5.6 — shortcut migration (commit efa3a18)
-  - ⚠️ implementer ALSO touched `src/modules/settings/store.ts` (10 lines, ModelId type relaxation). Out of scope. Will be flagged in verify.
+- ✅ Task 5.6 — shortcut migration (commit efa3a18) — out-of-scope store.ts touch
+- ✅ Task 5.7 — # mode already clean (empty commit 23c51df)
 
 ## Scope violations to flag in verify
 
-- `settings/store.ts` — `ModelId` type relaxed to `string` to allow compat model IDs. Looks like a separate concern (Models section) that should be its own change.
+- `settings/store.ts` (in Task 5.6 commit efa3a18) — `ModelId` type relaxed to `string` to allow compat model IDs. Looks like a separate concern that should be its own change.
 
 ## Pre-flight notes
 

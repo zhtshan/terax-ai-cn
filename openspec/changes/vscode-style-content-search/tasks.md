@@ -38,7 +38,7 @@
 - [x] 切换 tab 不丢失当前搜索状态（保留输入与结果在内存）
 - [x] 新增 `Cmd+Shift+F` / `Ctrl+Shift+F` 快捷键：打开 Search 面板并聚焦输入框（`src/modules/shortcuts/shortcuts.ts`）
 - [x] 简化 Command Palette `#` 模式：移除 UI 上的开关（保留 `useContentSearch` 调用）
-- [ ] 新增 i18n key 到 `src/i18n/locales/en.json` + `zh.json`（`search.*`）
+- [x] 新增 i18n key 到 `src/i18n/locales/en.json` + `zh.json`（`search.*`）
 
 ## 端到端验证
 
