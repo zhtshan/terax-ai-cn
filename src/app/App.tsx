@@ -101,6 +101,7 @@ import {
 } from "./components/WorkspaceInputBar";
 import { WorkspaceSurface } from "./components/WorkspaceSurface";
 import { useAppCloseGuard } from "./hooks/useAppCloseGuard";
+import { useInputBarHeightResize } from "./hooks/useInputBarHeightResize";
 import { useTabCloseGuards } from "./hooks/useTabCloseGuards";
 import { useWorkspaceSwitcher } from "./hooks/useWorkspaceSwitcher";
 
@@ -279,6 +280,11 @@ export default function App() {
     persistSidebarWidth,
     toggleExplorerFocus,
   } = useSidebarPanel(explorerRef);
+
+  const {
+    wrapperRef: inputBarWrapperRef,
+    onHandlePointerDown: onInputBarHandlePointerDown,
+  } = useInputBarHeightResize();
 
   const [newEditorOpen, setNewEditorOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -1267,17 +1273,28 @@ export default function App() {
                     />
                   </div>
 
-                  <WorkspaceInputBar
-                    isBlockTab={isBlockTab}
-                    isTerminalTab={isTerminalTab}
-                    activeLeafId={activeLeafId}
-                    cwd={activeCwd}
-                    home={home}
-                    hasComposer={hasComposer}
-                    panelOpen={panelOpen}
-                    keysLoaded={keysLoaded}
-                    onConnect={() => void openSettingsWindow("models")}
-                  />
+                  <div
+                    onPointerDown={onInputBarHandlePointerDown}
+                    className="group relative h-1.5 shrink-0 cursor-ns-resize touch-none select-none"
+                  >
+                    <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-foreground/30" />
+                  </div>
+                  <div
+                    ref={inputBarWrapperRef}
+                    className="min-h-0 shrink-0 overflow-y-auto"
+                  >
+                    <WorkspaceInputBar
+                      isBlockTab={isBlockTab}
+                      isTerminalTab={isTerminalTab}
+                      activeLeafId={activeLeafId}
+                      cwd={activeCwd}
+                      home={home}
+                      hasComposer={hasComposer}
+                      panelOpen={panelOpen}
+                      keysLoaded={keysLoaded}
+                      onConnect={() => void openSettingsWindow("models")}
+                    />
+                  </div>
                 </div>
               </ResizablePanel>
             </ResizablePanelGroup>

@@ -48,7 +48,7 @@
       "language": "语言",
       "languageDesc": "应用程序的显示语言。",
       "chinese": "中文",
-      "english": "English",
+      "english": "英文",
       "editorTheme": "编辑器主题",
       "vimMode": "Vim 模式",
       "vimModeDesc": "在代码编辑器中启用 Vim 快捷键。",
