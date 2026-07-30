@@ -1304,7 +1304,7 @@ export default function App() {
               <ResizableHandle withHandle />
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
                 <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
-                  <ResizablePanel id="workspace-surface" defaultSize="65%">
+                  <ResizablePanel id="workspace-surface" defaultSize="65%" className="min-h-0 overflow-y-auto">
                     <div className="relative min-h-0 h-full">
                       <WorkspaceSurface
                         tabs={tabs}
@@ -1329,7 +1329,7 @@ export default function App() {
                     </div>
                   </ResizablePanel>
                   <ResizableHandle withHandle />
-                  <ResizablePanel id="workspace-input" defaultSize="35%">
+                  <ResizablePanel id="workspace-input" defaultSize="35%" className="min-h-0 overflow-y-auto">
                     <WorkspaceInputBar
                       isBlockTab={isBlockTab}
                       isTerminalTab={isTerminalTab}
