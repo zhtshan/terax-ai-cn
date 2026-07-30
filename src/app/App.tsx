@@ -1303,42 +1303,46 @@ export default function App() {
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
-                <div className="flex h-full min-h-0 flex-col">
-                  <div className="relative min-h-0 flex-1">
-                    <WorkspaceSurface
-                      tabs={tabs}
-                      activeId={activeId}
-                      activeTab={activeTab}
-                      registerTerminalHandle={registerTerminalHandle}
-                      onSearchReady={handleSearchReady}
-                      onCwd={handleTerminalCwd}
-                      onExit={handleLeafExit}
-                      onFocusLeaf={handleFocusLeaf}
-                      registerEditorHandle={registerEditorHandle}
-                      onEditorDirtyChange={handleEditorDirty}
-                      onEditorCloseTab={disposeTab}
-                      registerPreviewHandle={registerPreviewHandle}
-                      onPreviewUrlChange={handlePreviewUrl}
-                      onAiDiffAccept={(id) => respondToApproval(id, true)}
-                      onAiDiffReject={(id) => respondToApproval(id, false)}
-                      onOpenCommitFile={openCommitFileDiffTab}
-                      onGitHistorySearchHandle={setGitHistoryHandle}
-                      onSetMarkdownView={setMarkdownView}
+                <ResizablePanelGroup orientation="vertical" className="min-h-0 flex-1">
+                  <ResizablePanel id="workspace-surface" defaultSize="65%">
+                    <div className="relative min-h-0 h-full">
+                      <WorkspaceSurface
+                        tabs={tabs}
+                        activeId={activeId}
+                        activeTab={activeTab}
+                        registerTerminalHandle={registerTerminalHandle}
+                        onSearchReady={handleSearchReady}
+                        onCwd={handleTerminalCwd}
+                        onExit={handleLeafExit}
+                        onFocusLeaf={handleFocusLeaf}
+                        registerEditorHandle={registerEditorHandle}
+                        onEditorDirtyChange={handleEditorDirty}
+                        onEditorCloseTab={disposeTab}
+                        registerPreviewHandle={registerPreviewHandle}
+                        onPreviewUrlChange={handlePreviewUrl}
+                        onAiDiffAccept={(id) => respondToApproval(id, true)}
+                        onAiDiffReject={(id) => respondToApproval(id, false)}
+                        onOpenCommitFile={openCommitFileDiffTab}
+                        onGitHistorySearchHandle={setGitHistoryHandle}
+                        onSetMarkdownView={setMarkdownView}
+                      />
+                    </div>
+                  </ResizablePanel>
+                  <ResizableHandle withHandle />
+                  <ResizablePanel id="workspace-input" defaultSize="35%">
+                    <WorkspaceInputBar
+                      isBlockTab={isBlockTab}
+                      isTerminalTab={isTerminalTab}
+                      activeLeafId={activeLeafId}
+                      cwd={activeCwd}
+                      home={home}
+                      hasComposer={hasComposer}
+                      panelOpen={panelOpen}
+                      keysLoaded={keysLoaded}
+                      onConnect={() => void openSettingsWindow("models")}
                     />
-                  </div>
-
-                  <WorkspaceInputBar
-                    isBlockTab={isBlockTab}
-                    isTerminalTab={isTerminalTab}
-                    activeLeafId={activeLeafId}
-                    cwd={activeCwd}
-                    home={home}
-                    hasComposer={hasComposer}
-                    panelOpen={panelOpen}
-                    keysLoaded={keysLoaded}
-                    onConnect={() => void openSettingsWindow("models")}
-                  />
-                </div>
+                  </ResizablePanel>
+                </ResizablePanelGroup>
               </ResizablePanel>
             </ResizablePanelGroup>
           </main>
