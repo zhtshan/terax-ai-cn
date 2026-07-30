@@ -336,7 +336,7 @@ export default function App() {
     replacement: "",
     regex: false,
     caseSensitive: false,
-    whole_word: false,
+    wholeWord: false,
     include: "",
     exclude: "",
   });

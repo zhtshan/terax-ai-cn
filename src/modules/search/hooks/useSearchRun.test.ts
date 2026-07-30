@@ -18,7 +18,7 @@ const sampleInput: SearchInput = {
   root: "/workspace",
   regex: false,
   caseSensitive: false,
-  whole_word: false,
+  wholeWord: false,
 };
 
 const sampleResponse: GrepResponse = {

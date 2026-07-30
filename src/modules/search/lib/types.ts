@@ -33,7 +33,7 @@ export type SearchInput = {
   root: string;
   regex: boolean;
   caseSensitive: boolean;
-  whole_word: boolean;
+  wholeWord: boolean;
   include?: string | null;
   exclude?: string | null;
   max_results?: number | null;

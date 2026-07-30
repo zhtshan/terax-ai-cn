@@ -5,7 +5,7 @@ export type BuildSearchInputOpts = {
   root: string;
   regex: boolean;
   caseSensitive: boolean;
-  whole_word: boolean;
+  wholeWord: boolean;
   include: string;
   exclude: string;
   max_results?: number;
@@ -22,7 +22,7 @@ export function buildSearchInput(opts: BuildSearchInputOpts): SearchInput {
     root: opts.root,
     regex: opts.regex,
     caseSensitive: opts.caseSensitive,
-    whole_word: opts.whole_word,
+    wholeWord: opts.wholeWord,
     include: normalizeGlob(opts.include),
     exclude: normalizeGlob(opts.exclude),
     max_results: opts.max_results ?? null,

@@ -1,7 +1,7 @@
 export type HighlightOptions = {
   regex: boolean;
   caseSensitive: boolean;
-  whole_word: boolean;
+  wholeWord: boolean;
 };
 
 export type HighlightSegment = { text: string; match: boolean };
@@ -15,7 +15,7 @@ function buildRegex(pattern: string, opts: HighlightOptions): RegExp {
   let body: string;
   if (opts.regex) {
     body = pattern;
-  } else if (opts.whole_word) {
+  } else if (opts.wholeWord) {
     body = `\\b${escapeRegex(pattern)}\\b`;
   } else {
     body = escapeRegex(pattern);

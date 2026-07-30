@@ -16,7 +16,7 @@ export type SearchInputOptions = {
   replacement: string;
   regex: boolean;
   caseSensitive: boolean;
-  whole_word: boolean;
+  wholeWord: boolean;
   include: string;
   exclude: string;
 };
@@ -117,10 +117,10 @@ export function SearchInput({ value, onChange, stats, rootPath }: SearchInputPro
           onClick={() => onChange({ ...value, caseSensitive: !value.caseSensitive })}
         />
         <ToggleButton
-          active={value.whole_word}
+          active={value.wholeWord}
           label={t("searchPanel.wholeWord")}
           icon={QuotesIcon}
-          onClick={() => onChange({ ...value, whole_word: !value.whole_word })}
+          onClick={() => onChange({ ...value, wholeWord: !value.wholeWord })}
         />
         <span className="ml-auto text-[10px] text-muted-foreground">
           {stats

@@ -7,7 +7,7 @@ const baseOptions = {
   root: "/workspace",
   regex: false,
   caseSensitive: false,
-  whole_word: false,
+  wholeWord: false,
   include: "",
   exclude: "",
 };

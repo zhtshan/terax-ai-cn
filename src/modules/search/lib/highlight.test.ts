@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import { splitHits } from "./highlight";
 
-const baseOpts = { regex: false, caseSensitive: false, whole_word: false };
+const baseOpts = { regex: false, caseSensitive: false, wholeWord: false };
 
 describe("splitHits", () => {
   it("splits a line with multiple literal matches (case-insensitive)", () => {
@@ -32,10 +32,10 @@ describe("splitHits", () => {
     ]);
   });
 
-  it("respects whole_word: true for literal patterns", () => {
+  it("respects wholeWord: true for literal patterns", () => {
     const result = splitHits("is a test, not testing", "test", {
       ...baseOpts,
-      whole_word: true,
+      wholeWord: true,
     });
     expect(result).toEqual([
       { text: "is a ", match: false },
@@ -48,7 +48,7 @@ describe("splitHits", () => {
     const result = splitHits("Hello world, ABC and XYZ", "[A-Z]+", {
       regex: true,
       caseSensitive: true,
-      whole_word: false,
+      wholeWord: false,
     });
     expect(result).toEqual([
       { text: "H", match: true },
