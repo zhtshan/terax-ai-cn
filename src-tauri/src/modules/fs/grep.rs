@@ -71,24 +71,25 @@ fn escape_literal(s: &str) -> String {
 /// Parameters:
 /// - `pattern`: the raw user input.
 /// - `regex`: when true, treat `pattern` as a user-authored regex (no escaping).
-/// - `case_sensitive`: explicit case-sensitivity toggle. When `false`, smart-case
+/// - `caseSensitive`: explicit case-sensitivity toggle. When `false`, smart-case
 ///   is enabled for literal patterns and plain case-insensitivity for regex.
 /// - `whole_word`: when true (literal mode only), wrap the pattern in `\b…\b`.
 ///   In regex mode, the user is expected to add their own word boundaries.
+#[allow(non_snake_case)]
 fn build_matcher(
     pattern: &str,
     regex: bool,
-    case_sensitive: bool,
+    caseSensitive: bool,
     whole_word: bool,
 ) -> Result<RegexMatcher, String> {
     let mut builder = RegexMatcherBuilder::new();
     builder.line_terminator(Some(b'\n'));
 
     if regex {
-        // User owns the pattern verbatim; smart-case off, case_sensitive explicit.
-        builder.case_smart(false).case_insensitive(!case_sensitive);
+        // User owns the pattern verbatim; smart-case off, caseSensitive explicit.
+        builder.case_smart(false).case_insensitive(!caseSensitive);
     } else {
-        builder.case_smart(!case_sensitive);
+        builder.case_smart(!caseSensitive);
     }
 
     let body = if regex {
@@ -342,13 +343,13 @@ fn fs_search_content_inner(
 }
 
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 pub fn fs_search_content(
     state: tauri::State<'_, ContentSearchState>,
     pattern: String,
     root: String,
     regex: bool,
-    case_sensitive: bool,
+    caseSensitive: bool,
     whole_word: bool,
     include: Option<String>,
     exclude: Option<String>,
@@ -360,7 +361,7 @@ pub fn fs_search_content(
         pattern,
         root,
         regex,
-        case_sensitive,
+        caseSensitive,
         whole_word,
         include,
         exclude,
@@ -544,13 +545,13 @@ fn fs_replace_all_inner(
 }
 
 #[tauri::command]
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 pub fn fs_replace_all(
     pattern: String,
     replacement: String,
     root: String,
     regex: bool,
-    case_sensitive: bool,
+    caseSensitive: bool,
     whole_word: bool,
     include: Option<String>,
     exclude: Option<String>,
@@ -561,7 +562,7 @@ pub fn fs_replace_all(
         replacement,
         root,
         regex,
-        case_sensitive,
+        caseSensitive,
         whole_word,
         include,
         exclude,
