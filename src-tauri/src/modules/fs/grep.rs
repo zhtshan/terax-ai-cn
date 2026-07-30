@@ -80,7 +80,7 @@ fn build_matcher(
     pattern: &str,
     regex: bool,
     caseSensitive: bool,
-    whole_word: bool,
+    wholeWord: bool,
 ) -> Result<RegexMatcher, String> {
     let mut builder = RegexMatcherBuilder::new();
     builder.line_terminator(Some(b'\n'));
@@ -94,7 +94,7 @@ fn build_matcher(
 
     let body = if regex {
         pattern.to_string()
-    } else if whole_word {
+    } else if wholeWord {
         format!("\\b{}\\b", escape_literal(pattern))
     } else {
         escape_literal(pattern)
@@ -295,14 +295,14 @@ pub fn fs_grep_interactive(
 /// an include/exclude glob filter, and reuses `ContentSearchState`'s
 /// generation-based cancellation so a newer query bumps the generation and
 /// in-flight walks quit.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 fn fs_search_content_inner(
     state: &ContentSearchState,
     pattern: String,
     root: String,
     regex: bool,
-    case_sensitive: bool,
-    whole_word: bool,
+    caseSensitive: bool,
+    wholeWord: bool,
     include: Option<String>,
     exclude: Option<String>,
     max_results: Option<usize>,
@@ -320,7 +320,7 @@ fn fs_search_content_inner(
         .unwrap_or(DEFAULT_MAX_RESULTS)
         .clamp(1, HARD_MAX_RESULTS);
 
-    let matcher = build_matcher(&pattern, regex, case_sensitive, whole_word)?;
+    let matcher = build_matcher(&pattern, regex, caseSensitive, wholeWord)?;
 
     let include_slice: &[String] = include.as_slice();
     let exclude_slice: &[String] = exclude.as_slice();
@@ -350,7 +350,7 @@ pub fn fs_search_content(
     root: String,
     regex: bool,
     caseSensitive: bool,
-    whole_word: bool,
+    wholeWord: bool,
     include: Option<String>,
     exclude: Option<String>,
     max_results: Option<usize>,
@@ -362,7 +362,7 @@ pub fn fs_search_content(
         root,
         regex,
         caseSensitive,
-        whole_word,
+        wholeWord,
         include,
         exclude,
         max_results,
@@ -396,14 +396,14 @@ pub struct ReplaceResponse {
 /// succeeds even if individual files fail. Workspace authorization is
 /// provided upstream by the IPC wrapper that uses `fs::file::fs_write_file`'s
 /// resolve/secret-path chain; this inner function just resolves the root.
-#[allow(clippy::too_many_arguments)]
+#[allow(clippy::too_many_arguments, non_snake_case)]
 fn fs_replace_all_inner(
     pattern: String,
     replacement: String,
     root: String,
     regex: bool,
-    case_sensitive: bool,
-    whole_word: bool,
+    caseSensitive: bool,
+    wholeWord: bool,
     include: Option<String>,
     exclude: Option<String>,
     workspace: Option<WorkspaceEnv>,
@@ -421,7 +421,7 @@ fn fs_replace_all_inner(
         return Err(format!("not a directory: {root}"));
     }
 
-    let matcher = build_matcher(&pattern, regex, case_sensitive, whole_word)?;
+    let matcher = build_matcher(&pattern, regex, caseSensitive, wholeWord)?;
 
     let include_slice: &[String] = include.as_slice();
     let exclude_slice: &[String] = exclude.as_slice();
@@ -552,7 +552,7 @@ pub fn fs_replace_all(
     root: String,
     regex: bool,
     caseSensitive: bool,
-    whole_word: bool,
+    wholeWord: bool,
     include: Option<String>,
     exclude: Option<String>,
     workspace: Option<WorkspaceEnv>,
@@ -563,7 +563,7 @@ pub fn fs_replace_all(
         root,
         regex,
         caseSensitive,
-        whole_word,
+        wholeWord,
         include,
         exclude,
         workspace,
