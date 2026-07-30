@@ -597,7 +597,9 @@
     "search": "Search",
     "searchWithKey": "Search ({{key}})",
     "clearSearch": "Clear search",
-    "gitHistory": "Git search"
+    "gitHistory": "Git search",
+    "nextMatch": "Next match",
+    "previousMatch": "Previous match"
   },
   "searchPanel": {
     "search": "Search",
