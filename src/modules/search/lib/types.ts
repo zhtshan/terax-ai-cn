@@ -32,7 +32,7 @@ export type SearchInput = {
   pattern: string;
   root: string;
   regex: boolean;
-  case_sensitive: boolean;
+  caseSensitive: boolean;
   whole_word: boolean;
   include?: string | null;
   exclude?: string | null;

@@ -335,7 +335,7 @@ export default function App() {
     pattern: "",
     replacement: "",
     regex: false,
-    case_sensitive: false,
+    caseSensitive: false,
     whole_word: false,
     include: "",
     exclude: "",

@@ -1,0 +1,13 @@
+{
+  "change": "vscode-style-content-search",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "b55d56779af525149ed0e73b74e646a6f49210bb283157deeb83a043370c706f",
+  "files": [
+    { "path": "openspec/changes/vscode-style-content-search/proposal.md", "sha256": "c16036a99f08ee3c6d12ad03a1ccdd718327145816a795bfbef3d25dcf36b042" },
+    { "path": "openspec/changes/vscode-style-content-search/design.md", "sha256": "3737849f1599a0c736d81f6f1a6c3738632f5b12ede2d55af748cf109f9372fc" },
+    { "path": "openspec/changes/vscode-style-content-search/tasks.md", "sha256": "75aa988e571339b5d18af88a212e9e5192039ee23b91b7405f4f2b96d6fdd2dc" }
+  ]
+}

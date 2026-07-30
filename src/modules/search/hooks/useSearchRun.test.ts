@@ -17,7 +17,7 @@ const sampleInput: SearchInput = {
   pattern: "needle",
   root: "/workspace",
   regex: false,
-  case_sensitive: false,
+  caseSensitive: false,
   whole_word: false,
 };
 

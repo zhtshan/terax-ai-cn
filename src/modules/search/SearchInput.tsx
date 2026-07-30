@@ -15,7 +15,7 @@ export type SearchInputOptions = {
   pattern: string;
   replacement: string;
   regex: boolean;
-  case_sensitive: boolean;
+  caseSensitive: boolean;
   whole_word: boolean;
   include: string;
   exclude: string;
@@ -111,10 +111,10 @@ export function SearchInput({ value, onChange, stats, rootPath }: SearchInputPro
           onClick={() => onChange({ ...value, regex: !value.regex })}
         />
         <ToggleButton
-          active={value.case_sensitive}
+          active={value.caseSensitive}
           label={t("searchPanel.caseSensitive")}
           icon={CaseSensitiveIcon}
-          onClick={() => onChange({ ...value, case_sensitive: !value.case_sensitive })}
+          onClick={() => onChange({ ...value, caseSensitive: !value.caseSensitive })}
         />
         <ToggleButton
           active={value.whole_word}

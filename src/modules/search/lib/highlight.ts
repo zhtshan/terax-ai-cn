@@ -1,6 +1,6 @@
 export type HighlightOptions = {
   regex: boolean;
-  case_sensitive: boolean;
+  caseSensitive: boolean;
   whole_word: boolean;
 };
 
@@ -11,7 +11,7 @@ function escapeRegex(s: string): string {
 }
 
 function buildRegex(pattern: string, opts: HighlightOptions): RegExp {
-  const flags = opts.case_sensitive ? "g" : "gi";
+  const flags = opts.caseSensitive ? "g" : "gi";
   let body: string;
   if (opts.regex) {
     body = pattern;

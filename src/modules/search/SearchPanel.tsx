@@ -78,7 +78,7 @@ export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(funct
         pattern={options.pattern}
         options={{
           regex: options.regex,
-          case_sensitive: options.case_sensitive,
+          caseSensitive: options.caseSensitive,
           whole_word: options.whole_word,
         }}
         truncated={results?.truncated}
