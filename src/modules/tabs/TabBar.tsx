@@ -16,6 +16,7 @@ import {
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmtShortcut, MOD_KEY, SHIFT_KEY } from "@/lib/platform";
 import { cn } from "@/lib/utils";
+import { perfMonitor } from "@/lib/perf-monitor";
 import {
   ALL_LANGUAGES,
   EXPOSED_LANGUAGES,
@@ -46,9 +47,11 @@ import {
 import { HugeiconsIcon } from "@hugeicons/react";
 import {
   Fragment,
+  memo,
   useCallback,
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   useState,
 } from "react";
@@ -129,6 +132,7 @@ export function TabBar({
     null,
   );
   const [pillReady, setPillReady] = useState(false);
+  const roTimeoutRef = useRef<number | null>(null);
 
   const measurePill = useCallback(() => {
     const el = listRef.current?.querySelector<HTMLElement>(
@@ -138,15 +142,30 @@ export function TabBar({
   }, []);
 
   useLayoutEffect(() => {
+    perfMonitor.mark("tab-switch-start");
     measurePill();
+    perfMonitor.mark("tab-switch-pill-measure");
+    perfMonitor.measure("tab-switch-pill", "tab-switch-start");
   }, [measurePill, activeId, tabs]);
 
   useEffect(() => {
     const list = listRef.current;
     if (!list) return;
-    const ro = new ResizeObserver(measurePill);
+    const debouncedMeasure = () => {
+      if (roTimeoutRef.current !== null) return;
+      roTimeoutRef.current = window.setTimeout(() => {
+        measurePill();
+        roTimeoutRef.current = null;
+      }, 50);
+    };
+    const ro = new ResizeObserver(debouncedMeasure);
     ro.observe(list);
-    return () => ro.disconnect();
+    return () => {
+      ro.disconnect();
+      if (roTimeoutRef.current !== null) {
+        clearTimeout(roTimeoutRef.current);
+      }
+    };
   }, [measurePill]);
 
   // Hold the transition off until the pill is first placed, so it never slides
@@ -232,17 +251,20 @@ export function TabBar({
                   : { opacity: 0 }
               }
             />
-            {tabs.map((t, i) => {
-              const isPreview = t.kind === "editor" && (t as EditorTab).preview;
-              const isActive = t.id === activeId;
-              const isNew = !firstRender && !seen.has(t.id);
-
+            {useMemo(() => {
+              perfMonitor.mark("tab-items-render-start");
               const srcIndex = tabs.findIndex((x) => x.id === draggingId);
-              const showGap = (gap: number) =>
-                draggingId !== null &&
-                dropGap === gap &&
-                gap !== srcIndex &&
-                gap !== srcIndex + 1;
+              const result = tabs.map((t, i) => {
+                const isPreview =
+                  t.kind === "editor" && (t as EditorTab).preview;
+                const isActive = t.id === activeId;
+                const isNew = !firstRender && !seen.has(t.id);
+
+                const showGap = (gap: number) =>
+                  draggingId !== null &&
+                  dropGap === gap &&
+                  gap !== srcIndex &&
+                  gap !== srcIndex + 1;
 
               // While renaming, render a non-button cell so the <input> is not
               // nested inside the trigger <button> (invalid HTML, and WebKit
@@ -536,7 +558,11 @@ export function TabBar({
                   )}
                 </Fragment>
               );
-            })}
+              });
+              perfMonitor.mark("tab-items-render-end");
+              perfMonitor.measure("tab-items-render", "tab-items-render-start");
+              return result;
+            }, [tabs, activeId, draggingId, dropGap, firstRender, seen])}
           </TabsList>
         </Tabs>
         <DropdownMenu>
@@ -633,18 +659,21 @@ function DropIndicator() {
 function useTabAgentStatus(tab: Tab) {
   const phases = useAgentActivityStore((s) => s.phases);
   const agents = useAgentActivityStore((s) => s.agents);
-  if (tab.kind !== "terminal" || tab.private) {
-    return { state: null, agent: null } as const;
-  }
-  const ptyIds: number[] = [];
-  for (const leaf of leafIds(tab.paneTree)) {
-    const id = ptyIdForLeaf(leaf);
-    if (id !== null) ptyIds.push(id);
-  }
-  return tabAgentStatus(phases, agents, ptyIds);
+
+  return useMemo(() => {
+    if (tab.kind !== "terminal" || tab.private) {
+      return { state: null, agent: null } as const;
+    }
+    const ptyIds: number[] = [];
+    for (const leaf of leafIds(tab.paneTree)) {
+      const id = ptyIdForLeaf(leaf);
+      if (id !== null) ptyIds.push(id);
+    }
+    return tabAgentStatus(phases, agents, ptyIds);
+  }, [tab, phases, agents]);
 }
 
-export function TabIcon({ tab }: { tab: Tab }) {
+const TabIconComponent = ({ tab }: { tab: Tab }) => {
   const agentStatus = useTabAgentStatus(tab);
   if (tab.kind === "editor" || tab.kind === "markdown") {
     const url =
@@ -746,7 +775,9 @@ export function TabIcon({ tab }: { tab: Tab }) {
       className="shrink-0"
     />
   );
-}
+};
+
+export const TabIcon = memo(TabIconComponent);
 
 function TabRenameInput({
   initial,
