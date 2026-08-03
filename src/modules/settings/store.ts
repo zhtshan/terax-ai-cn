@@ -4,10 +4,10 @@ import {
   DEFAULT_AUTOCOMPLETE_MODEL,
   DEFAULT_MODEL_ID,
   DEFAULT_STT_PROVIDER,
+  isCompatModelId,
   isKnownModelId,
   LMSTUDIO_DEFAULT_BASE_URL,
   MLX_DEFAULT_BASE_URL,
-  type ModelId,
   migrateLegacyCompatEndpoint,
   OLLAMA_DEFAULT_BASE_URL,
   OPENAI_COMPATIBLE_DEFAULT_BASE_URL,
@@ -118,7 +118,7 @@ export type Preferences = {
   backgroundImageId: string | null;
   backgroundOpacity: number;
   backgroundBlur: number;
-  defaultModelId: ModelId;
+  defaultModelId: string;
   editorTheme: EditorThemePref;
   editorFontSize: number;
   customInstructions: string;
@@ -375,9 +375,9 @@ export async function loadPreferences(): Promise<Preferences> {
     backgroundBlur: clampBlur(
       get<number>(KEY_BG_BLUR) ?? DEFAULT_PREFERENCES.backgroundBlur,
     ),
-    defaultModelId: ((): ModelId => {
+    defaultModelId: ((): string => {
       const stored = get<string>(KEY_DEFAULT_MODEL);
-      return stored && isKnownModelId(stored)
+      return stored && (isKnownModelId(stored) || isCompatModelId(stored))
         ? stored
         : DEFAULT_PREFERENCES.defaultModelId;
     })(),
@@ -588,7 +588,7 @@ export async function setBackgroundBlur(value: number): Promise<void> {
   await writePref(KEY_BG_BLUR, clampBlur(value));
 }
 
-export async function setDefaultModel(value: ModelId): Promise<void> {
+export async function setDefaultModel(value: string): Promise<void> {
   await writePref(KEY_DEFAULT_MODEL, value);
 }
 

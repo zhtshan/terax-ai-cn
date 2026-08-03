@@ -27,15 +27,14 @@ import {
   DEFAULT_MODEL_ID,
   getAutocompleteEligibleModels,
   getCompatModelInfo,
-  getModel,
   getProvider,
   isCompatModelId,
   MODELS,
-  type ModelId,
   PROVIDERS,
   type ProviderId,
   type ProviderInfo,
   providerNeedsKey,
+  resolveModel,
   STT_PROVIDER_LABELS,
   type SttProvider,
   WHISPERCPP_DEFAULT_BASE_URL,
@@ -535,7 +534,7 @@ function DefaultsBlock({
   keys,
   customEndpoints,
 }: {
-  defaultModel: ModelId;
+  defaultModel: string;
   configuredIds: Set<ProviderId>;
   keys: KeysMap;
   customEndpoints: readonly CustomEndpoint[];
@@ -549,6 +548,7 @@ function DefaultsBlock({
           <DefaultModelPicker
             defaultModel={defaultModel}
             configuredIds={configuredIds}
+            customEndpoints={customEndpoints}
           />
         </FieldRow>
         <AutocompleteRow
@@ -564,12 +564,18 @@ function DefaultsBlock({
 function DefaultModelPicker({
   defaultModel,
   configuredIds,
+  customEndpoints,
 }: {
-  defaultModel: ModelId;
+  defaultModel: string;
   configuredIds: Set<ProviderId>;
+  customEndpoints: readonly CustomEndpoint[];
 }) {
-  const m = getModel(defaultModel);
-  const hasAny = configuredIds.size > 0;
+  const { t } = useTranslation();
+  const m = resolveModel(defaultModel, customEndpoints);
+  const configuredEndpoints = customEndpoints.filter(
+    (e) => e.baseURL.trim() && e.modelId.trim(),
+  );
+  const hasAny = configuredIds.size > 0 || configuredEndpoints.length > 0;
 
   return (
     <DropdownMenu>
@@ -612,7 +618,7 @@ function DefaultModelPicker({
                 {models.map((mod) => (
                   <DropdownMenuItem
                     key={mod.id}
-                    onSelect={() => void setDefaultModel(mod.id as ModelId)}
+                    onSelect={() => void setDefaultModel(mod.id)}
                     className={cn(
                       "flex items-start gap-2 text-[12px]",
                       mod.id === defaultModel && "bg-accent/50",
@@ -629,6 +635,35 @@ function DefaultModelPicker({
               </div>
             );
           })}
+          {configuredEndpoints.length > 0 ? (
+            <div className="px-1 pt-1.5 first:pt-1">
+              <div className="mb-0.5 flex items-center gap-1.5 px-2 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
+                <ProviderIcon provider="openai-compatible" size={11} />
+                <span>{t("settings.models.openaiCompat")}</span>
+              </div>
+              {configuredEndpoints.map((ep) => {
+                const compatId = compatModelIdForEndpoint(ep.id);
+                const info = getCompatModelInfo(compatId, customEndpoints);
+                return (
+                  <DropdownMenuItem
+                    key={ep.id}
+                    onSelect={() => void setDefaultModel(compatId)}
+                    className={cn(
+                      "flex items-start gap-2 text-[12px]",
+                      compatId === defaultModel && "bg-accent/50",
+                    )}
+                  >
+                    <span className="flex flex-1 flex-col">
+                      <span>{info.label}</span>
+                      <span className="text-[10px] text-muted-foreground">
+                        {info.description}
+                      </span>
+                    </span>
+                  </DropdownMenuItem>
+                );
+              })}
+            </div>
+          ) : null}
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
