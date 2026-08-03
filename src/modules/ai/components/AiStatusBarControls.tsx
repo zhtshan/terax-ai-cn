@@ -274,6 +274,8 @@ function ModelDropdown() {
       pool = pool.filter((m) => isCompatModelId(m.id));
     } else if (activeProvider !== null) {
       pool = pool.filter((m) => m.provider === activeProvider);
+    } else {
+      pool = pool.filter((m) => isCompatModelId(m.id) || hasKeyFor(m.provider));
     }
     if (q) {
       pool = pool.filter(
