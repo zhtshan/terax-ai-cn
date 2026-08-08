@@ -1223,6 +1223,7 @@ export default function App() {
                         }
                         activeFilePath={explorerActiveFilePath}
                         onOpenFile={handleOpenFile}
+                        onOpenContentHit={openContentHit}
                         onPathRenamed={handlePathRenamed}
                         onPathDeleted={handlePathDeleted}
                         onRevealInTerminal={cdInNewTab}

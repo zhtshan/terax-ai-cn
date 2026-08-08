@@ -41,12 +41,25 @@ type SearchResult = {
   truncated: boolean;
 };
 
+type ContentHit = {
+  path: string;
+  rel: string;
+  line: number;
+  text: string;
+};
+
+type ContentResponse = {
+  hits: ContentHit[];
+  truncated: boolean;
+};
+
 const MIN_QUERY_LEN = 2;
 const DEBOUNCE_MS = 300;
 
 type Props = {
   rootPath: string;
   onOpenFile: (path: string) => void;
+  onOpenContentHit?: (path: string, line: number) => void;
   open: boolean;
   onRequestClose: () => void;
   onActiveChange?: (active: boolean) => void;
@@ -62,6 +75,7 @@ export type ExplorerSearchHandle = {
 export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function ExplorerSearch({
   rootPath,
   onOpenFile,
+  onOpenContentHit,
   open,
   onRequestClose,
   onActiveChange,
@@ -74,14 +88,18 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
   const showHidden = usePreferencesStore((s) => s.showHidden);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchHit[]>([]);
+  const [contentHits, setContentHits] = useState<ContentHit[]>([]);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searching, setSearching] = useState(false);
+  const [contentSearching, setContentSearching] = useState(false);
   const [truncated, setTruncated] = useState(false);
+  const [contentTruncated, setContentTruncated] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const lastKeyboardNavAt = useRef(0);
 
   const active = query.trim().length > 0;
+  const hasContentHits = contentHits.length > 0;
 
   useEffect(() => {
     onActiveChange?.(active);
@@ -93,9 +111,12 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
     } else {
       setQuery("");
       setResults([]);
+      setContentHits([]);
       setSelectedIndex(0);
       setSearching(false);
+      setContentSearching(false);
       setTruncated(false);
+      setContentTruncated(false);
     }
   }, [open]);
 
@@ -103,9 +124,12 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
     const q = query.trim();
     if (q.length < MIN_QUERY_LEN) {
       setResults([]);
+      setContentHits([]);
       setSelectedIndex(0);
       setSearching(false);
+      setContentSearching(false);
       setTruncated(false);
+      setContentTruncated(false);
       return;
     }
     setSearching(true);
@@ -141,6 +165,40 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
       clearTimeout(handle);
     };
   }, [query, rootPath, showHidden]);
+
+  useEffect(() => {
+    const q = query.trim();
+    if (q.length < MIN_QUERY_LEN || !onOpenContentHit) return;
+    setContentSearching(true);
+    let alive = true;
+    const handle = setTimeout(async () => {
+      try {
+        const res = await invoke<ContentResponse>("fs_grep_interactive", {
+          pattern: q,
+          root: rootPath,
+          limit: 80,
+          workspace: currentWorkspaceEnv(),
+        });
+        if (alive) {
+          setContentHits(res.hits);
+          setContentTruncated(res.truncated);
+        }
+      } catch (e) {
+        if (alive) {
+          console.error("fs_grep failed:", e);
+          setContentHits([]);
+          setContentTruncated(false);
+        }
+      } finally {
+        if (alive) setContentSearching(false);
+      }
+    }, DEBOUNCE_MS);
+
+    return () => {
+      alive = false;
+      clearTimeout(handle);
+    };
+  }, [query, rootPath, onOpenContentHit]);
 
   useImperativeHandle(
     ref,
@@ -318,6 +376,57 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
                 {t('explorer.partialResults')}
               </div>
             ) : null}
+            {onOpenContentHit && (
+              <>
+                <div className="mx-2 my-1.5 border-t border-border/40" />
+                {contentSearching && contentHits.length === 0 ? (
+                  <div className="px-3 py-2 text-[11px] text-muted-foreground">
+                    {t('explorer.searching')}
+                  </div>
+                ) : hasContentHits ? (
+                  contentHits.map((hit, index) => {
+                    const isSelected = index === selectedIndex;
+                    return (
+                      <button
+                        key={`${hit.path}:${hit.line}`}
+                        onClick={() => onOpenContentHit(hit.path, hit.line)}
+                        onMouseEnter={() => {
+                          if (Date.now() - lastKeyboardNavAt.current > 250) {
+                            setSelectedIndex(index);
+                          }
+                        }}
+                        className={cn(
+                          "flex w-full items-center gap-1.5 px-2 py-1 text-left text-xs transition-colors",
+                          isSelected ? "bg-accent text-foreground" : "hover:bg-accent/50 text-foreground/80"
+                        )}
+                        title={`${hit.path}:${hit.line}`}
+                      >
+                        <img
+                          src={fileIconUrl(hit.rel)}
+                          alt=""
+                          className="size-3.5 shrink-0"
+                        />
+                        <span className="truncate text-[11px] text-muted-foreground">
+                          {hit.rel}:{hit.line}
+                        </span>
+                        <span className="min-w-0 flex-1 truncate text-[11px]">
+                          {hit.text.trim()}
+                        </span>
+                      </button>
+                    );
+                  })
+                ) : query.trim().length >= MIN_QUERY_LEN ? (
+                  <div className="px-3 py-2 text-[11px] text-muted-foreground">
+                    {t('explorer.noMatches')}
+                  </div>
+                ) : null}
+                {contentTruncated && contentHits.length > 0 ? (
+                  <div className="px-3 py-1.5 text-[10px] text-muted-foreground">
+                    {t('explorer.partialResults')}
+                  </div>
+                ) : null}
+              </>
+            )}
           </div>
         </ScrollArea>
       ) : null}
