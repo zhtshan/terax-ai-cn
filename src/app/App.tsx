@@ -287,6 +287,7 @@ export default function App() {
     wrapperRef: inputBarWrapperRef,
     onHandlePointerDown: onInputBarHandlePointerDown,
   } = useInputBarHeightResize();
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
 
   const [newEditorOpen, setNewEditorOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -759,6 +760,14 @@ export default function App() {
       "settings.open": () => void openSettingsWindow(),
       "sidebar.toggle": toggleSidebar,
       "explorer.focus": toggleExplorerFocus,
+      "explorer.search": () => {
+        if (sidebarView === "search") {
+          searchPanelRef.current?.focus();
+        } else {
+          persistSidebarView("search");
+          requestAnimationFrame(() => searchPanelRef.current?.focus());
+        }
+      },
       "view.zoomIn": zoomIn,
       "view.zoomOut": zoomOut,
       "view.zoomReset": zoomReset,
@@ -792,6 +801,7 @@ export default function App() {
       askFromSelection,
       toggleSidebar,
       toggleExplorerFocus,
+      searchPanelRef,
       zoomIn,
       zoomOut,
       zoomReset,
@@ -1257,7 +1267,7 @@ export default function App() {
               </ResizablePanel>
               <ResizableHandle withHandle />
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
-                <div className="flex h-full min-h-0 flex-col">
+                <div ref={workspaceContainerRef} className="flex h-full min-h-0 flex-col">
                   <div className="relative min-h-0 flex-1">
                     <WorkspaceSurface
                       tabs={tabs}

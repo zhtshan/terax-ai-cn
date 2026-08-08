@@ -32,18 +32,45 @@ function maxHeight(): number {
  * doesn't re-render the tree; only mirrors into a ref for the next gesture's
  * start value. Height is left unset until the user's first drag so the
  * input bar's own CSS-grid open/close animation (`.terax-reveal`, which
- * needs an intrinsically-sized container) is never disturbed by default. */
-export function useInputBarHeightResize() {
+ * needs an intrinsically-sized container) is never disturbed by default.
+ *
+ * When `containerRef` is provided, also observes the container's size and
+ * clamps the saved height to fit — so resizing the parent panel (e.g. the
+ * workspace ResizablePanel) propagates to the input bar. */
+export function useInputBarHeightResize(
+  containerRef?: React.RefObject<HTMLDivElement | null>,
+) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const height = useRef<number | null>(null);
+  const savedHeight = useRef<number | null>(null);
 
   useLayoutEffect(() => {
     const saved = loadHeight();
     if (saved == null) return;
     height.current = Math.min(saved, maxHeight());
+    savedHeight.current = height.current;
     const el = wrapperRef.current;
     if (el) el.style.height = `${height.current}px`;
   }, []);
+
+  // Sync height when the parent panel resizes.
+  useLayoutEffect(() => {
+    const container = containerRef?.current;
+    if (!container) return;
+    const observer = new ResizeObserver(() => {
+      const el = wrapperRef.current;
+      if (!el) return;
+      const maxH = Math.min(maxHeight(), container.clientHeight - 44);
+      if (height.current == null) return;
+      const next = Math.min(height.current, maxH);
+      if (Math.abs(next - height.current) > 2) {
+        height.current = next;
+        el.style.height = `${next}px`;
+      }
+    });
+    observer.observe(container);
+    return () => observer.disconnect();
+  }, [containerRef]);
 
   const onHandlePointerDown = useCallback((e: React.PointerEvent) => {
     if (e.button !== 0) return;
