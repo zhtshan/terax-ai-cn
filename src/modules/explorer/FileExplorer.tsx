@@ -26,6 +26,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { IS_MAC } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { ExplorerSearch, type ExplorerSearchHandle } from "./ExplorerSearch";
 import { EntryRow, PendingRow, StatusRow, type RowActions } from "./TreeRow";
@@ -443,8 +444,23 @@ export const FileExplorer = memo(
           if (idx === undefined) break;
           const row = rows[idx];
           if (row.kind !== "entry") break;
-          if (row.isDir) tree.toggle(row.path);
+          // Matches VS Code on macOS: Enter renames the focused entry
+          // (Finder convention). Opening/expanding stays on click; on
+          // Windows/Linux, F2 renames and Enter keeps opening.
+          if (IS_MAC) tree.beginRename(row.path);
+          else if (row.isDir) tree.toggle(row.path);
           else onOpenFile(row.path);
+          break;
+        }
+        case "F2": {
+          if (IS_MAC || currentIdx < 0) return;
+          e.preventDefault();
+          const path = entryPaths[currentIdx];
+          const idx = entryIndexByPath.get(path);
+          if (idx === undefined) break;
+          const row = rows[idx];
+          if (row.kind !== "entry") break;
+          tree.beginRename(row.path);
           break;
         }
       }
