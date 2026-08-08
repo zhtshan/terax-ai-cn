@@ -58,7 +58,6 @@ type Props = {
   rootPath: string | null;
   activeFilePath?: string | null;
   onOpenFile: (path: string, pin?: boolean) => void;
-  onOpenContentHit?: (path: string, line: number) => void;
   onPathRenamed?: (from: string, to: string) => void;
   onPathDeleted?: (path: string) => void;
   onRevealInTerminal?: (path: string) => void;
@@ -191,7 +190,6 @@ export const FileExplorer = memo(
       rootPath,
       activeFilePath,
       onOpenFile,
-      onOpenContentHit,
       onPathRenamed,
       onPathDeleted,
       onRevealInTerminal,
@@ -573,7 +571,6 @@ export const FileExplorer = memo(
           ref={searchRef}
           rootPath={rootPath}
           onOpenFile={onOpenFile}
-          onOpenContentHit={onOpenContentHit}
           open={isSearchOpen}
           onRequestClose={() => setIsSearchOpen(false)}
           onActiveChange={setIsSearchActive}
