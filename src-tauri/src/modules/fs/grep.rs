@@ -3,6 +3,7 @@ use std::sync::atomic::{AtomicBool, AtomicU64, AtomicUsize, Ordering};
 use std::sync::{Arc, Mutex};
 
 use globset::{Glob, GlobSet, GlobSetBuilder};
+use grep_matcher::Matcher as GrepMatcher;
 use grep_regex::{RegexMatcher, RegexMatcherBuilder};
 use grep_searcher::sinks::UTF8;
 use grep_searcher::{BinaryDetection, SearcherBuilder};
@@ -15,6 +16,7 @@ use crate::modules::workspace::{resolve_path, WorkspaceEnv};
 const FILE_SIZE_CAP: u64 = 5 * 1024 * 1024;
 const DEFAULT_MAX_RESULTS: usize = 200;
 const HARD_MAX_RESULTS: usize = 2000;
+const MAX_REPLACE_FILES: usize = 100;
 
 /// Supersession counter for interactive content search. Each new interactive
 /// query bumps the generation; in-flight walks observe the change and quit,
@@ -175,6 +177,7 @@ pub fn fs_grep(
     root: String,
     glob: Option<Vec<String>>,
     case_insensitive: Option<bool>,
+    whole_word: Option<bool>,
     max_results: Option<usize>,
     workspace: Option<WorkspaceEnv>,
 ) -> Result<GrepResponse, String> {
@@ -192,6 +195,7 @@ pub fn fs_grep(
 
     let matcher = RegexMatcherBuilder::new()
         .case_insensitive(case_insensitive.unwrap_or(false))
+        .word(whole_word.unwrap_or(false))
         .line_terminator(Some(b'\n'))
         .build(&pattern)
         .map_err(|e| format!("bad regex: {e}"))?;
@@ -249,6 +253,150 @@ pub fn fs_grep_interactive(
         cap,
         &cancel,
     ))
+}
+
+#[derive(Serialize, Clone)]
+pub struct ReplaceResult {
+    pub files_replaced: usize,
+    pub failures: Vec<String>,
+}
+
+/// Batch replace matches across files. Reads each file, applies regex replace,
+/// writes back atomically. Returns count and any failures.
+#[tauri::command]
+pub fn fs_replace(
+    pattern: String,
+    replacement: String,
+    root: String,
+    glob: Option<Vec<String>>,
+    case_insensitive: Option<bool>,
+    workspace: Option<WorkspaceEnv>,
+) -> Result<ReplaceResult, String> {
+    if pattern.is_empty() {
+        return Err("empty pattern".into());
+    }
+    let workspace = WorkspaceEnv::from_option(workspace);
+    let root_path = resolve_path(&root, &workspace);
+    if !root_path.is_dir() {
+        return Err(format!("not a directory: {root}"));
+    }
+
+    let matcher = RegexMatcherBuilder::new()
+        .case_insensitive(case_insensitive.unwrap_or(false))
+        .line_terminator(Some(b'\n'))
+        .build(&pattern)
+        .map_err(|e| format!("bad regex: {e}"))?;
+
+    let globs = build_globset(glob.as_deref().unwrap_or(&[]))?;
+
+    let files: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let count = Arc::new(AtomicUsize::new(0));
+    let stopped = Arc::new(AtomicBool::new(false));
+
+    let walker = WalkBuilder::new(&root_path)
+        .hidden(true)
+        .git_ignore(true)
+        .git_global(true)
+        .git_exclude(true)
+        .ignore(true)
+        .parents(true)
+        .follow_links(false)
+        .build_parallel();
+
+    walker.run(|| {
+        let globs = globs.clone();
+        let files = files.clone();
+        let count = count.clone();
+        let stopped = stopped.clone();
+        let root_path = root_path.clone();
+        let root_display = root.to_string();
+        let workspace = workspace.clone();
+
+        Box::new(move |dent_res| {
+            if stopped.load(Ordering::Relaxed) {
+                return WalkState::Quit;
+            }
+            if count.load(Ordering::Relaxed) >= MAX_REPLACE_FILES {
+                stopped.store(true, Ordering::Relaxed);
+                return WalkState::Quit;
+            }
+            let dent = match dent_res {
+                Ok(d) => d,
+                Err(_) => return WalkState::Continue,
+            };
+            if !dent.file_type().map(|t| t.is_file()).unwrap_or(false) {
+                return WalkState::Continue;
+            }
+            let path = dent.path();
+            let rel = match path.strip_prefix(&root_path) {
+                Ok(r) => to_canon(r),
+                Err(_) => return WalkState::Continue,
+            };
+            if let Some(set) = globs.as_ref() {
+                if !set.is_match(&rel) {
+                    return WalkState::Continue;
+                }
+            }
+            if let Ok(meta) = std::fs::metadata(path) {
+                if meta.len() > FILE_SIZE_CAP {
+                    return WalkState::Continue;
+                }
+            }
+            let abs = display_path(path, &root_path, &root_display, &workspace);
+            files.lock().unwrap().push(abs);
+            WalkState::Continue
+        })
+    });
+
+    let file_list = files.lock().unwrap().clone();
+    let mut failures_vec: Vec<String> = Vec::new();
+
+    for file_path in file_list {
+        let content = match std::fs::read_to_string(&file_path) {
+            Ok(c) => c,
+            Err(e) => {
+                failures_vec.push(format!("read {}: {}", file_path, e));
+                continue;
+            }
+        };
+
+        let mut buf = Vec::new();
+        let _ = matcher.replace(
+            content.as_bytes(),
+            &mut buf,
+            |_, dst: &mut Vec<u8>| {
+                dst.extend_from_slice(replacement.as_bytes());
+                true
+            },
+        );
+        let new_content = String::from_utf8(buf).map_err(|e| format!("invalid utf8: {e}"))?;
+
+        if new_content == content {
+            continue;
+        }
+
+        // Write atomically via temp file
+        let temp_path = format!("{}.tmp", file_path);
+        if let Err(e) = std::fs::write(&temp_path, &new_content) {
+            failures_vec.push(format!("write {}: {}", file_path, e));
+            let _ = std::fs::remove_file(&temp_path);
+            continue;
+        }
+        match std::fs::rename(&temp_path, &file_path) {
+            Ok(()) => {
+                count.fetch_add(1, Ordering::Relaxed);
+            }
+            Err(e) => {
+                failures_vec.push(format!("rename {}: {}", file_path, e));
+                let _ = std::fs::remove_file(&temp_path);
+            }
+        }
+    }
+
+    Ok(ReplaceResult {
+        files_replaced: count.load(Ordering::Relaxed),
+        failures: failures_vec,
+    })
 }
 
 #[derive(Serialize)]

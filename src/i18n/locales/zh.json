@@ -592,7 +592,23 @@
     "search": "搜索",
     "searchWithKey": "搜索 ({{key}})",
     "clearSearch": "清除搜索",
-    "gitHistory": "Git 历史"
+    "gitHistory": "Git 历史",
+    "placeholder": "搜索…",
+    "replace": "替换",
+    "replacePlaceholder": "替换为…",
+    "replaceAll": "全部替换",
+    "replacedCount": "已替换 {{count}} 个文件",
+    "caseSensitive": "区分大小写",
+    "wholeWord": "全字匹配",
+    "regex": "正则表达式",
+    "glob": "Glob 过滤",
+    "includeGlob": "包含的文件 (glob)",
+    "excludeGlob": "排除的文件 (glob)",
+    "searching": "搜索中…",
+    "noMatches": "无匹配",
+    "partialResults": "显示部分结果 — 请缩小查询范围。",
+    "replaceToggle": "切换替换模式",
+    "globToggle": "切换 Glob 过滤"
   },
   "terminal": {
     "watermark": {
@@ -846,6 +862,7 @@
   },
   "sidebar": {
     "files": "文件",
+    "search": "搜索",
     "sourceControl": "源代码管理"
   },
   "themes": {

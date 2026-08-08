@@ -495,6 +495,7 @@
   },
   "sidebar": {
     "files": "Files",
+    "search": "Search",
     "sourceControl": "Source Control"
   },
   "agents": {
@@ -596,7 +597,23 @@
     "search": "Search",
     "searchWithKey": "Search ({{key}})",
     "clearSearch": "Clear search",
-    "gitHistory": "Git search"
+    "gitHistory": "Git search",
+    "placeholder": "Search…",
+    "replace": "Replace",
+    "replacePlaceholder": "Replace with…",
+    "replaceAll": "Replace All",
+    "replacedCount": "Replaced {{count}} files",
+    "caseSensitive": "Case sensitive",
+    "wholeWord": "Whole word",
+    "regex": "Regex",
+    "glob": "Glob",
+    "includeGlob": "Include (glob)",
+    "excludeGlob": "Exclude (glob)",
+    "searching": "Searching…",
+    "noMatches": "No matches",
+    "partialResults": "Showing partial results — refine your query.",
+    "replaceToggle": "Toggle replace mode",
+    "globToggle": "Toggle glob filter"
   },
   "terminal": {
     "watermark": {

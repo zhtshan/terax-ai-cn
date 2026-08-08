@@ -34,6 +34,7 @@ import {
   useEditorFileSync,
 } from "@/modules/editor";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
+import { SearchPanel, type SearchPanelHandle } from "@/modules/search-panel";
 import type { GitHistorySearchHandle } from "@/modules/git-history";
 import {
   Header,
@@ -173,6 +174,7 @@ export default function App() {
   useApplyEditorFontSize();
   const terminalPathDropTarget = useTerminalFileDrop();
   const explorerRef = useRef<FileExplorerHandle>(null);
+  const searchPanelRef = useRef<SearchPanelHandle>(null);
 
   // Drives session disposal off the pane tree, not React lifecycles —
   // split/unsplit re-mount components but the leaf is still live.
@@ -1228,6 +1230,12 @@ export default function App() {
                         onRevealInTerminal={cdInNewTab}
                         onAttachToAgent={handleAttachFileToAgent}
                         pathDropTarget={terminalPathDropTarget}
+                      />
+                    ) : sidebarView === "search" ? (
+                      <SearchPanel
+                        ref={searchPanelRef}
+                        rootPath={explorerRoot ?? ""}
+                        onOpenContentHit={openContentHit}
                       />
                     ) : (
                       <SourceControlPanel
