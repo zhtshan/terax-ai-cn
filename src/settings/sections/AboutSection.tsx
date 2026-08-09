@@ -91,7 +91,7 @@ export function AboutSection() {
           {build ? `${build} · v${version}` : `v${version}`}
         </dd>
 
-        <dt className="text-muted-foreground">{t("settings.about.bundleID")}</dt>
+        <dt className="text-muted-foreground">{t("settings.about.bundleId")}</dt>
         <dd className="font-mono text-[11.5px]">app.crynta.terax</dd>
 
         <dt className="text-muted-foreground">{t("settings.about.license")}</dt>
