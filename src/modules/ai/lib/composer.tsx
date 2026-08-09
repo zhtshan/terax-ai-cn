@@ -87,14 +87,20 @@ export function AiComposerProvider({ children }: ProviderProps) {
   const pendingSelections = useChatStore((s) => s.pendingSelections);
   const consumeSelections = useChatStore((s) => s.consumeSelections);
 
+  // Track the prefill to apply on the current signal. Without this, the
+  // effect would re-run after consumePrefill() nulls pendingPrefill, and
+  // the unconditional setValue("") would wipe the text just set.
+  const prefillThisSignal = useRef<string | null>(null);
   useEffect(() => {
     if (focusSignal === 0) return;
+    prefillThisSignal.current = pendingPrefill;
     textareaRef.current?.focus();
-    if (pendingPrefill != null) {
-      const text = consumePrefill();
-      if (text) setValue((v) => (v ? `${text}${v}` : text));
-    }
-  }, [focusSignal, pendingPrefill, consumePrefill]);
+    // Clear first so a second chip click replaces rather than appends.
+    setValue("");
+    const text = consumePrefill();
+    if (text) setValue(text);
+    prefillThisSignal.current = null;
+  }, [focusSignal, consumePrefill]);
 
   // Re-focus the textarea whenever the agent finishes a response
   const prevIsBusyRef = useRef(false);
