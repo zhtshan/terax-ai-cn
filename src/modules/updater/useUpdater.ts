@@ -6,8 +6,8 @@ import { IS_LINUX, IS_MAC } from "@/lib/platform";
 
 const LAST_CHECK_KEY = "terax:updater:last-check";
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
-const GITHUB_LATEST_RELEASE =
-  "https://api.github.com/repos/zhtshan/terax-ai-cn/releases/latest";
+const GITHUB_TAGS_URL =
+  "https://api.github.com/repos/zhtshan/terax-ai-cn/tags?per_page=20";
 
 export interface ManualUpdateInfo {
   version: string;
@@ -49,25 +49,36 @@ function isNewer(remote: string, current: string): boolean {
 async function checkLinuxRelease(): Promise<ManualUpdateInfo | null> {
   const [current, res] = await Promise.all([
     getVersion(),
-    fetch(GITHUB_LATEST_RELEASE, {
+    fetch(GITHUB_TAGS_URL, {
       headers: { Accept: "application/vnd.github+json" },
     }),
   ]);
   if (!res.ok) {
     throw new Error(`GitHub API ${res.status}`);
   }
-  const data = (await res.json()) as {
-    tag_name: string;
-    body?: string;
-    html_url: string;
-  };
-  const remote = data.tag_name.replace(/^v/, "");
-  if (!isNewer(remote, current)) return null;
+  const tags = (await res.json()) as { name: string }[];
+  // Take the highest-versioned tag (API returns sorted by commit date, not semver)
+  const versions = tags
+    .map((t) => t.name)
+    .filter((v) => !v.includes("-")) // exclude pre-releases like v0.8.5.1-cn
+    .sort((a, b) => {
+      const pa = parseVersion(a);
+      const pb = parseVersion(b);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        if (pa[i] !== pb[i]) return (pa[i] ?? 0) - (pb[i] ?? 0);
+      }
+      return 0;
+    })
+    .reverse();
+  const latest = versions[0];
+  if (!latest) return null;
+  if (!isNewer(latest, current)) return null;
+  const releaseUrl = `https://github.com/zhtshan/terax-ai-cn/releases/tag/${latest}`;
   return {
-    version: remote,
+    version: latest,
     currentVersion: current,
-    body: data.body ?? "",
-    releaseUrl: data.html_url,
+    body: "",
+    releaseUrl,
   };
 }
 
