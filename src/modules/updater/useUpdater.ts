@@ -2,7 +2,7 @@ import { getVersion } from "@tauri-apps/api/app";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type Update } from "@tauri-apps/plugin-updater";
 import { useCallback, useEffect, useState } from "react";
-import { IS_LINUX } from "@/lib/platform";
+import { IS_LINUX, IS_MAC } from "@/lib/platform";
 
 const LAST_CHECK_KEY = "terax:updater:last-check";
 const CHECK_INTERVAL_MS = 30 * 60 * 1000;
@@ -91,7 +91,7 @@ export function useUpdater({ autoCheck = true }: HookOptions = {}) {
     }
     setStatus({ kind: "checking" });
     try {
-      if (IS_LINUX) {
+      if (IS_LINUX || IS_MAC) {
         const info = await checkLinuxRelease();
         if (info) {
           setStatus({ kind: "manual-available", info });
