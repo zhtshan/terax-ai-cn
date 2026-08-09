@@ -57,20 +57,16 @@ async function checkLinuxRelease(): Promise<ManualUpdateInfo | null> {
     throw new Error(`GitHub API ${res.status}`);
   }
   const tags = (await res.json()) as { name: string }[];
-  // Take the highest-versioned tag (API returns sorted by commit date, not semver)
-  const versions = tags
-    .map((t) => t.name)
-    .filter((v) => !v.includes("-")) // exclude pre-releases like v0.8.5.1-cn
-    .sort((a, b) => {
-      const pa = parseVersion(a);
-      const pb = parseVersion(b);
-      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-        if (pa[i] !== pb[i]) return (pa[i] ?? 0) - (pb[i] ?? 0);
-      }
-      return 0;
-    })
-    .reverse();
-  const latest = versions[0];
+  // API returns sorted by commit date, not semver — sort manually
+  const versions = tags.map((t) => t.name).sort((a, b) => {
+    const pa = parseVersion(a);
+    const pb = parseVersion(b);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      if (pa[i] !== pb[i]) return (pa[i] ?? 0) - (pb[i] ?? 0);
+    }
+    return 0;
+  });
+  const latest = versions[versions.length - 1];
   if (!latest) return null;
   if (!isNewer(latest, current)) return null;
   const releaseUrl = `https://github.com/zhtshan/terax-ai-cn/releases/tag/${latest}`;
