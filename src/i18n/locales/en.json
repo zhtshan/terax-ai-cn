@@ -270,6 +270,15 @@
       "askTeraxAnything": "Ask Terax anything",
       "miniWindowDesc": "Terax sees the active terminal — cwd, recent commands, and output."
     },
+    "agentView": {
+      "description": "Easily handle complex project development",
+      "features": [
+        "Expert in project iteration, issue fixing, and architecture refactoring",
+        "Intelligent task planning with precise execution after confirmation",
+        "Autonomous agent orchestration, AI expert team collaborative development"
+      ],
+      "switchToChat": "Switch to chat mode"
+    },
     "statusBar": {
       "openAiAgent": "Open AI agent",
       "attachFile": "Attach file or image",

@@ -33,7 +33,13 @@ const ICONS: Record<AgentIconId, typeof CodeIcon> = {
   spark: SparklesIcon,
 };
 
-export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
+export function AgentSwitcher({
+  isMiniWindow,
+  hideButton,
+}: {
+  isMiniWindow?: boolean;
+  hideButton?: boolean;
+}) {
   const { t } = useTranslation();
   // Subscribe to customAgents + activeId so the trigger updates live.
   const customAgents = useAgentsStore((s) => s.customAgents);
@@ -47,6 +53,8 @@ export function AgentSwitcher({ isMiniWindow }: { isMiniWindow?: boolean }) {
   const builtIn = list.filter((a) => a.builtIn);
   const custom = list.filter((a) => !a.builtIn);
   const ActiveIcon = ICONS[active.icon] ?? SparklesIcon;
+
+  if (hideButton) return null;
 
   return (
     <DropdownMenu>

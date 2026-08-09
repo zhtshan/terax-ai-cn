@@ -48,3 +48,6 @@ desktop.ini
 *.njsproj
 *.sln
 *.sw?
+
+# OpenSpec (local dev state)
+openspec/

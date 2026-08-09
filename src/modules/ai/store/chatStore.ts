@@ -125,6 +125,12 @@ type StoreState = {
   closePanel: () => void;
   togglePanel: () => void;
 
+  /** When true, the panel shows the Agent welcome screen instead of chat. */
+  agentView: boolean;
+  openAgentView: () => void;
+  closeAgentView: () => void;
+  toggleAgentView: () => void;
+
   focusSignal: number;
   pendingPrefill: string | null;
   focusInput: (prefill?: string | null) => void;
@@ -243,6 +249,12 @@ export const useChatStore = create<StoreState>((set, get) => ({
   openPanel: () => set({ panelOpen: true }),
   closePanel: () => set({ panelOpen: false }),
   togglePanel: () => set((s) => ({ panelOpen: !s.panelOpen })),
+
+  agentView: false,
+  openAgentView: () => set({ agentView: true, panelOpen: true }),
+  closeAgentView: () => set({ agentView: false }),
+  toggleAgentView: () =>
+    set((s) => ({ agentView: !s.agentView, panelOpen: true })),
 
   focusSignal: 0,
   pendingPrefill: null,

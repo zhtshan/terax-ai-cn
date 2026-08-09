@@ -270,6 +270,15 @@
       "askTeraxAnything": "向 Terax 提问",
       "miniWindowDesc": "Terax 可以看到活动终端 — 工作目录、最近命令和输出。"
     },
+    "agentView": {
+      "description": "轻松应对复杂项目开发",
+      "features": [
+        "擅长项目迭代、问题修复与架构重构",
+        "智能任务规划，确认后精准推进执行",
+        "自主编排智能体，AI 专家团队协同开发"
+      ],
+      "switchToChat": "切换至对话模式"
+    },
     "statusBar": {
       "openAiAgent": "打开 AI 代理",
       "attachFile": "附加文件或图片",
