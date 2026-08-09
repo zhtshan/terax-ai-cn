@@ -40,6 +40,7 @@ import { getOrCreateChat } from "../store/chatRuntime";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { usePlanStore } from "../store/planStore";
 import { AgentSwitcher } from "./AgentSwitcher";
+import { AiAgentWelcome } from "./AiAgentWelcome";
 import { AiChatView } from "./AiChat";
 import { PlanDiffReview } from "./PlanDiffReview";
 import { TodoStrip } from "./TodoStrip";
@@ -151,6 +152,8 @@ function Body({
 }) {
   const focusInput = useChatStore((s) => s.focusInput);
   const step = useChatStore((s) => s.agentMeta.step);
+  const agentView = useChatStore((s) => s.agentView);
+  const closeAgentView = useChatStore((s) => s.closeAgentView);
 
   const chat = useMemo(() => getOrCreateChat(sessionId), [sessionId]);
   const helpers = useChat<UIMessage>({ chat });
@@ -171,7 +174,9 @@ function Body({
       <PlanModeStrip />
 
       <div className="flex min-h-0 flex-1 flex-col">
-        {helpers.messages.length === 0 ? (
+        {agentView && helpers.messages.length === 0 ? (
+          <AiAgentWelcome onClose={closeAgentView} />
+        ) : helpers.messages.length === 0 ? (
           <EmptyState onPick={focusInput} />
         ) : (
           <div className="flex min-h-0 flex-1 flex-col [&_.text-sm]:text-[12px] [&_p]:leading-relaxed">
@@ -530,19 +535,19 @@ function EmptyState({ onPick }: { onPick: (text: string) => void }) {
       label: t("ai.miniWindow.explainError"),
       hint: t("ai.miniWindow.explainError"),
       icon: AlertCircleIcon,
-      text: "Explain the last error in the terminal.",
+      text: t("ai.miniWindow.explainError"),
     },
     {
       label: t("ai.miniWindow.generateCommand"),
       hint: t("ai.miniWindow.generateCommand"),
       icon: TerminalIcon,
-      text: "Give me a command to ",
+      text: t("ai.miniWindow.generateCommand"),
     },
     {
       label: t("ai.miniWindow.summarizeBuffer"),
       hint: t("ai.miniWindow.summarizeBuffer"),
       icon: FilterIcon,
-      text: "Summarize what just happened in the terminal.",
+      text: t("ai.miniWindow.summarizeBuffer"),
     },
   ];
   return (
