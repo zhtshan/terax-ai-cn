@@ -152,14 +152,6 @@ Windows ConPTY 需 `SPAWN_LOCK` 互斥体（`session.rs`）。并发启动会导
 
 ## AI 子系统
 
-### 提供商支持
-
-云：**OpenAI, Anthropic, Google, xAI, Cerebras, Groq, DeepSeek, Mistral, OpenRouter**  
-本地：**LM Studio, MLX, Ollama**  
-自定义：OpenAI 兼容接口
-
-配置在 `src/modules/ai/config.ts`（`PROVIDERS`）。
-
 ### 工具管理
 
 - **自动执行**：`read_file`, `list_directory`, `fs_search`, `fs_grep`
@@ -177,10 +169,6 @@ Windows ConPTY 需 `SPAWN_LOCK` 互斥体（`session.rs`）。并发启动会导
 - **零成本启用**：未激活时无进程、无 PATH 检查、没有 eager bundle 负担（14.5 kB shell 而已）
 - **会话管理**：按 (server, workspace-root) 键值、引用计数、idle 3 分钟自动杀、连续崩溃回退
 - **资源上限**：4 sessions per server；root marker 缺失则不启动；>4MB 文件关闭语法高亮和 LSP
-
-### 支持的语言
-
-TypeScript、Rust、Python (pyright/ruff)、Go、C/C++、Java 等。自定义 stdio 服务器通过 Settings 配置。
 
 ---
 
@@ -213,59 +201,3 @@ TypeScript、Rust、Python (pyright/ruff)、Go、C/C++、Java 等。自定义 st
 | Tab cwd 存储格式 | OSC 7 forward-slash，Win 命令接 backslash | 边界规范化（fs 命令已处理） |
 | AiComposerProvider 挂载 | 条件 mount 在 key 加载时重挂全树 | 无条件挂载（keychain 读通常同一帧） |
 | DormantRing 缓冲 | 后台标签页中途卡阻 | 切换后再序列化，禁止 mid-command 标签快照 |
-
----
-
-## 开发工作流建议
-
-### 新功能
-
-1. **架构**：确认改动是纯函数（`lib/`）还是 Tauri 命令/React 组件
-2. **边界**：跨 IPC、FS、网络、AI 的改动都需验证（secrets 不落盘、路径规范化等）
-3. **测试**：核心子系统（terminal/shell 启动、workspace auth、git、fs、IPC、AI 工具）需锁定不变式
-4. **检查**：完整跑过 lint/check-types/test/clippy/cargo-test
-
-### 调试
-
-- **前端**：`INSPECT=true pnpm dev` 开启 Vite inspector，`React DevTools` 浏览器插件可用
-- **Rust**：`cargo run --manifest-path src-tauri/Cargo.toml` 本地运行，日志通过 `tauri-plugin-log`
-
-### 性能分析
-
-- `pnpm analyze:bundle` —— Vite 依赖图
-- `pnpm analyze:eager` —— eager chunk 预算（不超 ~600 kB）
-- `pnpm size` —— size-limit 检查
-
----
-
-## 参考资源
-
-详见 `TERAX.md`（本项目架构圣经）和 `docs/` 目录：
-
-- `docs/architecture/two-process-model.md` —— IPC 命令参考
-- `docs/architecture/pty-shell-integration.md` —— PTY/Shell/OSC 细节
-- `docs/architecture/security-model.md` —— 安全边界
-- `docs/architecture/ai-subsystem.md` —— AI 栈、如何添加新提供商
-- `docs/architecture/terminal-renderer-pool.md` —— 渲染器池不变式
-- `docs/contributing/testing.md` —— 测试合约
-
----
-
-## 快速开始
-
-```bash
-# 1. 安装依赖
-pnpm install
-
-# 2. 开发（Tauri + Vite 联动）
-pnpm dev
-
-# 3. 代码检查（与 CI 一致）
-pnpm lint && pnpm check-types && pnpm test
-cd src-tauri && cargo clippy --all-targets --locked -- -D warnings
-
-# 4. 生产构建
-pnpm build
-```
-
-祝编码愉快！🚀
