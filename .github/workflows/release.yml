@@ -17,6 +17,9 @@ jobs:
           - platform: ubuntu-22.04
             args: ""
             rust-target: ""
+          - platform: macos-latest
+            args: ""
+            rust-target: ""
           - platform: windows-latest
             args: ""
             rust-target: ""
