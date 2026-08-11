@@ -71,7 +71,7 @@ async function checkLinuxRelease(): Promise<ManualUpdateInfo | null> {
   if (!isNewer(latest, current)) return null;
   const releaseUrl = `https://github.com/zhtshan/terax-ai-cn/releases/tag/${latest}`;
   return {
-    version: latest,
+    version: latest.replace(/^v/, ""),
     currentVersion: current,
     body: "",
     releaseUrl,
