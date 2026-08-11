@@ -18,6 +18,7 @@ import {
   languageServerPlugin,
   renameSymbol,
 } from "codemirror-languageserver";
+import { toast } from "sonner";
 import {
   type LocationItem,
   locationsPanel,
@@ -278,7 +279,6 @@ export function lspInteractions(opts: {
     title: string,
     locs: LspLocation[],
   ): void => {
-    if (locs.length === 0) return;
     if (locs.length === 1) {
       navigate(view, locs[0]);
       return;
@@ -319,10 +319,16 @@ export function lspInteractions(opts: {
         textDocument: { uri: opts.documentUri },
         position: positionAt(view, pos),
       });
-    } catch {
+    } catch (e) {
+      toast.error("Go to definition failed", { description: String(e) });
       return;
     }
-    showResults(view, "Definitions", normalizeLocations(result));
+    const locs = normalizeLocations(result);
+    if (locs.length === 0) {
+      toast.info("No definition found");
+      return;
+    }
+    showResults(view, "Definitions", locs);
   };
 
   const findReferences = async (
@@ -336,10 +342,16 @@ export function lspInteractions(opts: {
         position: positionAt(view, pos),
         context: { includeDeclaration: true },
       });
-    } catch {
+    } catch (e) {
+      toast.error("Find references failed", { description: String(e) });
       return;
     }
-    showResults(view, "References", result ?? []);
+    const locs = result ?? [];
+    if (locs.length === 0) {
+      toast.info("No references found");
+      return;
+    }
+    showResults(view, "References", locs);
   };
 
   return [
