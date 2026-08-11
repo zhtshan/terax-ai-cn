@@ -26,15 +26,18 @@ export type UpdaterStatus =
   | { kind: "ready" }
   | { kind: "error"; message: string };
 
-function parseVersion(v: string): number[] {
-  return v
-    .replace(/^v/, "")
-    .split("-")[0]
-    .split(".")
+// Extracts leading numeric segments (dot- or dash-separated) so both
+// "v0.8.5.2-cn" and "0.8.5-3-cn" style tags compare correctly — the first
+// non-numeric segment (e.g. "cn") ends the numeric run.
+export function parseVersion(v: string): number[] {
+  const numeric = v.replace(/^v/, "").match(/^[\d.-]+/)?.[0] ?? "";
+  return numeric
+    .split(/[.-]/)
+    .filter((p) => p !== "")
     .map((p) => Number.parseInt(p, 10) || 0);
 }
 
-function isNewer(remote: string, current: string): boolean {
+export function isNewer(remote: string, current: string): boolean {
   const a = parseVersion(remote);
   const b = parseVersion(current);
   const len = Math.max(a.length, b.length);
