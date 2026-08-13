@@ -49,6 +49,26 @@ export function isNewer(remote: string, current: string): boolean {
   return false;
 }
 
+// Picks the highest version among tag names, tolerating non-version tags
+// (e.g. a stray "list" tag) by treating unparseable segments as 0 on both
+// sides of the comparison — matching isNewer()'s coalescing so the
+// comparator stays transitive (a raw-vs-coalesced mismatch here previously
+// let a non-version tag tie with every real version tag and get sorted to
+// the end, masking real updates).
+export function pickLatestVersion(tagNames: string[]): string | undefined {
+  const versions = tagNames.slice().sort((a, b) => {
+    const pa = parseVersion(a);
+    const pb = parseVersion(b);
+    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+      const x = pa[i] ?? 0;
+      const y = pb[i] ?? 0;
+      if (x !== y) return x - y;
+    }
+    return 0;
+  });
+  return versions[versions.length - 1];
+}
+
 async function checkLinuxRelease(): Promise<ManualUpdateInfo | null> {
   const [current, res] = await Promise.all([
     getVersion(),
@@ -61,15 +81,7 @@ async function checkLinuxRelease(): Promise<ManualUpdateInfo | null> {
   }
   const tags = (await res.json()) as { name: string }[];
   // API returns sorted by commit date, not semver — sort manually
-  const versions = tags.map((t) => t.name).sort((a, b) => {
-    const pa = parseVersion(a);
-    const pb = parseVersion(b);
-    for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
-      if (pa[i] !== pb[i]) return (pa[i] ?? 0) - (pb[i] ?? 0);
-    }
-    return 0;
-  });
-  const latest = versions[versions.length - 1];
+  const latest = pickLatestVersion(tags.map((t) => t.name));
   if (!latest) return null;
   if (!isNewer(latest, current)) return null;
   const releaseUrl = `https://github.com/zhtshan/terax-ai-cn/releases/tag/${latest}`;
