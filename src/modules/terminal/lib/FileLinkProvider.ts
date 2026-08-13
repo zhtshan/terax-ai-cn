@@ -1,4 +1,6 @@
 import type { Terminal, IDisposable, ILink, IBufferRange } from "@xterm/xterm";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import { getLspNavigator } from "@/modules/lsp/lib/navigator";
 import { leafCwd } from "./useTerminalSession";
 import { isInsideWorkspace, matchFileLinks, resolvePath } from "./fileLinkMatch";
@@ -166,7 +168,7 @@ export function registerFileLinkProvider(
             underline: true,
             pointerCursor: true,
           },
-          activate(event, _text) {
+          activate: async (event, _text) => {
             if (!(event.metaKey || event.ctrlKey)) return;
             const nav = getLspNavigator();
             if (!nav) return;
@@ -176,7 +178,19 @@ export function registerFileLinkProvider(
             const clickedAbsPath = resolvePath(candidate.path, clickCwd);
             if (clickedAbsPath === null) return;
             if (!isInsideWorkspace(clickedAbsPath, explorerRoot)) return;
-            nav.openFile(clickedAbsPath, candidate.line ?? 0);
+            try {
+              const result = await invoke<{ kind: string }>(
+                "fs_stat",
+                { path: clickedAbsPath },
+              );
+              if (result.kind === "Dir") {
+                toast.error("不能打开目录");
+                return;
+              }
+              nav.openFile(clickedAbsPath, candidate.line ?? 0);
+            } catch {
+              toast.error("文件不存在");
+            }
           },
         });
       }

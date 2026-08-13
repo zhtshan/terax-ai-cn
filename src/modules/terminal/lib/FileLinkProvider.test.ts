@@ -1,6 +1,8 @@
 /// <reference types="vitest/globals" />
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Terminal } from "@xterm/xterm";
+import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import { getLspNavigator } from "@/modules/lsp/lib/navigator";
 import { leafCwd } from "./useTerminalSession";
 import type { FileLinkProviderOptions } from "./FileLinkProvider";
@@ -12,6 +14,14 @@ vi.mock("@/modules/lsp/lib/navigator", () => ({
 
 vi.mock("./useTerminalSession", () => ({
   leafCwd: vi.fn(() => null),
+}));
+
+vi.mock("@tauri-apps/api/core", () => ({
+  invoke: vi.fn(),
+}));
+
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn() },
 }));
 
 beforeEach(() => {
@@ -128,7 +138,6 @@ describe("registerFileLinkProvider", () => {
 
     await new Promise<void>((resolve) => {
       provider.provideLinks(1, (links) => {
-        // undefined when no links match — that's the expected behavior
         expect(links).toBeUndefined();
         resolve();
       });
@@ -158,7 +167,6 @@ describe("registerFileLinkProvider", () => {
 
     await new Promise<void>((resolve) => {
       provider.provideLinks(1, (links) => {
-        // undefined because cwd changed to /outside
         expect(links).toBeUndefined();
         expect(vi.mocked(leafCwd).mock.calls).toHaveLength(2);
         resolve();
@@ -169,6 +177,132 @@ describe("registerFileLinkProvider", () => {
   it("activate only responds to Cmd/Ctrl+click", async () => {
     const navOpenFile = vi.fn();
     vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    vi.mocked(invoke).mockResolvedValue({ kind: "File" });
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "src/app.ts");
+
+    registerFileLinkProvider(term, baseOptions);
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        // Normal click — no modifier
+        link.activate(makeClickEvent(), "src/app.ts");
+        expect(navOpenFile).not.toHaveBeenCalled();
+        // Ctrl+click
+        link.activate(makeClickEvent({ ctrlKey: true }), "src/app.ts");
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(navOpenFile).toHaveBeenCalledWith("/repo/src/src/app.ts", 0);
+  });
+
+  it("calls navigator.openFile when fs_stat succeeds with File kind", async () => {
+    const navOpenFile = vi.fn();
+    vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    vi.mocked(invoke).mockResolvedValue({ kind: "File" });
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "src/app.ts:42");
+
+    registerFileLinkProvider(term, baseOptions);
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        link.activate(makeClickEvent({ metaKey: true }), "src/app.ts:42");
+        // activate is now async — let it resolve
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(invoke).toHaveBeenCalledWith("fs_stat", expect.objectContaining({ path: "/repo/src/src/app.ts" }));
+    expect(navOpenFile).toHaveBeenCalledWith("/repo/src/src/app.ts", 42);
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
+  it("shows toast.error when fs_stat throws (file not found)", async () => {
+    const navOpenFile = vi.fn();
+    vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    vi.mocked(invoke).mockRejectedValue(new Error("no such file"));
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "missing/file.ts");
+
+    registerFileLinkProvider(term, baseOptions);
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        link.activate(makeClickEvent({ ctrlKey: true }), "missing/file.ts");
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(navOpenFile).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("文件不存在");
+  });
+
+  it("shows toast.error and skips navigator when target is a directory", async () => {
+    const navOpenFile = vi.fn();
+    vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    vi.mocked(invoke).mockResolvedValue({ kind: "Dir" });
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "some/file.ts");
+
+    registerFileLinkProvider(term, baseOptions);
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        link.activate(makeClickEvent({ metaKey: true }), "some/file.ts");
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(invoke).toHaveBeenCalledWith("fs_stat", expect.objectContaining({ path: "/repo/src/some/file.ts" }));
+    expect(navOpenFile).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("不能打开目录");
+  });
+
+  it("silently ignores activate when navigator is null", async () => {
+    const toastErrorSpy = vi.spyOn(toast, "error");
+    vi.mocked(getLspNavigator).mockReturnValue(null);
     vi.mocked(leafCwd).mockReturnValue("/repo/src");
     const { term, getLineMock } = makeMockTerm();
     mockLineContent(getLineMock, "src/app.ts");
@@ -181,16 +315,16 @@ describe("registerFileLinkProvider", () => {
 
     await new Promise<void>((resolve) => {
       provider.provideLinks(1, (links) => {
-        const arr = links as { activate: (e: MouseEvent, t: string) => void }[];
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
         const link = arr[0]!;
-        // Normal click — no modifier
-        link.activate(makeClickEvent(), "src/app.ts");
-        expect(navOpenFile).not.toHaveBeenCalled();
-        // Ctrl+click
         link.activate(makeClickEvent({ ctrlKey: true }), "src/app.ts");
-        expect(navOpenFile).toHaveBeenCalledWith("/repo/src/src/app.ts", 0);
         resolve();
       });
     });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(toastErrorSpy).not.toHaveBeenCalled();
   });
 });
