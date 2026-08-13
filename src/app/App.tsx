@@ -165,6 +165,12 @@ export default function App() {
   const searchInlineRef = useRef<SearchInlineHandle | null>(null);
   const terminalRefs = useRef<Map<number, TerminalPaneHandle>>(new Map());
   const editorRefs = useRef<Map<number, EditorPaneHandle>>(new Map());
+
+  type NavEntry = { path: string; line: number };
+
+  const navigationHistoryRef = useRef<Map<number, { back: NavEntry[]; forward: NavEntry[] }>>(
+    new Map(),
+  );
   const previewRefs = useRef<Map<number, PreviewPaneHandle>>(new Map());
   const [activeEditorHandle, setActiveEditorHandle] =
     useState<EditorPaneHandle | null>(null);
