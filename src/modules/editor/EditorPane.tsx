@@ -80,6 +80,8 @@ export type EditorPaneHandle = {
   triggerAiComplete: () => void;
   /** Open CodeMirror's completion popup. */
   triggerCodeComplete: () => void;
+  /** Get the current 1-based cursor line number. */
+  getCursorLine: () => number;
 };
 
 type Props = {
@@ -492,6 +494,12 @@ export const EditorPane = memo(
           if (!view) return;
           view.focus();
           startCompletion(view);
+        },
+        getCursorLine: () => {
+          const view = cmRef.current?.view;
+          if (!view) return 0;
+          const pos = view.state.selection.main.head;
+          return view.state.doc.lineAt(pos).number;
         },
       }),
       [path, applyPendingGoto],
