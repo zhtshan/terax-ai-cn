@@ -13,6 +13,6 @@
     ]
   },
   "bundle": {
-    "targets": ["nsis"]
+    "targets": "all"
   }
 }
