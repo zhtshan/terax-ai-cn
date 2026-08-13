@@ -106,7 +106,7 @@ export function UpdaterDialog() {
                   : formatBytes(status.downloaded)
                 : manual
                   ? t('updater.pickDistro', { currentVersion: manual.currentVersion })
-                  : update?.body || t('updater.newVersionReady')}
+                  : t('updater.newVersionReady')}
           </DialogDescription>
         </DialogHeader>
 
