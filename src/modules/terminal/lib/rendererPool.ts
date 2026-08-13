@@ -7,7 +7,7 @@ import { SearchAddon } from "@xterm/addon-search";
 import { SerializeAddon } from "@xterm/addon-serialize";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
-import { type FontWeight, Terminal } from "@xterm/xterm";
+import { type FontWeight, type IDisposable, Terminal } from "@xterm/xterm";
 import { shouldCursorBlink } from "./cursorBlink";
 import {
   readTerminalClipboard,
@@ -56,6 +56,7 @@ export type Slot = {
   retainedLeafId: number | null;
   parked: boolean;
   oscDisposers: (() => void)[];
+  fileLinkDisposer: IDisposable | null;
   observer: ResizeObserver | null;
   fitTimer: ReturnType<typeof setTimeout> | null;
   ptyTimer: ReturnType<typeof setTimeout> | null;
@@ -72,6 +73,12 @@ export type Slot = {
 const slots: Slot[] = [];
 let recyclerEl: HTMLDivElement | null = null;
 let adapter: SlotAdapter | null = null;
+
+let _explorerRoot: string | null = null;
+
+export function setExplorerRoot(root: string | null): void {
+  _explorerRoot = root;
+}
 
 let windowActive =
   typeof document === "undefined" || (!document.hidden && document.hasFocus());
@@ -221,6 +228,7 @@ function createSlot(): Slot {
     retainedLeafId: null,
     parked: false,
     oscDisposers: [],
+    fileLinkDisposer: null,
     observer: null,
     fitTimer: null,
     ptyTimer: null,
@@ -290,6 +298,21 @@ function createSlot(): Slot {
   });
 
   slots.push(slot);
+
+  // Defer registration to avoid a circular import (rendererPool ->
+  // FileLinkProvider -> useTerminalSession -> rendererPool). The provider
+  // is registered on the next microtask after the slot is fully constructed.
+  if (_explorerRoot !== null && slot.webglAddon === null) {
+    const root = _explorerRoot;
+    queueMicrotask(async () => {
+      const { registerFileLinkProvider } = await import("./FileLinkProvider");
+      slot.fileLinkDisposer = registerFileLinkProvider(term, {
+        getLeafId: () => slot.currentLeafId,
+        explorerRoot: root,
+      });
+    });
+  }
+
   return slot;
 }
 
@@ -732,6 +755,12 @@ function disposeSlot(slot: Slot): void {
     } catch {}
   }
   slot.oscDisposers = [];
+  if (slot.fileLinkDisposer !== null) {
+    try {
+      slot.fileLinkDisposer.dispose();
+    } catch {}
+    slot.fileLinkDisposer = null;
+  }
   disposeSlotWebgl(slot);
   try {
     slot.term.dispose();
