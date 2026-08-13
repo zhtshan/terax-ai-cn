@@ -1135,15 +1135,34 @@ export default function App() {
   );
 
   const pendingGotoLine = useRef<Map<number, number>>(new Map());
+  const pushNavigationHistory = useCallback(
+    (tabId: number, path: string, line: number) => {
+      const stack = navigationHistoryRef.current.get(tabId) ?? {
+        back: [] as NavEntry[],
+        forward: [] as NavEntry[],
+      };
+      stack.back.push({ path, line });
+      stack.forward = [];
+      navigationHistoryRef.current.set(tabId, stack);
+    },
+    [],
+  );
   const openContentHit = useCallback(
     (path: string, line: number) => {
+      // Push current position to history before navigating
+      const currentTab = tabsRef.current.find((t) => t.id === activeId);
+      if (currentTab?.kind === "editor") {
+        const sourcePath = currentTab.path;
+        const sourceLine = editorRefs.current.get(activeId)?.getCursorLine() ?? 0;
+        pushNavigationHistory(activeId, sourcePath, sourceLine);
+      }
       const id = openFileTab(path, true);
       if (id == null) return;
       const h = editorRefs.current.get(id);
       if (h) h.gotoLine(line);
       else pendingGotoLine.current.set(id, line);
     },
-    [openFileTab],
+    [openFileTab, pushNavigationHistory],
   );
 
   useEffect(() => {
