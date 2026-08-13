@@ -1,6 +1,8 @@
 //! GUI-launched apps get a bare PATH on macOS, and servers like
 //! typescript-language-server need the user's PATH themselves to find
-//! `node`. Capture the login shell env once, reuse for detect and spawn.
+//! `node`. Capture the interactive login shell env once (so version
+//! managers like nvm/fnm that init from ~/.zshrc are picked up), reuse
+//! for detect and spawn.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -43,6 +45,14 @@ pub fn resolve_binary(command: &str) -> Option<PathBuf> {
     which::which_in(command, path, cwd).ok()
 }
 
+/// Markers bracketing the `env -0` dump so interactive-shell noise (MOTDs,
+/// oh-my-zsh/powerlevel10k banners, plugin output) printed before or after
+/// it doesn't get parsed as env data.
+#[cfg(unix)]
+const START_MARK: &str = "__TERAX_ENV_START__";
+#[cfg(unix)]
+const END_MARK: &str = "__TERAX_ENV_END__";
+
 #[cfg(unix)]
 fn capture_login_env() -> Option<HashMap<String, String>> {
     use shared_child::SharedChild;
@@ -52,8 +62,12 @@ fn capture_login_env() -> Option<HashMap<String, String>> {
     use std::sync::Arc;
 
     let shell = std::env::var("SHELL").unwrap_or_else(|_| "/bin/sh".into());
+    let script = format!("echo {START_MARK}; /usr/bin/env -0; echo {END_MARK}");
     let mut cmd = Command::new(&shell);
-    cmd.args(["-l", "-c", "/usr/bin/env -0"])
+    // -i (interactive) in addition to -l (login): version managers like nvm/fnm/rbenv
+    // commonly wire themselves up in ~/.zshrc, which a login-but-non-interactive
+    // shell never sources. Interactive mode is what actually picks that PATH up.
+    cmd.args(["-i", "-l", "-c", &script])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())
         .stderr(Stdio::null());
@@ -83,7 +97,8 @@ fn capture_login_env() -> Option<HashMap<String, String>> {
         }
     };
 
-    let env: HashMap<String, String> = bytes
+    let env_bytes = extract_marked_section(&bytes)?;
+    let env: HashMap<String, String> = env_bytes
         .split(|&b| b == 0)
         .filter(|chunk| !chunk.is_empty())
         .filter_map(|chunk| {
@@ -99,6 +114,25 @@ fn capture_login_env() -> Option<HashMap<String, String>> {
         return None;
     }
     Some(env)
+}
+
+/// Slices out the raw bytes between the start/end markers, dropping any
+/// interactive-shell startup noise printed outside them.
+#[cfg(unix)]
+fn extract_marked_section(bytes: &[u8]) -> Option<&[u8]> {
+    let start_needle = format!("{START_MARK}\n");
+    let start_idx = find_bytes(bytes, start_needle.as_bytes())?;
+    let after_start = start_idx + start_needle.len();
+    let end_idx = find_bytes(&bytes[after_start..], END_MARK.as_bytes())?;
+    Some(&bytes[after_start..after_start + end_idx])
+}
+
+#[cfg(unix)]
+fn find_bytes(haystack: &[u8], needle: &[u8]) -> Option<usize> {
+    if needle.is_empty() || haystack.len() < needle.len() {
+        return None;
+    }
+    haystack.windows(needle.len()).position(|w| w == needle)
 }
 
 #[cfg(all(test, unix))]
