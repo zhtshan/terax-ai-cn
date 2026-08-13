@@ -110,6 +110,11 @@ export function TabBar({
     fromId: number;
     active: boolean;
   } | null>(null);
+  // Fallback activation flag: onPointerUp is the primary path, but in some
+  // focus conditions (e.g. explorer focused) preventDefault on mousedown can
+  // interfere with the pointer-up dispatch. onClick fires after pointerup and
+  // serves as a safety net. Cleared in endDrag so stale flags don't fire.
+  const shouldActivateRef = useRef(true);
 
   // Play the enter animation only for tabs opened after the first paint, never
   // the restored set and never on switch/reorder (triggers are keyed, so they
@@ -192,6 +197,7 @@ export function TabBar({
     const st = drag.current;
     if (st) currentTarget.releasePointerCapture?.(st.pointerId);
     drag.current = null;
+    shouldActivateRef.current = true;
     setDraggingId(null);
     setDropGap(null);
     document.body.style.userSelect = "";
@@ -306,6 +312,7 @@ export function TabBar({
                     if (e.button !== 0) return;
                     if ((e.target as HTMLElement).closest("[data-no-drag]"))
                       return;
+                    shouldActivateRef.current = true;
                     drag.current = {
                       pointerId: e.pointerId,
                       startX: e.clientX,
@@ -320,11 +327,22 @@ export function TabBar({
                     if (!st.active) {
                       if (Math.abs(e.clientX - st.startX) < 4) return;
                       st.active = true;
+                      shouldActivateRef.current = false;
                       setDraggingId(st.fromId);
                       document.body.style.userSelect = "none";
                     }
                     e.preventDefault();
                     setDropGap(gapAtX(e.clientX));
+                  }}
+                  onClick={(e) => {
+                    // Fallback: onPointerUp is the primary activation path,
+                    // but when the explorer (tabIndex=0) has focus,
+                    // preventDefault on mousedown can interfere with the
+                    // pointer-up dispatch in some browsers. This ensures the
+                    // tab still activates reliably.
+                    if (!shouldActivateRef.current) return;
+                    e.stopPropagation();
+                    onSelect(t.id);
                   }}
                   onPointerUp={(e) => {
                     const st = drag.current;
