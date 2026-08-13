@@ -191,6 +191,7 @@ export default function App() {
     searchAddons.current.clear();
     terminalRefs.current.clear();
     editorRefs.current.clear();
+    navigationHistoryRef.current.clear();
     previewRefs.current.clear();
     setActiveSearchAddon(null);
     setActiveEditorHandle(null);
