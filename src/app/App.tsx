@@ -710,6 +710,78 @@ export default function App() {
     [setActiveId, focusPane],
   );
 
+  const pendingGotoLine = useRef<Map<number, number>>(new Map());
+  const pushNavigationHistory = useCallback(
+    (tabId: number, path: string, line: number) => {
+      const stack = navigationHistoryRef.current.get(tabId) ?? {
+        back: [] as NavEntry[],
+        forward: [] as NavEntry[],
+      };
+      stack.back.push({ path, line });
+      stack.forward = [];
+      navigationHistoryRef.current.set(tabId, stack);
+    },
+    [],
+  );
+  const openContentHit = useCallback(
+    (path: string, line: number) => {
+      // Push current position to history before navigating
+      const currentTab = tabsRef.current.find((t) => t.id === activeId);
+      if (currentTab?.kind === "editor") {
+        const sourcePath = currentTab.path;
+        const sourceLine = editorRefs.current.get(activeId)?.getCursorLine() ?? 0;
+        pushNavigationHistory(activeId, sourcePath, sourceLine);
+      }
+      const id = openFileTab(path, true);
+      if (id == null) return;
+      const h = editorRefs.current.get(id);
+      if (h) h.gotoLine(line);
+      else pendingGotoLine.current.set(id, line);
+    },
+    [openFileTab, pushNavigationHistory],
+  );
+
+  const goBack = useCallback(
+    (tabId: number) => {
+      const stack = navigationHistoryRef.current.get(tabId);
+      if (!stack || stack.back.length === 0) return;
+      const entry = stack.back.pop()!;
+      const currentTab = tabsRef.current.find((t) => t.id === tabId);
+      const currentPath = currentTab?.kind === "editor" ? currentTab.path : null;
+      const currentLine = currentPath
+        ? editorRefs.current.get(tabId)?.getCursorLine() ?? 0
+        : 0;
+      stack.forward.push({ path: currentPath!, line: currentLine });
+      navigationHistoryRef.current.set(tabId, stack);
+      openContentHit(entry.path, entry.line);
+    },
+    [openContentHit],
+  );
+
+  const goForward = useCallback(
+    (tabId: number) => {
+      const stack = navigationHistoryRef.current.get(tabId);
+      if (!stack || stack.forward.length === 0) return;
+      const entry = stack.forward.pop()!;
+      const currentTab = tabsRef.current.find((t) => t.id === tabId);
+      const currentPath = currentTab?.kind === "editor" ? currentTab.path : null;
+      const currentLine = currentPath
+        ? editorRefs.current.get(tabId)?.getCursorLine() ?? 0
+        : 0;
+      if (currentPath) {
+        stack.back.push({ path: currentPath, line: currentLine });
+      }
+      navigationHistoryRef.current.set(tabId, stack);
+      openContentHit(entry.path, entry.line);
+    },
+    [openContentHit],
+  );
+
+  useEffect(() => {
+    setLspNavigator({ openFile: openContentHit });
+    return () => setLspNavigator(null);
+  }, [openContentHit]);
+
   const shortcutHandlers = useMemo<ShortcutHandlers>(
     () => ({
       "commandPalette.open": () => openCommandPalette("commands"),
@@ -823,6 +895,7 @@ export default function App() {
       zoomOut,
       zoomReset,
       activateAgentTarget,
+      openContentHit,
     ],
   );
 
@@ -1145,78 +1218,6 @@ export default function App() {
       handleNewSpace,
     ],
   );
-
-  const pendingGotoLine = useRef<Map<number, number>>(new Map());
-  const pushNavigationHistory = useCallback(
-    (tabId: number, path: string, line: number) => {
-      const stack = navigationHistoryRef.current.get(tabId) ?? {
-        back: [] as NavEntry[],
-        forward: [] as NavEntry[],
-      };
-      stack.back.push({ path, line });
-      stack.forward = [];
-      navigationHistoryRef.current.set(tabId, stack);
-    },
-    [],
-  );
-  const openContentHit = useCallback(
-    (path: string, line: number) => {
-      // Push current position to history before navigating
-      const currentTab = tabsRef.current.find((t) => t.id === activeId);
-      if (currentTab?.kind === "editor") {
-        const sourcePath = currentTab.path;
-        const sourceLine = editorRefs.current.get(activeId)?.getCursorLine() ?? 0;
-        pushNavigationHistory(activeId, sourcePath, sourceLine);
-      }
-      const id = openFileTab(path, true);
-      if (id == null) return;
-      const h = editorRefs.current.get(id);
-      if (h) h.gotoLine(line);
-      else pendingGotoLine.current.set(id, line);
-    },
-    [openFileTab, pushNavigationHistory],
-  );
-
-  const goBack = useCallback(
-    (tabId: number) => {
-      const stack = navigationHistoryRef.current.get(tabId);
-      if (!stack || stack.back.length === 0) return;
-      const entry = stack.back.pop()!;
-      const currentTab = tabsRef.current.find((t) => t.id === tabId);
-      const currentPath = currentTab?.kind === "editor" ? currentTab.path : null;
-      const currentLine = currentPath
-        ? editorRefs.current.get(tabId)?.getCursorLine() ?? 0
-        : 0;
-      stack.forward.push({ path: currentPath!, line: currentLine });
-      navigationHistoryRef.current.set(tabId, stack);
-      openContentHit(entry.path, entry.line);
-    },
-    [openContentHit],
-  );
-
-  const goForward = useCallback(
-    (tabId: number) => {
-      const stack = navigationHistoryRef.current.get(tabId);
-      if (!stack || stack.forward.length === 0) return;
-      const entry = stack.forward.pop()!;
-      const currentTab = tabsRef.current.find((t) => t.id === tabId);
-      const currentPath = currentTab?.kind === "editor" ? currentTab.path : null;
-      const currentLine = currentPath
-        ? editorRefs.current.get(tabId)?.getCursorLine() ?? 0
-        : 0;
-      if (currentPath) {
-        stack.back.push({ path: currentPath, line: currentLine });
-      }
-      navigationHistoryRef.current.set(tabId, stack);
-      openContentHit(entry.path, entry.line);
-    },
-    [openContentHit],
-  );
-
-  useEffect(() => {
-    setLspNavigator({ openFile: openContentHit });
-    return () => setLspNavigator(null);
-  }, [openContentHit]);
 
   const insertHistoryCommand = useMemo(
     () =>
