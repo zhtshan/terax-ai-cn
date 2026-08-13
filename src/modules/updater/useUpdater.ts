@@ -112,24 +112,43 @@ export function useUpdater({ autoCheck = true }: HookOptions = {}) {
       if (Date.now() - last < CHECK_INTERVAL_MS) return;
     }
     setStatus({ kind: "checking" });
-    try {
-      if (IS_LINUX || IS_MAC) {
-        const info = await checkLinuxRelease();
-        if (info) {
-          setStatus({ kind: "manual-available", info });
-        } else {
-          localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
-          setStatus({ kind: "uptodate" });
-        }
-        return;
-      }
-      const update = await check();
+
+    const applyOfficial = (update: Update | null) => {
       if (update) {
         setStatus({ kind: "available", update });
       } else {
         localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
         setStatus({ kind: "uptodate" });
       }
+    };
+    const applyManual = (info: ManualUpdateInfo | null) => {
+      if (info) {
+        setStatus({ kind: "manual-available", info });
+      } else {
+        localStorage.setItem(LAST_CHECK_KEY, String(Date.now()));
+        setStatus({ kind: "uptodate" });
+      }
+    };
+
+    try {
+      if (IS_LINUX) {
+        // .deb/.rpm packages can't self-replace via the official updater —
+        // always route through the manual GitHub release flow.
+        applyManual(await checkLinuxRelease());
+        return;
+      }
+      if (IS_MAC) {
+        // Prefer the official signed updater (matches Windows). It only
+        // throws for builds without an update backend, e.g. unsigned local
+        // `tauri dev` builds — fall back to the manual flow in that case.
+        try {
+          applyOfficial(await check());
+        } catch {
+          applyManual(await checkLinuxRelease());
+        }
+        return;
+      }
+      applyOfficial(await check());
     } catch (err) {
       setStatus({ kind: "error", message: String(err) });
     }
