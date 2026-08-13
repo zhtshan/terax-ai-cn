@@ -784,6 +784,16 @@ export default function App() {
         editorRefs.current.get(activeId)?.triggerAiComplete(),
       "editor.codeComplete": () =>
         editorRefs.current.get(activeId)?.triggerCodeComplete(),
+      "editor.goBack": () => {
+        const tab = tabsRef.current.find((t) => t.id === activeId);
+        if (tab?.kind !== "editor") return;
+        goBack(activeId);
+      },
+      "editor.goForward": () => {
+        const tab = tabsRef.current.find((t) => t.id === activeId);
+        if (tab?.kind !== "editor") return;
+        goForward(activeId);
+      },
     }),
     [
       activeId,
@@ -893,6 +903,7 @@ export default function App() {
         }
       } else {
         editorRefs.current.delete(id);
+        navigationHistoryRef.current.delete(id);
       }
       if (id === activeId) setActiveEditorHandle(h);
     },
