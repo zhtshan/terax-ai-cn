@@ -1165,6 +1165,42 @@ export default function App() {
     [openFileTab, pushNavigationHistory],
   );
 
+  const goBack = useCallback(
+    (tabId: number) => {
+      const stack = navigationHistoryRef.current.get(tabId);
+      if (!stack || stack.back.length === 0) return;
+      const entry = stack.back.pop()!;
+      const currentTab = tabsRef.current.find((t) => t.id === tabId);
+      const currentPath = currentTab?.kind === "editor" ? currentTab.path : null;
+      const currentLine = currentPath
+        ? editorRefs.current.get(tabId)?.getCursorLine() ?? 0
+        : 0;
+      stack.forward.push({ path: currentPath!, line: currentLine });
+      navigationHistoryRef.current.set(tabId, stack);
+      openContentHit(entry.path, entry.line);
+    },
+    [openContentHit],
+  );
+
+  const goForward = useCallback(
+    (tabId: number) => {
+      const stack = navigationHistoryRef.current.get(tabId);
+      if (!stack || stack.forward.length === 0) return;
+      const entry = stack.forward.pop()!;
+      const currentTab = tabsRef.current.find((t) => t.id === tabId);
+      const currentPath = currentTab?.kind === "editor" ? currentTab.path : null;
+      const currentLine = currentPath
+        ? editorRefs.current.get(tabId)?.getCursorLine() ?? 0
+        : 0;
+      if (currentPath) {
+        stack.back.push({ path: currentPath, line: currentLine });
+      }
+      navigationHistoryRef.current.set(tabId, stack);
+      openContentHit(entry.path, entry.line);
+    },
+    [openContentHit],
+  );
+
   useEffect(() => {
     setLspNavigator({ openFile: openContentHit });
     return () => setLspNavigator(null);
