@@ -48,7 +48,9 @@ export type ShortcutId =
   | "editor.undo"
   | "editor.redo"
   | "editor.aiComplete"
-  | "editor.codeComplete";
+  | "editor.codeComplete"
+  | "editor.goBack"
+  | "editor.goForward";
 
 export type ShortcutGroup =
   | "General"
@@ -368,6 +370,18 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Trigger code completion",
     group: "Editor",
     defaultBindings: [{ ctrl: true, key: " " }],
+  },
+  {
+    id: "editor.goBack",
+    label: "Go back",
+    group: "Editor",
+    defaultBindings: [{ [MOD_PROP]: true, key: "ArrowLeft" }],
+  },
+  {
+    id: "editor.goForward",
+    label: "Go forward",
+    group: "Editor",
+    defaultBindings: [{ [MOD_PROP]: true, key: "ArrowRight" }],
   },
 ];
 
