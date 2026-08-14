@@ -18,26 +18,6 @@
 
 ## 开发命令速查
 
-### 前端（pnpm）
-
-```bash
-pnpm install           # 安装依赖
-pnpm dev               # 开发模式（Vite + Tauri 联动）
-pnpm build             # 生产打包（tsc + vite build）
-pnpm preview           # 预览生产构建
-
-pnpm lint              # Biome 代码检查
-pnpm lint:fix          # 自动修复
-pnpm check-types       # TypeScript 类型检查
-pnpm test              # Vitest 单元测试（一次性运行）
-pnpm test:watch        # 监听模式
-
-pnpm format            # Biome 代码格式化
-pnpm size              # size-limit 分析
-pnpm analyze:bundle    # Vite 依赖可视化分析
-pnpm analyze:eager     # 检查 eager 包大小预算
-```
-
 ### Rust（src-tauri/）
 
 ```bash
@@ -128,67 +108,6 @@ src/modules/
 - **Biome**：代码检查 + 格式化（配置在 `biome.json`）。
 - **TypeScript**：严格模式，无 `any`。
 - **无 em-dash、无 emoji**（代码/注释/commits 都不用）。
-
----
-
-## PTY 和 Shell 集成
-
-### 启动脚本注入
-
-Shell 初始化脚本在 `src-tauri/src/modules/pty/scripts/`：
-
-- **Unix**（zsh/bash/fish）：注入 OSC 7（cwd 报告）+ OSC 133 A/B/C/D（提示符界限、退出码）
-- **Windows**（PowerShell）：`profile.ps1` 通过 `-File` 传入，同样发送 OSC 7 + 133
-
-### ConPTY 锁
-
-Windows ConPTY 需 `SPAWN_LOCK` 互斥体（`session.rs`）。并发启动会导致其中一个 PTY 输出管道卡顿——删除前验证 tab 快速切换稳定。
-
-### Job Object（Windows）
-
-每个 ConPTY 子进程加入 per-session **Job Object**（`JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE`）。`Terax` 进程被 kill 时，kernel 自动杀死所有后代（避免孤儿）。
-
----
-
-## AI 子系统
-
-### 工具管理
-
-- **自动执行**：`read_file`, `list_directory`, `fs_search`, `fs_grep`
-- **需审批**：`write_file`, `delete`, `run_command`, `shell_*`（审批卡片 UI 确认后才执行）
-- **安全层**：`lib/security.ts` 拒绝列表（`.env*`, `.ssh/`, 凭证路径）适用读写两端
-
-### 会话存储
-
-会话通过 `tauri-plugin-store` 持久化到 `terax-ai-sessions.json`，**密钥永不落盘**（仅 OS keychain）。
-
----
-
-## LSP（语言服务器）
-
-- **零成本启用**：未激活时无进程、无 PATH 检查、没有 eager bundle 负担（14.5 kB shell 而已）
-- **会话管理**：按 (server, workspace-root) 键值、引用计数、idle 3 分钟自动杀、连续崩溃回退
-- **资源上限**：4 sessions per server；root marker 缺失则不启动；>4MB 文件关闭语法高亮和 LSP
-
----
-
-## 编辑器细节
-
-- **缓冲 EOL**：LF 内部，保存时恢复原始 EOL（多数投票检测）
-- **缩进单位**：per-file 检测，支持 compartment 动态切换
-- **冲突检查**：写入前对比 mtime，不一致→警告 toast（显式 Overwrite）
-- **文件大小**：>10 MB 提示"继续打开"，>50 MB 硬上限
-- **格式化**：支持 biome/prettier/ruff/rustfmt/gofmt/clang-format/shfmt/zig fmt + 自定义 `{file}` 模板
-- **AI 补全**：缓冲缩进单位随请求发送，响应规范化 tab/space 混用、多行 ghost 带块级 widget、closer-only 行隐藏重排
-
----
-
-## 主题系统
-
-- **无 next-themes**：自建 ThemeProvider（CSS 变量）
-- **预设**：terax-default, claude, kanagawa（3 款）, tokyo-night, catppuccin, rose-pine, everforest, nord, gruvbox, dracula, solarized, tide, sage, caffeine
-- **用户主题**：`customThemes.ts` + `validateTheme.ts`，可选背景图（blur + opacity）
-- **编辑器主题独立**：`editorTheme` pref 可 `"auto"` 或指定 id，自动模式跟随应用主题
 
 ---
 

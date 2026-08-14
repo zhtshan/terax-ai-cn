@@ -51,3 +51,7 @@ desktop.ini
 
 # OpenSpec (local dev state)
 openspec/
+
+# Superpowers (local dev state)
+docs/superpowers/
+.sdd/
