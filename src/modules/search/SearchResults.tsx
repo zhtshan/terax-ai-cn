@@ -17,6 +17,7 @@ export type SearchResultsProps = {
   emptyLabel?: string;
   truncated?: boolean;
   truncatedLabel?: string;
+  onOpenHit?: (path: string, line: number) => void;
 };
 
 function groupByRel(hits: ContentHit[]): FileGroup[] {
@@ -39,6 +40,7 @@ export function SearchResults({
   emptyLabel = "No results",
   truncated,
   truncatedLabel = "Results truncated",
+  onOpenHit,
 }: SearchResultsProps) {
   const groups = useMemo(() => groupByRel(hits), [hits]);
 
@@ -74,9 +76,11 @@ export function SearchResults({
                 {group.hits.map((hit, i) => {
                   const segments = splitHits(hit.text, pattern, options);
                   return (
-                    <div
+                    <button
                       key={`${hit.path}:${hit.line}:${i}`}
-                      className="flex gap-2 px-3 py-0.5 font-mono text-[11px] hover:bg-accent/30"
+                      type="button"
+                      onClick={() => onOpenHit?.(hit.path, hit.line)}
+                      className="flex w-full gap-2 px-3 py-0.5 text-left font-mono text-[11px] hover:bg-accent/30 focus-visible:bg-accent/30 focus-visible:outline-none"
                     >
                       <span className="w-10 shrink-0 text-right text-muted-foreground/70 tabular-nums">
                         {hit.line}
@@ -95,7 +99,7 @@ export function SearchResults({
                           ),
                         )}
                       </span>
-                    </div>
+                    </button>
                   );
                 })}
               </div>

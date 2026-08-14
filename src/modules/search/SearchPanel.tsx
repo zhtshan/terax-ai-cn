@@ -18,6 +18,7 @@ export type SearchPanelProps = {
   error: string | null;
   replaceState: ReplaceState;
   onReplace: () => void;
+  onOpenHit?: (path: string, line: number) => void;
 };
 
 export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(function SearchPanel(
@@ -30,6 +31,7 @@ export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(funct
     error,
     replaceState,
     onReplace,
+    onOpenHit,
   },
   ref,
 ) {
@@ -82,6 +84,7 @@ export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(funct
           wholeWord: options.wholeWord,
         }}
         truncated={results?.truncated}
+        onOpenHit={onOpenHit}
       />
       <ReplaceAffectedBar
         replacement={options.replacement}

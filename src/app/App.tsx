@@ -1364,6 +1364,7 @@ export default function App() {
                         error={searchRun.error}
                         replaceState={replaceRun.state}
                         onReplace={() => void replaceRun.replace()}
+                        onOpenHit={openContentHit}
                       />
                     ) : (
                       <SourceControlPanel
