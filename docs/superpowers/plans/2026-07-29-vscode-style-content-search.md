@@ -2,6 +2,7 @@
 change: vscode-style-content-search
 design-doc: docs/superpowers/specs/2026-07-29-vscode-style-content-search-design.md
 base-ref: 7b431b02c018c558ba47ce0db536cb52fd5b7224
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 # Implementation Plan: VS Code 风格内容搜索
@@ -96,6 +97,7 @@ base-ref: 7b431b02c018c558ba47ce0db536cb52fd5b7224
 
 > build_mode / isolation / tdd_mode / review_mode 的选择不在本计划范围内，由用户在后续步骤决定。本计划已按"先写测试再写实现"组织，但每个 Task 自行闭环可独立选择是否先写测试。
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## P1 — 后端契约（grep.rs 基础）
@@ -129,6 +131,7 @@ it to grep.rs so fs_replace_all can write file changes without a
 second implementation. No behavior change.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.2 — `HARD_MAX_RESULTS` 从 2000 提升到 20000
@@ -157,6 +160,7 @@ explicit max_results are unaffected. Update is the single const change
 plus the constant-value test in the next commit.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.3 — 抽出公共 `build_matcher` helper
@@ -195,6 +199,7 @@ back-compat; fs_grep_interactive switches to build_matcher(pattern,
 false, false, false). Adds four unit tests covering the branches.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.4 — 实现 `fs_search_content` IPC 命令
@@ -229,6 +234,7 @@ filter closure. Reuses ContentSearchState generation-based cancellation.
 Returns the same GrepResponse so the frontend can share types.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.5 — 实现 `fs_replace_all` IPC 命令
@@ -279,6 +285,7 @@ Returns ReplaceResponse { files_changed, errors, total_replacements,
 truncated }. Workspace authorization is provided by fs_write_file.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.6 — 单元测试：`whole_word` 的 regex / 字面量两条路径
@@ -307,6 +314,7 @@ regex mode test asserts that build_matcher does NOT auto-wrap with
 \b — that's the user's responsibility.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.7 — 单元测试：`fs_replace_all` 的 secret-path 拒绝路径
@@ -334,6 +342,7 @@ exists to catch anyone who later adds a backend deny-list that breaks
 the contract.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.8 — 单元测试：`fs_replace_all` 的部分失败返回结构
@@ -359,6 +368,7 @@ Two tests: (a) one unreadable file does not stop the rest of the
 batch, (b) per-file replacement counts sum to total_replacements.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 1.9 — Rust 全套检查
@@ -380,6 +390,7 @@ Required by TERAX.md quality bar before the build moves to the
 frontend side. Lock-file flags prevent an unintended dep upgrade.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## P2 — IPC 注册
@@ -413,6 +424,7 @@ handlers. Both commands are now reachable from the webview via
 invoke().
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## P3 — 前端 IPC 客户端（lib）
@@ -466,6 +478,7 @@ types.ts mirrors GrepResponse / ReplaceResponse / ReplaceFileResult
 useContentSearch ContentHit so the diff stays scoped.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 3.2 — `src/modules/search/lib/api.ts`：invoke 包装
@@ -494,6 +507,7 @@ Pure functions over Tauri's invoke() with workspace env injected.
 No debounce, no retry, no deny-list — those live in the hooks.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 3.3 — `src/modules/search/lib/mode.ts`：选项 → IPC payload
@@ -522,6 +536,7 @@ Empty include/exclude collapse to null. Trimmed. Single source of
 truth for the IPC payload shape so the hooks stay declarative.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 3.4 — `src/modules/search/lib/highlight.ts`：行内命中切分
@@ -558,6 +573,7 @@ so SearchResults can render <mark> without re-implementing the regex
 or escape logic. Regex mode passes the user pattern through verbatim.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## P4 — 前端 UI 模块
@@ -595,6 +611,7 @@ loading, error, retry } — same shape as useContentSearch so the
 two can be swapped behind a feature flag later if we ever want to.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 4.2 — `src/modules/search/hooks/useReplaceRun.ts`
@@ -632,6 +649,7 @@ blocked path aborts the whole batch — we don't want to half-write
 across a security boundary.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 4.3 — `src/modules/search/SearchInput.tsx`
@@ -664,6 +682,7 @@ on Replace input when empty. Pure presentational — usesearchrun
 lives in the panel.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 4.4 — `src/modules/search/SearchResults.tsx`
@@ -694,6 +713,7 @@ matches split through highlight.ts so regex/literal/whole_word/case
 sensitive all render consistently.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 4.5 — `src/modules/search/ReplaceAffectedBar.tsx`
@@ -722,6 +742,7 @@ disabled state follow the ReplaceState machine. No batch-confirm
 dialog — VS Code pattern: one click, file list visible above.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 4.6 — `src/modules/search/SearchPanel.tsx` 主面板
@@ -752,6 +773,7 @@ focusSearchInput() via imperative handle so the global shortcut
 handler can focus the input after switching the sidebar view.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 4.7 — `src/modules/search/index.ts` 公开导出
@@ -774,6 +796,7 @@ handler can focus the input after switching the sidebar view.
 feat(search): public barrel exports
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## P5 — sidebar / 快捷键集成
@@ -800,6 +823,7 @@ Order matters only for type inference; the rail renders whichever
 items are in the items[] array.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 5.2 — `useSidebarPanel.ts` 接受 `"search"` 分支
@@ -826,6 +850,7 @@ Without this, persisted sidebarView=search on next launch falls back
 to explorer and the user sees the wrong panel.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 5.3 — `SidebarRail.tsx` 新增 Search rail item
@@ -848,6 +873,7 @@ to explorer and the user sees the wrong panel.
 feat(sidebar): add Search rail item between Explorer and Source Control
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 5.4 — `App.tsx` 渲染 `<SearchPanel />` 分支
@@ -880,6 +906,7 @@ control binary. SearchPanel gets an imperative ref so the global
 shortcut can focus its input after switching views.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 5.5 — 切换 tab 不丢失搜索状态
@@ -909,6 +936,7 @@ controlled. All inputs/switches/results live in App so switching to
 Explorer and back loses nothing. Matches VS Code behavior.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 5.6 — 新增 `Cmd/Ctrl+Shift+F` 快捷键：`search.focusPanel`
@@ -950,6 +978,7 @@ input. All call sites in App.tsx, FileExplorer.tsx, and commands.ts
 updated. search.focus (Find in tab) is unchanged.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 5.7 — 简化 Command Palette `#` 模式：移除 UI 开关
@@ -980,6 +1009,7 @@ backend (fs_grep_interactive), same hook (useContentSearch), no
 toggle UI.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## P6 — i18n + 端到端
@@ -1006,6 +1036,7 @@ toggle UI.
 feat(i18n/en): add searchPanel.* + sidebar.search + shortcut labels
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 6.2 — 新增 `searchPanel.*` key（中文）
@@ -1029,6 +1060,7 @@ feat(i18n/en): add searchPanel.* + sidebar.search + shortcut labels
 feat(i18n/zh): add searchPanel.* + sidebar.search + shortcut labels
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 6.3 — 前端静态检查
@@ -1050,6 +1082,7 @@ Required by TERAX.md quality bar. No source change in this commit
 unless the above surfaced a real issue — split fix commits first.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 6.4 — 手动跑通验收场景 1-15
@@ -1086,6 +1119,7 @@ All scenarios from proposal.md + Design Doc §11 manually verified.
 No code change in this commit; this is the human sign-off.
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ### Task 6.5 — Rust 端最终回归
@@ -1103,6 +1137,7 @@ No code change in this commit; this is the human sign-off.
 chore: rust clippy + nextest green after vscode-style content search
 ```
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## 3. 关键文件清单
@@ -1138,6 +1173,7 @@ chore: rust clippy + nextest green after vscode-style content search
 - `src/i18n/locales/en.json`
 - `src/i18n/locales/zh.json`
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## 4. 测试覆盖总结
@@ -1166,6 +1202,7 @@ chore: rust clippy + nextest green after vscode-style content search
 - `src/modules/search/hooks/useSearchRun.test.ts`
 - `src/modules/search/hooks/useReplaceRun.test.ts`
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## 5. 风险与回退点
@@ -1178,6 +1215,7 @@ chore: rust clippy + nextest green after vscode-style content search
 | `WalkBuilder::filter_entry` 改造影响 `fs_grep` | Task 1.4 | `search_tree` 接受可选 `Box<dyn Fn(&DirEntry) -> bool>`，现有调用方传 `&|_| true` |
 | 前端 deny-list race（搜索结果路径与 replace 时路径不一致） | Task 4.2 | replace 时再调一次 `checkWritableCanonical`，多一层防御 |
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## 6. 不在计划范围内
@@ -1190,6 +1228,7 @@ chore: rust clippy + nextest green after vscode-style content search
 - 内容索引（每次输入走文件树）。
 - 自动更新 changelog 文案。
 
+archived-with: 2026-08-14-vscode-style-content-search
 ---
 
 ## 7. 计划结束条件（comet-build 可继续）

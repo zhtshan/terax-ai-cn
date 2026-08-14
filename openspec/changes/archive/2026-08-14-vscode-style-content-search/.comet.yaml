@@ -17,6 +17,6 @@ verification_report: docs/superpowers/reports/2026-07-29-vscode-style-content-se
 branch_status: handled
 created_at: 2026-07-29
 verified_at: 2026-07-29
-archived: false
+archived: true
 handoff_context: openspec/changes/vscode-style-content-search/.comet/handoff/design-context.json
 handoff_hash: b55d56779af525149ed0e73b74e646a6f49210bb283157deeb83a043370c706f

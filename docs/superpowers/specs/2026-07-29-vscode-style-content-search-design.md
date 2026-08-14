@@ -2,6 +2,8 @@
 comet_change: vscode-style-content-search
 role: technical-design
 canonical_spec: openspec
+archived-with: 2026-08-14-vscode-style-content-search
+status: final
 ---
 
 # Design Doc: VS Code 风格内容搜索
