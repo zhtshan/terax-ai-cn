@@ -4,7 +4,12 @@ import { KEY_SEP } from "@/lib/platform";
 import type { EditorPaneHandle } from "@/modules/editor";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { getBindingTokens, SHORTCUTS } from "@/modules/shortcuts/shortcuts";
-import { Cancel01Icon, Search01Icon } from "@hugeicons/core-free-icons";
+import {
+  ArrowDown01Icon,
+  ArrowUp01Icon,
+  Cancel01Icon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { SearchAddon } from "@xterm/addon-search";
 import {
@@ -85,8 +90,10 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
     const focus = useCallback(() => {
       pendingFocusRef.current = true;
       if (compact) setOpenInCompact(true);
-      else inputRef.current?.focus();
-      if (inputRef.current) pendingFocusRef.current = false;
+      if (inputRef.current) {
+        inputRef.current.focus();
+        pendingFocusRef.current = false;
+      }
     }, [compact]);
 
     useImperativeHandle(ref, () => ({ focus }), [focus]);
@@ -137,7 +144,7 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
     return (
       <div
         className="relative h-7 shrink-0 transition-[width] duration-200 ease-out"
-        style={{ width: expanded ? 192 : 28 }}
+        style={{ width: expanded ? 224 : 28 }}
       >
         {expanded ? (
           <div className="absolute inset-0 animate-in fade-in-0 duration-150">
@@ -151,7 +158,7 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
               ref={setInputRef}
               value={q}
               placeholder={placeholder}
-              className="h-7 w-full bg-muted/80 pr-7 pl-7 text-[13px]! placeholder:text-muted-foreground/70 focus-visible:ring-0"
+              className="h-7 w-full bg-muted/80 pr-[5.5rem] pl-7 text-[13px]! placeholder:text-muted-foreground/70 focus-visible:ring-0"
               onChange={(e) => {
                 const next = e.target.value;
                 setQ(next);
@@ -175,9 +182,40 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
                 }
               }}
             />
+            {q && target?.kind !== "git-history" && (
+              <>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    findDirection(false);
+                    inputRef.current?.focus();
+                  }}
+                  className="absolute top-1/2 right-9 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label={t('search.previousMatch')}
+                  title={t('search.previousMatch')}
+                >
+                  <HugeiconsIcon icon={ArrowUp01Icon} size={11} strokeWidth={2} />
+                </button>
+                <button
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => {
+                    findDirection(true);
+                    inputRef.current?.focus();
+                  }}
+                  className="absolute top-1/2 right-6 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
+                  aria-label={t('search.nextMatch')}
+                  title={t('search.nextMatch')}
+                >
+                  <HugeiconsIcon icon={ArrowDown01Icon} size={11} strokeWidth={2} />
+                </button>
+              </>
+            )}
             {q && (
               <button
                 type="button"
+                onMouseDown={(e) => e.preventDefault()}
                 onClick={() => {
                   setQ("");
                   clearTarget();
@@ -185,6 +223,7 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
                 }}
                 className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
                 aria-label={t('search.clearSearch')}
+                title={t('search.clearSearch')}
               >
                 <HugeiconsIcon icon={Cancel01Icon} size={11} strokeWidth={2} />
               </button>

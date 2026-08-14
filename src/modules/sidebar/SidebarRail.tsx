@@ -1,5 +1,9 @@
 import { cn } from "@/lib/utils";
-import { FolderGitTwoIcon, FolderTreeIcon, Search01Icon } from "@hugeicons/core-free-icons";
+import {
+  FolderGitTwoIcon,
+  FolderTreeIcon,
+  Search01Icon,
+} from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useTranslation } from "react-i18next";
 import type { SidebarViewId } from "./types";

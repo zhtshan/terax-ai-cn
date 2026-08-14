@@ -34,7 +34,14 @@ import {
   useEditorFileSync,
 } from "@/modules/editor";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
-import { SearchPanel, type SearchPanelHandle } from "@/modules/search-panel";
+import {
+  SearchPanel,
+  type SearchInputOptions,
+  type SearchPanelHandle,
+  buildSearchInput,
+  useReplaceRun,
+  useSearchRun,
+} from "@/modules/search";
 import type { GitHistorySearchHandle } from "@/modules/git-history";
 import {
   Header,
@@ -336,6 +343,36 @@ export default function App() {
   );
 
   useWindowTitle(activeTab, explorerRoot);
+
+  // SearchPanel state hoisted to App so sidebar tab switches don't lose it
+  const [searchOptions, setSearchOptions] = useState<SearchInputOptions>({
+    pattern: "",
+    replacement: "",
+    regex: false,
+    caseSensitive: false,
+    wholeWord: false,
+    include: "",
+    exclude: "",
+  });
+
+  const searchBuilt = useMemo(() => {
+    if (!explorerRoot) return null;
+    if (searchOptions.pattern.length === 0) return null;
+    return buildSearchInput({
+      ...searchOptions,
+      root: explorerRoot,
+    });
+  }, [explorerRoot, searchOptions]);
+
+  const searchRun = useSearchRun({
+    input: searchBuilt,
+    enabled: searchBuilt !== null,
+  });
+  const replaceRun = useReplaceRun({
+    results: searchRun.results,
+    replacement: searchOptions.replacement,
+    input: searchBuilt,
+  });
 
   useEffect(() => {
     setActiveSearchAddon(
@@ -823,6 +860,14 @@ export default function App() {
         if (editor) editor.openSearch();
         else searchInlineRef.current?.focus();
       },
+      "search.focusPanel": () => {
+        const panel = sidebarRef.current;
+        if (panel && panel.getSize().asPercentage <= 0) {
+          panel.resize(`${sidebarWidthRef.current}px`);
+        }
+        persistSidebarView("search");
+        requestAnimationFrame(() => searchPanelRef.current?.focusSearchInput());
+      },
       "ai.toggle": togglePanelAndFocus,
       "ai.toggleMini": () => {
         if (!hasComposer) {
@@ -839,14 +884,6 @@ export default function App() {
       "settings.open": () => void openSettingsWindow(),
       "sidebar.toggle": toggleSidebar,
       "explorer.focus": toggleExplorerFocus,
-      "explorer.search": () => {
-        if (sidebarView === "search") {
-          searchPanelRef.current?.focus();
-        } else {
-          persistSidebarView("search");
-          requestAnimationFrame(() => searchPanelRef.current?.focus());
-        }
-      },
       "view.zoomIn": zoomIn,
       "view.zoomOut": zoomOut,
       "view.zoomReset": zoomReset,
@@ -896,6 +933,7 @@ export default function App() {
       zoomReset,
       activateAgentTarget,
       openContentHit,
+      persistSidebarView,
     ],
   );
 
@@ -1318,8 +1356,14 @@ export default function App() {
                     ) : sidebarView === "search" ? (
                       <SearchPanel
                         ref={searchPanelRef}
-                        rootPath={explorerRoot ?? ""}
-                        onOpenContentHit={openContentHit}
+                        rootPath={explorerRoot}
+                        options={searchOptions}
+                        onOptionsChange={setSearchOptions}
+                        results={searchRun.results}
+                        loading={searchRun.loading}
+                        error={searchRun.error}
+                        replaceState={replaceRun.state}
+                        onReplace={() => void replaceRun.replace()}
                       />
                     ) : (
                       <SourceControlPanel

@@ -348,7 +348,7 @@ export const FileExplorer = memo(
     );
 
     useGlobalShortcuts({
-      "explorer.search": () => {
+      "explorer.findFiles": () => {
         if (searchRef.current?.isFocused()) {
           setIsSearchOpen(false);
           return;

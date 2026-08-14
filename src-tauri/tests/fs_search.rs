@@ -18,7 +18,6 @@ fn grep_finds_matches_and_returns_relative_paths() {
         None,
         None,
         None,
-        None,
     )
     .expect("grep");
 
@@ -36,11 +35,11 @@ fn grep_case_insensitive_finds_mixed_case() {
     let fx = FsFixture::new();
     fx.write("a.txt", "Hello World\n");
 
-    let strict = fs_grep("hello".into(), fx.root_str(), None, Some(false), None, None, None)
+    let strict = fs_grep("hello".into(), fx.root_str(), None, Some(false), None, None)
         .expect("grep");
     assert!(strict.hits.is_empty());
 
-    let loose = fs_grep("hello".into(), fx.root_str(), None, Some(true), None, None, None)
+    let loose = fs_grep("hello".into(), fx.root_str(), None, Some(true), None, None)
         .expect("grep");
     assert_eq!(loose.hits.len(), 1);
 }
@@ -58,7 +57,6 @@ fn grep_glob_filter_restricts_files() {
         None,
         None,
         None,
-        None,
     )
     .expect("grep");
 
@@ -73,7 +71,7 @@ fn grep_max_results_truncates() {
         fx.write(&format!("f{i}.txt"), "needle\n");
     }
 
-    let res = fs_grep("needle".into(), fx.root_str(), None, None, None, Some(3), None)
+    let res = fs_grep("needle".into(), fx.root_str(), None, None, Some(3), None)
         .expect("grep");
 
     assert!(res.hits.len() <= 3);
@@ -83,7 +81,7 @@ fn grep_max_results_truncates() {
 #[test]
 fn grep_empty_pattern_errors() {
     let fx = FsFixture::new();
-    let err = fs_grep("".into(), fx.root_str(), None, None, None, None, None);
+    let err = fs_grep("".into(), fx.root_str(), None, None, None, None);
     assert!(err.is_err());
 }
 
@@ -92,7 +90,6 @@ fn grep_non_dir_root_errors() {
     let err = fs_grep(
         "x".into(),
         "/this/does/not/exist".into(),
-        None,
         None,
         None,
         None,
@@ -108,7 +105,7 @@ fn grep_respects_ignore_file() {
     fx.write("ignored.txt", "secret\n");
     fx.write("visible.txt", "secret\n");
 
-    let res = fs_grep("secret".into(), fx.root_str(), None, None, None, None, None)
+    let res = fs_grep("secret".into(), fx.root_str(), None, None, None, None)
         .expect("grep");
 
     let rels: Vec<&str> = res.hits.iter().map(|h| h.rel.as_str()).collect();
