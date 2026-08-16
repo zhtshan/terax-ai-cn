@@ -92,6 +92,7 @@ import {
   navigateFocusedBlocks,
   type PaneBounds,
   type TerminalPaneHandle,
+  setExplorerRoot,
   useTerminalFileDrop,
   writeToSession,
 } from "@/modules/terminal";
@@ -341,6 +342,10 @@ export default function App() {
     tabs,
     launchCwd ?? home,
   );
+
+  useEffect(() => {
+    setExplorerRoot(explorerRoot);
+  }, [explorerRoot]);
 
   useWindowTitle(activeTab, explorerRoot);
 
