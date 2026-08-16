@@ -120,3 +120,8 @@ src/modules/
 | Tab cwd 存储格式 | OSC 7 forward-slash，Win 命令接 backslash | 边界规范化（fs 命令已处理） |
 | AiComposerProvider 挂载 | 条件 mount 在 key 加载时重挂全树 | 无条件挂载（keychain 读通常同一帧） |
 | DormantRing 缓冲 | 后台标签页中途卡阻 | 切换后再序列化，禁止 mid-command 标签快照 |
+
+---
+
+## 提交信息
+所有 git commit message 使用中文。
