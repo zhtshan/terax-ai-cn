@@ -2,6 +2,43 @@
 
 All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
+## [0.8.6] - 2026-08-16
+
+### Added
+- VS Code 风格内容搜索面板（`SearchPanel` / `SearchInput` / `SearchResults` / `ReplaceAffectedBar`）：支持正则、大小写敏感、全词匹配、include/exclude glob 过滤、Replace All、状态条 + 高亮分组渲染
+- 新增侧边栏 Search 入口（位于 Explorer 与 Source Control 之间），快捷键 `Mod+Shift+F` 聚焦；`Mod+Shift+K` 切到文件搜索
+- 编辑器导航历史：跨文件前进/后退（`pushNavigationHistory` / `goBack` / `goForward`），关闭标签与切换 workspace 时自动清理
+- 终端文件路径链接（`FileLinkProvider` + `fs_stat` 校验），`setExplorerRoot` 激活后点击即可在编辑器打开
+- 搜索结果点击直接在编辑器打开目标行（`openContentHit` 接入导航历史）
+- 新增 Tauri 命令 `fs_search_content` 与 `fs_replace_all`（deny-list 网关 + `write_atomic` 写入 + 20000 条硬上限）
+- AI agent 视图模式（mini-window 国际化修复）
+- 底部模型选择器与 Settings 默认模型双向同步
+- 仅显示已配置 API key（或本地端点可用）的 provider 模型
+- `defaultModel` 支持自定义 OpenAI 兼容端点
+- Workspace 停靠 AI 输入框高度可拖拽
+- 文件浏览器 `F2` / macOS `Enter` 重命名快捷键
+
+### Changed
+- 标签页切换性能优化 50-60%（renderer pool 5 → 12，`POOL_MAX_SIZE = 12`）
+- `SearchPanel` 状态提升至 `App.tsx`，跨标签切换不丢失
+- 前端与 Tauri IPC 参数命名统一为 camelCase（`whole_word → wholeWord`、`case_sensitive → caseSensitive`）
+- macOS 优先尝试官方 updater，仅在失败时 fallback 到手动下载
+- 更新检查改用 `tags` API（不再依赖 `releases/latest`），含 `v` 前缀去重与 `-N-cn` 数字解析
+- Release CI：发布为正式 release（不再是 draft），并新增 macOS 构建
+- `grep` 模块拆分 `build_matcher` 辅助函数，`fs_replace_all` 单行仅替换首个匹配
+- 命令面板 `#` 内容搜索模式移除冗余 toggle
+- 文档：项目 `CLAUDE.md` 拆分模块、剔除可推导内容（约节省 1.6k tokens/会话）；commit message 统一使用中文
+- 仓库地址统一为 `zhtshan/terax-ai-cn`（updater + about 页面）
+
+### Fixed
+- 编辑器 `Cmd+ArrowLeft/Right` 跨文件导航历史失效（修复 `useEffect` 顺序导致的 stale closure）
+- Updater 版本号解析在 `-N-cn` 格式下截断数字后缀
+- 更新提示文案重复 `v` 前缀
+- `checkLinuxRelease` 排序比较器在非版本号 tag 下出现非传递比较
+- Windows MSI 在 `-cn` 版本号下构建失败（跳过 MSI，仅出便携版）
+- LSP 跳转定义/查找引用无结果时不再静默失败，明确提示用户
+- `grep` IPC 在 WSL 路径与并发双击场景下加固
+
 ## [0.8.5] - 2026-07-23
 
 ### Added
