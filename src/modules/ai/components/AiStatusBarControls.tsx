@@ -219,6 +219,9 @@ function ModelDropdown() {
   const favoriteIds = usePreferencesStore((s) => s.favoriteModelIds);
   const recentIds = usePreferencesStore((s) => s.recentModelIds);
   const customEndpoints = usePreferencesStore((s) => s.customEndpoints);
+  const lmstudioModelId = usePreferencesStore((s) => s.lmstudioModelId);
+  const mlxModelId = usePreferencesStore((s) => s.mlxModelId);
+  const ollamaModelId = usePreferencesStore((s) => s.ollamaModelId);
   const current = isCompatModelId(selected)
     ? getCompatModelInfo(selected, customEndpoints)
     : getModel(selected as ModelId);
@@ -234,6 +237,19 @@ function ModelDropdown() {
 
   const hasKeyFor = (id: ProviderId) =>
     providerNeedsKey(id) ? !!apiKeys[id] : true;
+
+  const isModelActive = (m: ModelInfo): boolean => {
+    if (isCompatModelId(m.id)) return true;
+    if (!providerNeedsKey(m.provider)) {
+      // Local providers are only active when the user has configured a model.
+      return (
+        (m.provider === "lmstudio" && !!lmstudioModelId) ||
+        (m.provider === "mlx" && !!mlxModelId) ||
+        (m.provider === "ollama" && !!ollamaModelId)
+      );
+    }
+    return hasKeyFor(m.provider);
+  };
 
   const epModelInfos = useMemo(() => {
     return customEndpoints.map((ep) =>
@@ -271,12 +287,12 @@ function ModelDropdown() {
         .slice()
         .sort((a, b) => (order.get(a.id) ?? 0) - (order.get(b.id) ?? 0));
     }
+    // Always filter to reachable models regardless of tab.
+    pool = pool.filter(isModelActive);
     if (activeProvider === COMPAT_PROVIDER_ID) {
       pool = pool.filter((m) => isCompatModelId(m.id));
     } else if (activeProvider !== null) {
       pool = pool.filter((m) => m.provider === activeProvider);
-    } else {
-      pool = pool.filter((m) => isCompatModelId(m.id) || hasKeyFor(m.provider));
     }
     if (q) {
       pool = pool.filter(
@@ -435,10 +451,7 @@ function ModelDropdown() {
                   key={m.id}
                   model={m}
                   selected={m.id === selected}
-                  hasKey={
-                    isCompatModelId(m.id) ||
-                    hasKeyFor(m.provider)
-                  }
+                  hasKey={isModelActive(m)}
                   favorite={favoriteIds.includes(m.id)}
                   showProviderIcon={activeProvider === null}
                   onPick={() => {
