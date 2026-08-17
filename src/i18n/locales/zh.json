@@ -701,6 +701,7 @@
     "open": "打开",
     "outline": "大纲",
     "outlinePlaceholder": "大纲功能尚未提供数据",
+    "outlineEmpty": "此文档没有标题",
     "timeline": "时间线",
     "timelinePlaceholder": "时间线功能尚未提供数据",
     "timelineNoFile": "未选择文件",

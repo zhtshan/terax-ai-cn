@@ -1,6 +1,6 @@
 import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
-import { AiDiffStack, EditorStack, GitDiffStack } from "@/modules/editor";
+import { AiDiffStack, EditorStack, GitDiffStack, type MarkdownHeading } from "@/modules/editor";
 import { GitHistoryStack } from "@/modules/git-history";
 import { MarkdownStack } from "@/modules/markdown";
 import { PreviewStack } from "@/modules/preview";
@@ -32,6 +32,9 @@ type Props = {
   onOpenCommitFile: GitHistoryStackProps["onOpenCommitFile"];
   onGitHistorySearchHandle: GitHistoryStackProps["onSearchHandle"];
   onSetMarkdownView: EditorStackProps["onSetMarkdownView"];
+  onOutlineChange?: (headings: MarkdownHeading[] | null) => void;
+  onActiveHeadingChange?: (line: number | null) => void;
+  onJumpToHeading?: (line: number) => void;
 };
 
 /**
@@ -58,6 +61,9 @@ export function WorkspaceSurface({
   onOpenCommitFile,
   onGitHistorySearchHandle,
   onSetMarkdownView,
+  onOutlineChange,
+  onActiveHeadingChange,
+  onJumpToHeading,
 }: Props) {
   const kind = activeTab?.kind;
   const isTerminalTab = kind === "terminal";
@@ -101,6 +107,9 @@ export function WorkspaceSurface({
           onDirtyChange={onEditorDirtyChange}
           onCloseTab={onEditorCloseTab}
           onSetMarkdownView={onSetMarkdownView}
+          onOutlineChange={onOutlineChange}
+          onActiveHeadingChange={onActiveHeadingChange}
+          onJumpToHeading={onJumpToHeading}
         />
       </div>
       <div

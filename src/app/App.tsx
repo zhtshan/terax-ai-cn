@@ -32,6 +32,7 @@ import {
   NewEditorDialog,
   useApplyEditorFontSize,
   useEditorFileSync,
+  type MarkdownHeading,
 } from "@/modules/editor";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
 import {
@@ -183,6 +184,8 @@ export default function App() {
   const previewRefs = useRef<Map<number, PreviewPaneHandle>>(new Map());
   const [activeEditorHandle, setActiveEditorHandle] =
     useState<EditorPaneHandle | null>(null);
+  const [outlineHeadings, setOutlineHeadings] = useState<MarkdownHeading[] | null>(null);
+  const [activeHeadingLine, setActiveHeadingLine] = useState<number | null>(null);
   const [gitHistoryHandle, setGitHistoryHandle] =
     useState<GitHistorySearchHandle | null>(null);
   const { zoomIn, zoomOut, zoomReset } = useZoom();
@@ -387,7 +390,30 @@ export default function App() {
         : null,
     );
     setActiveEditorHandle(editorRefs.current.get(activeId) ?? null);
-  }, [activeId, activeLeafId]);
+    const tab = tabs.find((t) => t.id === activeId);
+    if (!tab || tab.kind !== "editor") {
+      setOutlineHeadings(null);
+      setActiveHeadingLine(null);
+    }
+  }, [activeId, activeLeafId, tabs]);
+
+  const handleOutlineChange = useCallback(
+    (headings: MarkdownHeading[] | null) => {
+      setOutlineHeadings(headings);
+    },
+    [],
+  );
+
+  const handleActiveHeadingChange = useCallback((line: number | null) => {
+    setActiveHeadingLine(line);
+  }, []);
+
+  const handleJumpToHeading = useCallback(
+    (line: number) => {
+      editorRefs.current.get(activeId)?.gotoLine(line);
+    },
+    [activeId],
+  );
 
   const handleSearchReady = useCallback(
     (leafId: number, addon: SearchAddon) => {
@@ -1361,6 +1387,9 @@ export default function App() {
                           explorerGitDecorations ? sourceControl.status : null
                         }
                         activeFilePath={explorerActiveFilePath}
+                        headings={outlineHeadings}
+                        activeHeadingLine={activeHeadingLine}
+                        onJumpToHeading={handleJumpToHeading}
                         onOpenFile={handleOpenFile}
                         onPathRenamed={handlePathRenamed}
                         onPathDeleted={handlePathDeleted}
@@ -1422,6 +1451,9 @@ export default function App() {
                       onOpenCommitFile={openCommitFileDiffTab}
                       onGitHistorySearchHandle={setGitHistoryHandle}
                       onSetMarkdownView={setMarkdownView}
+                      onOutlineChange={handleOutlineChange}
+                      onActiveHeadingChange={handleActiveHeadingChange}
+                      onJumpToHeading={handleJumpToHeading}
                     />
                   </div>
 

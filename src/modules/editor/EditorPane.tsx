@@ -1,3 +1,4 @@
+import { isMarkdownPath } from "@/lib/utils";
 import { endpointIdFromCompatModel } from "@/modules/ai/config";
 import { getCustomEndpointKey, getKey } from "@/modules/ai/lib/keyring";
 import { lspFormatDocument, useLspExtension } from "@/modules/lsp";
@@ -51,6 +52,7 @@ import {
   resolveFormatter,
   runExternalFormatter,
 } from "./lib/externalFormat";
+import { type MarkdownHeading, outlineExtension } from "./lib/outline";
 import { detectIndentUnit } from "./lib/indent";
 import { type LanguageResult, resolveLanguage } from "./lib/languageResolver";
 import { FORCE_READ_LIMIT, useDocument } from "./lib/useDocument";
@@ -59,6 +61,7 @@ import { initVimGlobals, vimHandlersExtension } from "./lib/vim";
 
 initVimGlobals();
 
+export type { MarkdownHeading } from "./lib/outline";
 export type EditorPaneHandle = {
   setQuery: (q: string) => void;
   findNext: () => void;
@@ -90,6 +93,8 @@ type Props = {
   onDirtyChange?: (dirty: boolean) => void;
   onSaved?: () => void;
   onClose?: () => void;
+  onOutlineChange?: (headings: MarkdownHeading[] | null) => void;
+  onActiveHeadingChange?: (line: number | null) => void;
 };
 
 // Above this, syntax highlighting and LSP are disabled: a multi-MB lezer
@@ -106,7 +111,15 @@ function formatBytes(n: number): string {
 // skip re-rendering entirely when App re-renders (terminal events, tab churn).
 export const EditorPane = memo(
   forwardRef<EditorPaneHandle, Props>(function EditorPane(props, ref) {
-    const { path, overrideLanguage, onDirtyChange, onSaved, onClose } = props;
+    const {
+      path,
+      overrideLanguage,
+      onDirtyChange,
+      onSaved,
+      onClose,
+      onOutlineChange,
+      onActiveHeadingChange,
+    } = props;
 
     const { doc, onChange, save, reload, adoptDiskText, openAnyway } =
       useDocument({
@@ -284,6 +297,9 @@ export const EditorPane = memo(
         ...buildSharedExtensions(),
         indentCompartment.of(DEFAULT_INDENT),
         languageCompartment.of([]),
+        ...(isMarkdownPath(path)
+          ? [outlineExtension(onOutlineChange, onActiveHeadingChange)]
+          : []),
         lspCompartment.of([]),
         diagnosticsReporter(() => pathRef.current),
         // Before inlineCompletion so an open popup wins Tab over the ghost.
