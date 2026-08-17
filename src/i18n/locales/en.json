@@ -703,7 +703,11 @@
     "searching": "Searching…",
     "noMatches": "No matches",
     "partialResults": "Showing partial results — refine your query.",
-    "open": "Open"
+    "open": "Open",
+    "outline": "Outline",
+    "outlinePlaceholder": "Outline data not yet available",
+    "timeline": "Timeline",
+    "timelinePlaceholder": "Timeline data not yet available"
   },
   "preview": {
     "enterUrl": "Enter a URL or pick a port preset.",
