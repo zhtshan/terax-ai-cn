@@ -75,7 +75,7 @@ export const FileExplorer = memo(
         </ResizableHandle>
         <ResizablePanel
           panelRef={outline.panelRef}
-          defaultSize={15}
+          defaultSize="15"
           minSize={32}
           collapsedSize={32}
           collapsible
@@ -91,7 +91,7 @@ export const FileExplorer = memo(
         </ResizableHandle>
         <ResizablePanel
           panelRef={timeline.panelRef}
-          defaultSize={15}
+          defaultSize="15"
           minSize={32}
           collapsedSize={32}
           collapsible
