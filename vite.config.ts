@@ -22,7 +22,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => ({
     }),
     react(),
     tailwindcss(),
-    // Module-graph inspector at /__inspect (who-imports-what, per-plugin
+    // Module-graph inspector at /__inspect (who-imports-whome, per-plugin
     // transforms). Opt-in via `pnpm dev:inspect`, never in a production build.
     ...(mode === "development" && inspectGraph
       ? [Inspect() as PluginOption]
@@ -39,6 +39,10 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => ({
         ]
       : []),
   ],
+  test: {
+    environment: "happy-dom",
+    setupFiles: ["./src/test-setup.ts"],
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

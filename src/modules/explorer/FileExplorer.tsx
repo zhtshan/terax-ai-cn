@@ -28,6 +28,14 @@ type Props = {
   onAttachToAgent?: (path: string) => void;
   pathDropTarget?: TerminalPathDropTarget;
   gitStatus?: GitStatusSnapshot | null;
+  onOpenCommitFile?: (input: {
+    repoRoot: string;
+    sha: string;
+    shortSha: string;
+    subject: string;
+    path: string;
+    originalPath: string | null;
+  }) => void;
 };
 
 export const FileExplorer = memo(
@@ -100,6 +108,9 @@ export const FileExplorer = memo(
           <TimelineSection
             collapsed={timeline.collapsed}
             onToggle={timeline.toggle}
+            activeFilePath={props.activeFilePath}
+            repoRoot={props.gitStatus?.repoRoot ?? null}
+            onOpenCommitFile={props.onOpenCommitFile ?? (() => {})}
           />
         </ResizablePanel>
       </ResizablePanelGroup>
