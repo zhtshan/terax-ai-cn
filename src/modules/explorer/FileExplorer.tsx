@@ -32,9 +32,9 @@ type Props = {
 export const FileExplorer = memo(
   forwardRef<FileExplorerHandle, Props>(function FileExplorer(props, ref) {
     const treeRef = useRef<FileTreeSectionHandle>(null);
-    const fileTree = useSectionCollapse();
-    const outline = useSectionCollapse();
-    const timeline = useSectionCollapse();
+    const fileTree = useSectionCollapse("file-tree", false);
+    const outline = useSectionCollapse("outline", true);
+    const timeline = useSectionCollapse("timeline", true);
 
     useImperativeHandle(ref, () => ({
       focus: () => treeRef.current?.focus(),
