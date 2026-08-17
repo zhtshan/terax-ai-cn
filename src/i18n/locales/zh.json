@@ -698,7 +698,11 @@
     "searching": "搜索中…",
     "noMatches": "无匹配",
     "partialResults": "显示部分结果 — 请缩小查询范围。",
-    "open": "打开"
+    "open": "打开",
+    "outline": "大纲",
+    "outlinePlaceholder": "大纲功能尚未提供数据",
+    "timeline": "时间线",
+    "timelinePlaceholder": "时间线功能尚未提供数据"
   },
   "preview": {
     "enterUrl": "请输入 URL 或选择端口预设。",
