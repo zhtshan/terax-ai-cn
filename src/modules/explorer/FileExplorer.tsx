@@ -4,6 +4,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { useDefaultLayout } from "react-resizable-panels";
 import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
 import type { TerminalPathDropTarget } from "@/modules/terminal";
 import { FileTreeSection, type FileTreeSectionHandle } from "./FileTreeSection";
@@ -36,6 +37,11 @@ export const FileExplorer = memo(
     const outline = useSectionCollapse("outline", true);
     const timeline = useSectionCollapse("timeline", true);
 
+    const { defaultLayout, onLayoutChanged } = useDefaultLayout({
+      id: "explorer-sections",
+      storage: window.localStorage,
+    });
+
     useImperativeHandle(ref, () => ({
       focus: () => treeRef.current?.focus(),
       isFocused: () => treeRef.current?.isFocused() ?? false,
@@ -47,6 +53,8 @@ export const FileExplorer = memo(
         orientation="vertical"
         id="explorer-sections"
         className="h-full"
+        defaultLayout={defaultLayout}
+        onLayoutChanged={onLayoutChanged}
       >
         <ResizablePanel
           panelRef={fileTree.panelRef}
@@ -59,7 +67,6 @@ export const FileExplorer = memo(
             ref={treeRef}
             collapsed={fileTree.collapsed}
             onToggle={fileTree.toggle}
-            onResize={fileTree.onResize}
             {...props}
           />
         </ResizablePanel>
@@ -68,7 +75,7 @@ export const FileExplorer = memo(
         </ResizableHandle>
         <ResizablePanel
           panelRef={outline.panelRef}
-          defaultSize={32}
+          defaultSize={15}
           minSize={32}
           collapsedSize={32}
           collapsible
@@ -84,7 +91,7 @@ export const FileExplorer = memo(
         </ResizableHandle>
         <ResizablePanel
           panelRef={timeline.panelRef}
-          defaultSize={32}
+          defaultSize={15}
           minSize={32}
           collapsedSize={32}
           collapsible

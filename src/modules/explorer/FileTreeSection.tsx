@@ -67,7 +67,6 @@ type Props = {
   gitStatus?: GitStatusSnapshot | null;
   collapsed: boolean;
   onToggle: () => void;
-  onResize?: () => void;
 };
 
 type Row =
