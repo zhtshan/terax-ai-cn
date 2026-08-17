@@ -565,6 +565,7 @@ pub fn log(
                 files_changed: 0,
                 insertions: 0,
                 deletions: 0,
+                old_path: None,
             });
             continue;
         }
