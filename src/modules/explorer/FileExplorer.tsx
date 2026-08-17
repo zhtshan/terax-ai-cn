@@ -74,7 +74,10 @@ export const FileExplorer = memo(
           collapsible
           onResize={outline.onResize}
         >
-          <OutlineSection />
+          <OutlineSection
+            collapsed={outline.collapsed}
+            onToggle={outline.toggle}
+          />
         </ResizablePanel>
         <ResizableHandle className="group/handle relative w-full py-0.5">
           <div className="mx-auto h-px w-full bg-border transition-colors group-data-[resizing]/handle:bg-primary" />
@@ -87,7 +90,10 @@ export const FileExplorer = memo(
           collapsible
           onResize={timeline.onResize}
         >
-          <TimelineSection />
+          <TimelineSection
+            collapsed={timeline.collapsed}
+            onToggle={timeline.toggle}
+          />
         </ResizablePanel>
       </ResizablePanelGroup>
     );
