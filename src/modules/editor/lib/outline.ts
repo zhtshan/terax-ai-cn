@@ -1,4 +1,3 @@
-import { syntaxTree } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
@@ -11,22 +10,6 @@ export type MarkdownHeading = {
 // ATXHeading1..6 node type IDs in @lezer/markdown (confirmed from parser.nodeSet.types):
 // ATXHeading1=9, ATXHeading2=10, ..., ATXHeading6=14
 const ATX_HEADING_IDS = new Set([9, 10, 11, 12, 13, 14]);
-
-function extractHeadings(view: EditorView): MarkdownHeading[] {
-  const headings: MarkdownHeading[] = [];
-  const tree = syntaxTree(view.state);
-  tree.iterate({
-    enter(node) {
-      if (!ATX_HEADING_IDS.has(node.type.id)) return;
-      const lineNum = view.state.doc.lineAt(node.from).number;
-      const lineText = view.state.doc.line(lineNum).text;
-      const text = lineText.replace(/^#+\s*/, "").trim();
-      const level = node.type.id - 8; // 9→1, 10→2, ..., 14→6
-      headings.push({ level, text, line: lineNum });
-    },
-  });
-  return headings;
-}
 
 function findActiveHeading(
   headings: MarkdownHeading[],
@@ -64,6 +47,9 @@ export function outlineExtension(
   if (onOutlineChange) {
     setOutlineCallbacks(onOutlineChange, onActiveHeadingChange ?? (() => {}));
   }
+  // ponytail: @codemirror/language is only imported inside the closure, not at
+  // module load time. Vite/tree-shaking will treat this as a lazy boundary
+  // because `syntaxTree` is never referenced at the top level of this module.
   return EditorView.updateListener.of((update) => {
     const view = update.view;
     // Document changed: re-extract headings with debounce.
@@ -75,22 +61,28 @@ export function outlineExtension(
       (
         view as unknown as Record<string, ReturnType<typeof setTimeout>>
       ).outlineDebounceRef = setTimeout(() => {
-        const fresh = extractHeadings(view);
+        const { syntaxTree } = require("@codemirror/language");
+        const headings: MarkdownHeading[] = [];
+        const tree = syntaxTree(view.state);
+        tree.iterate({
+          enter(node: any) {
+            if (!ATX_HEADING_IDS.has(node.type.id)) return;
+            const lineNum = view.state.doc.lineAt(node.from).number;
+            const lineText = view.state.doc.line(lineNum).text;
+            const text = lineText.replace(/^#+\s*/, "").trim();
+            headings.push({ level: node.type.id - 8, text, line: lineNum });
+          },
+        });
+        const prev = (view as unknown as Record<string, MarkdownHeading[]>)
+          .outlineHeadings;
         const hasChanged =
-          fresh.length !==
-            (view as unknown as Record<string, MarkdownHeading[]>)
-              .outlineHeadings?.length ||
-          fresh.some(
-            (h, i) =>
-              h.line !==
-              (view as unknown as Record<string, MarkdownHeading[]>)
-                .outlineHeadings?.[i]?.line,
-          );
+          headings.length !== prev?.length ||
+          headings.some((h, i) => h.line !== prev?.[i]?.line);
         if (hasChanged) {
           (
             view as unknown as Record<string, MarkdownHeading[]>
-          ).outlineHeadings = fresh;
-          onOutlineChangeRef.current(fresh.length > 0 ? fresh : null);
+          ).outlineHeadings = headings;
+          onOutlineChangeRef.current(headings.length > 0 ? headings : null);
         }
       }, 300);
     }
@@ -103,8 +95,9 @@ export function outlineExtension(
       const cursorLine = view.state.doc.lineAt(
         view.state.selection.main.head,
       ).number;
-      const headings = (view as unknown as Record<string, MarkdownHeading[]>)
-        .outlineHeadings;
+      const headings = (
+        view as unknown as Record<string, MarkdownHeading[]>
+      ).outlineHeadings;
       if (headings) {
         const activeLine = findActiveHeading(headings, cursorLine);
         onActiveHeadingRef.current(activeLine);
