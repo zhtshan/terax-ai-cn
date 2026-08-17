@@ -11,6 +11,7 @@ import { FileTreeSection, type FileTreeSectionHandle } from "./FileTreeSection";
 import { OutlineSection } from "./OutlineSection";
 import { TimelineSection } from "./TimelineSection";
 import { useSectionCollapse } from "./lib/useSectionCollapse";
+import { type MarkdownHeading } from "@/modules/editor";
 
 export type FileExplorerHandle = {
   focus: () => void;
@@ -28,6 +29,9 @@ type Props = {
   onAttachToAgent?: (path: string) => void;
   pathDropTarget?: TerminalPathDropTarget;
   gitStatus?: GitStatusSnapshot | null;
+  headings?: MarkdownHeading[] | null;
+  activeHeadingLine?: number | null;
+  onJumpToHeading?: (line: number) => void;
   onOpenCommitFile?: (input: {
     repoRoot: string;
     sha: string;
@@ -92,6 +96,9 @@ export const FileExplorer = memo(
           <OutlineSection
             collapsed={outline.collapsed}
             onToggle={outline.toggle}
+            headings={props.headings ?? null}
+            activeLine={props.activeHeadingLine ?? null}
+            onJump={props.onJumpToHeading ?? (() => {})}
           />
         </ResizablePanel>
         <ResizableHandle className="group/handle relative w-full py-0.5">

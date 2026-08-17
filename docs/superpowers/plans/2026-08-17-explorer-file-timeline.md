@@ -2,6 +2,7 @@
 change: explorer-file-timeline
 design-doc: docs/superpowers/specs/2026-08-17-explorer-file-timeline-design.md
 base-ref: 3bc49f3f603a1b68be6cc5d1b28efa5d6ddd8077
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 # Explorer File Timeline Implementation Plan
@@ -46,6 +47,7 @@ base-ref: 3bc49f3f603a1b68be6cc5d1b28efa5d6ddd8077
 | `src/app/App.tsx` | 修改 | 将 `openCommitFileDiffTab` 传给 `FileExplorer`（若尚未透传） |
 | `src/i18n/locales/zh.json` + `en.json` | 修改 | 新增 `explorer.timeline.*` 键 |
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 1: 后端 `GitLogEntry` 增加 `old_path` 字段
@@ -115,6 +117,7 @@ Expected: 成功，无 warning。
 cd /Users/startiasoft/work/terax-ai-cn && git add src-tauri/src/modules/git/types.rs src-tauri/src/modules/git/operations.rs && git commit -m "feat(git): GitLogEntry 增加 old_path 可选字段"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 2: 后端 `operations::log_file` 实现（含 rename 解析）
@@ -450,6 +453,7 @@ Expected: 无 clippy warning；既有测试无回归。
 cd /Users/startiasoft/work/terax-ai-cn && git add src-tauri/src/modules/git/operations.rs src-tauri/tests/git_operations.rs && git commit -m "feat(git): operations::log_file 支持单文件 follow + name-status"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 3: 后端 `commands::git_log_file` Tauri 命令
@@ -515,6 +519,7 @@ Expected: 成功。
 cd /Users/startiasoft/work/terax-ai-cn && git add src-tauri/src/modules/git/commands.rs src-tauri/src/main.rs src-tauri/src/lib.rs && git commit -m "feat(git): 新增 git_log_file Tauri 命令"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 4: 前端 `native.ts` 扩展 `GitLogEntry` + `gitLogFile` 绑定
@@ -576,6 +581,7 @@ Expected: 通过（前端尚未引用 `oldPath`，但类型已就绪）。
 cd /Users/startiasoft/work/terax-ai-cn && git add src/modules/ai/lib/native.ts && git commit -m "feat(native): 暴露 gitLogFile 绑定与 oldPath 字段"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 5: 前端 `formatRelativeTime` 工具函数
@@ -693,6 +699,7 @@ Expected: 全部 PASS。
 cd /Users/startiasoft/work/terax-ai-cn && git add src/modules/git-history/lib/relativeTime.ts src/modules/git-history/lib/relativeTime.test.ts && git commit -m "feat(git-history): 新增 formatRelativeTime 时间格式化工具"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 6: 前端 `TimelineSection.tsx` 重写（基础：数据获取 + 列表展示）
@@ -1179,6 +1186,7 @@ Expected: 无错误。
 cd /Users/startiasoft/work/terax-ai-cn && git add src/modules/explorer/TimelineSection.tsx src/modules/explorer/TimelineSection.test.tsx src/i18n/locales/zh.json src/i18n/locales/en.json && git commit -m "feat(explorer): TimelineSection 接入 git_log_file 数据与渲染"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 7: 前端 `TimelineSection` 分页测试 + 点击测试
@@ -1311,6 +1319,7 @@ Expected: 全部 PASS（含上一任务的 4 个 + 本任务的 2 个）。
 cd /Users/startiasoft/work/terax-ai-cn && git add src/modules/explorer/TimelineSection.test.tsx && git commit -m "test(explorer): TimelineSection 分页与点击回归用例"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 8: 前端 `FileExplorer` + `App.tsx` 接入 `onOpenCommitFile`
@@ -1384,6 +1393,7 @@ Expected: 无错误。
 cd /Users/startiasoft/work/terax-ai-cn && git add src/modules/explorer/FileExplorer.tsx src/app/App.tsx && git commit -m "feat(explorer): FileExplorer 透传 onOpenCommitFile 到 TimelineSection"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Task 9: 收尾验证
@@ -1434,6 +1444,7 @@ cd /Users/startiasoft/work/terax-ai-cn && git status
 cd /Users/startiasoft/work/terax-ai-cn && git add -A && git commit -m "chore: explorer-file-timeline 收尾修复"
 ```
 
+archived-with: 2026-08-17-explorer-file-timeline
 ---
 
 ## Self-Review Checklist

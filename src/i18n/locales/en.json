@@ -706,6 +706,7 @@
     "open": "Open",
     "outline": "Outline",
     "outlinePlaceholder": "Outline data not yet available",
+    "outlineEmpty": "No headings in this document",
     "timeline": "Timeline",
     "timelinePlaceholder": "Timeline data not yet available",
     "timelineNoFile": "No file selected",
