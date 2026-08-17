@@ -42,6 +42,7 @@ export default defineConfig(async ({ mode }): Promise<UserConfig> => ({
   test: {
     environment: "happy-dom",
     setupFiles: ["./src/test-setup.ts"],
+    clearMocks: true,
   },
   resolve: {
     alias: {

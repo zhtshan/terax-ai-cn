@@ -93,7 +93,7 @@ export function TimelineSection({
         if (cancelled || requestId !== requestIdRef.current) return;
         setCommits(entries);
         setStatus("idle");
-        if (entries.length < PAGE_SIZE) setEndReached(true);
+        if (entries.length === 0) setEndReached(true);
       } catch (err) {
         if (cancelled || requestId !== requestIdRef.current) return;
         setError(err instanceof Error ? err.message : String(err));
