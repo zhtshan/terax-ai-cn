@@ -49,9 +49,6 @@ desktop.ini
 *.sln
 *.sw?
 
-# OpenSpec (local dev state)
-openspec/
-
 # Superpowers (local dev state)
 docs/superpowers/
 .sdd/
