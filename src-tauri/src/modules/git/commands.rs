@@ -217,6 +217,30 @@ pub async fn git_log(
 }
 
 #[tauri::command]
+pub async fn git_log_file(
+    repo_root: String,
+    file_path: String,
+    limit: Option<u32>,
+    before_sha: Option<String>,
+    workspace: Option<WorkspaceEnv>,
+    app: AppHandle,
+) -> Result<Vec<GitLogEntry>, String> {
+    let workspace = WorkspaceEnv::from_option(workspace);
+    blocking(app, move |r| {
+        operations::log_file(
+            r,
+            &repo_root,
+            &file_path,
+            limit.unwrap_or(30),
+            before_sha.as_deref(),
+            &workspace,
+        )
+        .map_err(Into::into)
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn git_show_commit(
     repo_root: String,
     sha: String,

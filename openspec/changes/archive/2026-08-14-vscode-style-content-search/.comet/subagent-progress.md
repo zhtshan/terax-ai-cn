@@ -9,9 +9,8 @@
 
 ## Current task
 
-- Phase: implementing
-- Plan task: P6 Task 6.5 — Rust 端最终回归
-- OpenSpec task: （与 1.9 / 6.5 对应）
+- Phase: build → about to run final review / guard
+- Plan task: ALL tasks complete (24/25 done; Task 6.4 deferred to verify phase)
 
 ## Completed tasks
 
@@ -38,10 +37,24 @@
 - ✅ Task 6.1 — en.json i18n (commit 51a4330)
 - ✅ Task 6.2 — zh.json i18n (commit 4356b46)
 - ✅ Task 6.3 — frontend lint + check-types + tests (commit 13f648e)
+- ✅ Task 6.5 — Rust regression (commit 15f9162) — 216 tests green, clippy clean
 
-## Skipped
+## Deferred to verify
 
-- **Plan Task 6.4 — 手动跑通验收场景 1-15**: build 阶段不做手工 UI 验收；deferred to verify phase. Marked as `<!-- manual-verify-deferred -->` in plan checkbox.
+- **Plan Task 6.4 — 手动跑通验收场景 1-15**: build 阶段不做手工 UI 验收；will be done by coordinator (with user) in verify phase.
+
+## Scope violations to flag in verify
+
+- `settings/store.ts` (in Task 5.6 commit efa3a18) — `ModelId` type relaxed to `string` to allow compat model IDs. Looks like a separate concern that should be its own change.
+
+## Notes for final review
+
+- 35+ commits across 6 phases
+- Rust tests: 216 passed (including 16 grep-specific tests)
+- Frontend tests: 522 passed (including 6 highlight + 6 mode + 6 useSearchRun + 11 useReplaceRun)
+- Lint / check-types / clippy all clean for touched files
+- 2 dev deps added (@testing-library/react + happy-dom) for hook tests
+- Task 5.6 implementer also touched unrelated settings/store.ts — flagged for verify
 
 ## Pre-flight notes
 

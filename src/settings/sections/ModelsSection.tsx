@@ -572,10 +572,11 @@ function DefaultModelPicker({
 }) {
   const { t } = useTranslation();
   const m = resolveModel(defaultModel, customEndpoints);
-  const configuredEndpoints = customEndpoints.filter(
-    (e) => e.baseURL.trim() && e.modelId.trim(),
+  const namedCompatEndpoints = useMemo(
+    () => customEndpoints.filter((e) => e.baseURL.trim() && e.modelId.trim()),
+    [customEndpoints],
   );
-  const hasAny = configuredIds.size > 0 || configuredEndpoints.length > 0;
+  const hasAny = configuredIds.size > 0 || namedCompatEndpoints.length > 0;
 
   return (
     <DropdownMenu>
@@ -635,13 +636,13 @@ function DefaultModelPicker({
               </div>
             );
           })}
-          {configuredEndpoints.length > 0 ? (
+          {namedCompatEndpoints.length > 0 ? (
             <div className="px-1 pt-1.5 first:pt-1">
               <div className="mb-0.5 flex items-center gap-1.5 px-2 text-[10px] font-medium tracking-wide text-muted-foreground uppercase">
                 <ProviderIcon provider="openai-compatible" size={11} />
-                <span>{t("settings.models.openaiCompat")}</span>
+                <span>{t("settings.models.custom")}</span>
               </div>
-              {configuredEndpoints.map((ep) => {
+              {namedCompatEndpoints.map((ep) => {
                 const compatId = compatModelIdForEndpoint(ep.id);
                 const info = getCompatModelInfo(compatId, customEndpoints);
                 return (
