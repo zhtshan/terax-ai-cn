@@ -473,6 +473,135 @@ pub fn push(
 const LOG_FORMAT: &str = "%H%x1f%an%x1f%ae%x1f%at%x1f%P%x1f%s";
 const MAX_LOG_LIMIT: u32 = 200;
 
+pub fn log_file(
+    registry: &WorkspaceRegistry,
+    repo_root: &str,
+    file_path: &str,
+    limit: u32,
+    before_sha: Option<&str>,
+    workspace: &WorkspaceEnv,
+) -> Result<Vec<GitLogEntry>> {
+    let repo_root = authorized_repo_root(registry, repo_root, workspace)?;
+    ensure_git_available(&repo_root.workspace)?;
+    let bounded = limit.clamp(1, MAX_LOG_LIMIT);
+    let count_arg = format!("--max-count={bounded}");
+    let format_arg = format!("--format={LOG_FORMAT}");
+    let cursor = match before_sha {
+        Some(sha) if !sha.is_empty() => {
+            if !sha_is_safe(sha) {
+                return Err(GitError::command("git log", "invalid cursor sha"));
+            }
+            Some(format!("{sha}^"))
+        }
+        _ => None,
+    };
+    let rel_path = {
+        let worktree_path = resolve_within_repo(&repo_root.local_path, file_path)?;
+        pathspec(&repo_root.local_path, &worktree_path)
+    };
+    let mut args: Vec<&OsStr> = vec![
+        OsStr::new("log"),
+        OsStr::new("--no-color"),
+        OsStr::new("--shortstat"),
+        OsStr::new("--follow"),
+        OsStr::new("--name-status"),
+        OsStr::new(&count_arg),
+        OsStr::new(&format_arg),
+        OsStr::new("--"),
+        OsStr::new(&rel_path),
+    ];
+    if let Some(spec) = cursor.as_deref() {
+        // Insert before `--` so cursor semantics match `log` (exclusive of cursor sha)
+        let cursor_pos = args.len() - 2;
+        args.insert(cursor_pos, OsStr::new(spec));
+    }
+    let output = run_git(
+        &repo_root.workspace,
+        Some(&repo_root.git_path),
+        args,
+        DEFAULT_TIMEOUT_SECS,
+    )?;
+    if output.timed_out {
+        return Err(GitError::TimedOut("git log"));
+    }
+    if output.exit_code != Some(0) {
+        let stderr = String::from_utf8_lossy(&output.stderr).to_ascii_lowercase();
+        if stderr.contains("does not have any commits yet")
+            || stderr.contains("bad default revision")
+            || stderr.contains("unknown revision")
+            || stderr.contains("ambiguous argument 'head'")
+        {
+            return Ok(Vec::new());
+        }
+        if stderr.contains("pathspec") && stderr.contains("did not match") {
+            return Ok(Vec::new());
+        }
+        return ensure_success(&output, "git log failed").map(|_| Vec::new());
+    }
+    let stdout = std::str::from_utf8(&output.stdout).unwrap_or("");
+    parse_log_file_output(stdout)
+}
+
+fn parse_log_file_output(stdout: &str) -> Result<Vec<GitLogEntry>> {
+    let mut entries: Vec<GitLogEntry> = Vec::new();
+    for raw_line in stdout.lines() {
+        let line = raw_line.trim_end_matches('\r');
+        if line.is_empty() {
+            continue;
+        }
+        if line.contains('\x1f') {
+            let mut fields = line.splitn(6, '\x1f');
+            let sha = fields.next().unwrap_or("").to_string();
+            if !sha_is_safe(&sha) {
+                continue;
+            }
+            let author = fields.next().unwrap_or("").to_string();
+            let author_email = fields.next().unwrap_or("").to_string();
+            let timestamp = fields.next().unwrap_or("0").parse::<i64>().unwrap_or(0);
+            let parents_raw = fields.next().unwrap_or("");
+            let parents: Vec<String> = parents_raw
+                .split_ascii_whitespace()
+                .map(|s| s.to_string())
+                .collect();
+            let subject = fields.next().unwrap_or("").to_string();
+            let short_sha = sha.chars().take(7).collect::<String>();
+            entries.push(GitLogEntry {
+                sha,
+                short_sha,
+                author,
+                author_email,
+                timestamp_secs: timestamp,
+                parents,
+                subject,
+                files_changed: 0,
+                insertions: 0,
+                deletions: 0,
+                old_path: None,
+            });
+            continue;
+        }
+        if let Some(current) = entries.last_mut() {
+            if line.contains("file changed") || line.contains("files changed") {
+                let (files, ins, del) = parse_shortstat(line);
+                current.files_changed = files;
+                current.insertions = ins;
+                current.deletions = del;
+                continue;
+            }
+            // --name-status lines: R<num>\t<old>\t<new> or M\t<path> etc.
+            if let Some((status_part, rest)) = line.split_once('\t') {
+                let status_char = status_part.chars().next().unwrap_or(' ');
+                if status_char == 'R' {
+                    if let Some((old, _new)) = rest.split_once('\t') {
+                        current.old_path = Some(old.to_string());
+                    }
+                }
+            }
+        }
+    }
+    Ok(entries)
+}
+
 pub fn log(
     registry: &WorkspaceRegistry,
     repo_root: &str,
@@ -565,6 +694,7 @@ pub fn log(
                 files_changed: 0,
                 insertions: 0,
                 deletions: 0,
+                old_path: None,
             });
             continue;
         }

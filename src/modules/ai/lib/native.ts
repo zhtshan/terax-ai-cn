@@ -102,6 +102,7 @@ export type GitLogEntry = {
   filesChanged: number;
   insertions: number;
   deletions: number;
+  oldPath: string | null;
 };
 
 export type GitCommitFileChange = {
@@ -335,6 +336,18 @@ export const native = {
   gitLog: (repoRoot: string, options?: { limit?: number; beforeSha?: string }) =>
     invoke<GitLogEntry[]>("git_log", {
       repoRoot,
+      limit: options?.limit ?? null,
+      beforeSha: options?.beforeSha ?? null,
+      workspace: currentWorkspaceEnv(),
+    }),
+  gitLogFile: (
+    repoRoot: string,
+    filePath: string,
+    options?: { limit?: number; beforeSha?: string },
+  ) =>
+    invoke<GitLogEntry[]>("git_log_file", {
+      repoRoot,
+      filePath,
       limit: options?.limit ?? null,
       beforeSha: options?.beforeSha ?? null,
       workspace: currentWorkspaceEnv(),

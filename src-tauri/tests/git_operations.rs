@@ -531,6 +531,146 @@ fn checkout_branch_rejects_unsafe_names() {
 }
 
 #[test]
+fn log_file_follows_renames_and_populates_old_path() {
+    if skip_if_no_git() {
+        return;
+    }
+    let fx = GitRepoFixture::new();
+    fx.write_file("alpha.txt", "a\n");
+    fx.run_git(&["add", "alpha.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "create alpha"]);
+    fx.run_git(&["mv", "alpha.txt", "beta.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "rename to beta"]);
+    fx.write_file("beta.txt", "b\n");
+    fx.run_git(&["commit", "-aq", "-m", "update beta"]);
+
+    let entries = operations::log_file(
+        &fx.registry,
+        &fx.repo_str(),
+        "beta.txt",
+        30,
+        None,
+        &fx.workspace,
+    )
+    .expect("log_file");
+    assert!(entries.len() >= 3, "应至少 3 条记录");
+
+    assert!(entries[0].old_path.is_none());
+
+    let rename_entry = entries
+        .iter()
+        .find(|e| e.subject == "rename to beta")
+        .expect("应能找到 rename 记录");
+    assert_eq!(rename_entry.old_path.as_deref(), Some("alpha.txt"));
+}
+
+#[test]
+fn log_file_paginates_with_before_sha() {
+    if skip_if_no_git() {
+        return;
+    }
+    let fx = GitRepoFixture::new();
+    fx.write_file("seed.txt", "v0\n");
+    fx.run_git(&["add", "seed.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "v0"]);
+    for i in 1..=5 {
+        fx.write_file("seed.txt", &format!("v{i}\n"));
+        fx.run_git(&["commit", "-aq", "-m", &format!("v{i}")]);
+    }
+
+    let first_page = operations::log_file(
+        &fx.registry,
+        &fx.repo_str(),
+        "seed.txt",
+        3,
+        None,
+        &fx.workspace,
+    )
+    .expect("first page");
+    assert_eq!(first_page.len(), 3);
+    let cursor = first_page.last().unwrap().sha.clone();
+
+    let second_page = operations::log_file(
+        &fx.registry,
+        &fx.repo_str(),
+        "seed.txt",
+        3,
+        Some(&cursor),
+        &fx.workspace,
+    )
+    .expect("second page");
+    assert_eq!(second_page.len(), 3);
+    assert_ne!(second_page[0].sha, first_page[0].sha);
+    assert!(!first_page.iter().any(|e| second_page.iter().any(|n| n.sha == e.sha)));
+}
+
+#[test]
+fn log_file_rejects_path_traversal() {
+    if skip_if_no_git() {
+        return;
+    }
+    let fx = GitRepoFixture::new();
+    fx.write_file("seed.txt", "x\n");
+    fx.run_git(&["add", "seed.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "x"]);
+
+    let result = operations::log_file(
+        &fx.registry,
+        &fx.repo_str(),
+        "../../etc/passwd",
+        30,
+        None,
+        &fx.workspace,
+    );
+    assert!(matches!(
+        result,
+        Err(GitError::InvalidPath(_)) | Err(GitError::PathOutsideWorkspace(_))
+    ));
+}
+
+#[test]
+fn log_file_returns_empty_for_untracked_file() {
+    if skip_if_no_git() {
+        return;
+    }
+    let fx = GitRepoFixture::new();
+    fx.write_file("untracked.txt", "x\n");
+    let entries = operations::log_file(
+        &fx.registry,
+        &fx.repo_str(),
+        "untracked.txt",
+        30,
+        None,
+        &fx.workspace,
+    )
+    .expect("log_file");
+    assert!(entries.is_empty());
+}
+
+#[test]
+fn log_file_returns_commits_for_tracked_file() {
+    if skip_if_no_git() {
+        return;
+    }
+    let fx = GitRepoFixture::new();
+    fx.write_file("seed.txt", "seed\n");
+    fx.run_git(&["add", "seed.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "seed"]);
+
+    let entries = operations::log_file(
+        &fx.registry,
+        &fx.repo_str(),
+        "seed.txt",
+        30,
+        None,
+        &fx.workspace,
+    )
+    .expect("log_file");
+    assert_eq!(entries.len(), 1);
+    assert_eq!(entries[0].subject, "seed");
+    assert_eq!(entries[0].old_path, None);
+}
+#[test]
 fn list_branches_keeps_current_branch_local_and_surfaces_worktrees() {
     if skip_if_no_git() {
         return;

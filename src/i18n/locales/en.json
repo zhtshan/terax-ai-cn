@@ -707,7 +707,13 @@
     "outline": "Outline",
     "outlinePlaceholder": "Outline data not yet available",
     "timeline": "Timeline",
-    "timelinePlaceholder": "Timeline data not yet available"
+    "timelinePlaceholder": "Timeline data not yet available",
+    "timelineNoFile": "No file selected",
+    "timelineEmpty": "No commit history",
+    "timelineLoading": "Loading…",
+    "timelineLoadMore": "Load earlier commits",
+    "timelineLoadMoreFailed": "Failed to load — tap to retry",
+    "timelineOutsideRepo": "File is outside any Git repository"
   },
   "preview": {
     "enterUrl": "Enter a URL or pick a port preset.",

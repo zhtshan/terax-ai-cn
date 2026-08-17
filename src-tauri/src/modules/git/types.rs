@@ -105,6 +105,7 @@ pub struct GitLogEntry {
     pub files_changed: u32,
     pub insertions: u32,
     pub deletions: u32,
+    pub old_path: Option<String>, // 仅 git_log_file 填充；git_log 恒为 None
 }
 
 #[derive(Serialize)]
