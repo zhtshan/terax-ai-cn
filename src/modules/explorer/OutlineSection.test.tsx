@@ -78,6 +78,37 @@ describe("OutlineSection", () => {
     expect(screen.getByText("para")).toBeTruthy();
   });
 
+  it("returns to a fully expanded outline when the file changes", () => {
+    const { rerender } = render(
+      <OutlineSection
+        collapsed={false}
+        onToggle={() => {}}
+        items={items}
+        activeLine={null}
+        onJump={() => {}}
+      />,
+    );
+
+    fireEvent.click(screen.getByTitle("全部折叠"));
+    expect(screen.queryByText("value")).toBeNull();
+
+    rerender(
+      <OutlineSection
+        collapsed={false}
+        onToggle={() => {}}
+        items={[
+          { level: 1, text: "other_fn", line: 1, kind: 12 },
+          { level: 2, text: "inner", line: 2, kind: 13 },
+        ]}
+        activeLine={null}
+        onJump={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("inner")).toBeTruthy();
+    expect(screen.getByTitle("全部折叠")).toBeTruthy();
+  });
+
   it("omits the expand-all control when no symbol has children", () => {
     render(
       <OutlineSection
