@@ -10,8 +10,8 @@
 
 ## 3. 无可折叠节点时不显示全局折叠按钮
 
-- [ ] 3.1 `src/modules/explorer/OutlineSection.tsx` 的头部 action 显示条件改为「存在含子符号的节点」，避免呈现点击无效的按钮
-- [ ] 3.2 `OutlineSection.test.tsx` 补一条：全平铺大纲不渲染展开/折叠全部按钮
+- [x] 3.1 `src/modules/explorer/OutlineSection.tsx` 的头部 action 显示条件改为「存在含子符号的节点」，避免呈现点击无效的按钮
+- [x] 3.2 `OutlineSection.test.tsx` 补一条：全平铺大纲不渲染展开/折叠全部按钮
 
 ## 4. 验收
 

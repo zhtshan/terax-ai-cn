@@ -78,6 +78,25 @@ describe("OutlineSection", () => {
     expect(screen.getByText("para")).toBeTruthy();
   });
 
+  it("omits the expand-all control when no symbol has children", () => {
+    render(
+      <OutlineSection
+        collapsed={false}
+        onToggle={() => {}}
+        items={[
+          { level: 1, text: "alpha", line: 1, kind: 12 },
+          { level: 1, text: "beta", line: 5, kind: 12 },
+        ]}
+        activeLine={null}
+        onJump={() => {}}
+      />,
+    );
+
+    expect(screen.getByText("alpha")).toBeTruthy();
+    expect(screen.queryByTitle("全部折叠")).toBeNull();
+    expect(screen.queryByTitle("全部展开")).toBeNull();
+  });
+
   it("jumps to a symbol's line when its label is clicked", () => {
     const onJump = vi.fn();
     render(

@@ -176,7 +176,7 @@ export function OutlineSection({
         collapsed={collapsed}
         onToggle={onToggle}
         actions={
-          items !== null && items.length > 0 ? (
+          parentKeys.size > 0 ? (
             <Button
               variant="ghost"
               size="icon"
