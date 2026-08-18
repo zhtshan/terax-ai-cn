@@ -30,4 +30,4 @@ export {
   type PaneNode,
   type SplitDir,
 } from "./lib/panes";
-export { setExplorerRoot } from "./lib/rendererPool";
+export { setExplorerRoot, setHomeDir } from "./lib/rendererPool";

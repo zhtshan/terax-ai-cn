@@ -80,6 +80,12 @@ export function setExplorerRoot(root: string | null): void {
   _explorerRoot = root;
 }
 
+let _homeDir: string | null = null;
+
+export function setHomeDir(home: string | null): void {
+  _homeDir = home;
+}
+
 let windowActive =
   typeof document === "undefined" || (!document.hidden && document.hasFocus());
 let windowActivityBound = false;
@@ -308,6 +314,7 @@ function createSlot(): Slot {
     slot.fileLinkDisposer = registerFileLinkProvider(term, {
       getLeafId: () => slot.currentLeafId,
       getExplorerRoot: () => _explorerRoot,
+      getHomeDir: () => _homeDir,
     });
   });
 

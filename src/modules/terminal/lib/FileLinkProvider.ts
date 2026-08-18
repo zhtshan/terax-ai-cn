@@ -10,6 +10,7 @@ export type FileLinkProviderOptions = {
   // Lazy read: the workspace root resolves after slot creation and changes
   // on cd / workspace switch, so it must not be captured at registration.
   getExplorerRoot: () => string | null;
+  getHomeDir: () => string | null;
 };
 
 /**
@@ -124,6 +125,7 @@ export function registerFileLinkProvider(
     ): void {
       const leafId = options.getLeafId();
       const cwd = leafId !== null ? leafCwd(leafId) : null;
+      const home = options.getHomeDir();
       const explorerRoot = options.getExplorerRoot();
       if (explorerRoot === null) {
         callback(undefined);
@@ -140,7 +142,7 @@ export function registerFileLinkProvider(
       const links: ILink[] = [];
 
       for (const candidate of candidates) {
-        const absPath = resolvePath(candidate.path, cwd);
+        const absPath = resolvePath(candidate.path, cwd, home);
         if (absPath === null) continue;
         if (!isInsideWorkspace(absPath, explorerRoot)) continue;
 
@@ -183,7 +185,11 @@ export function registerFileLinkProvider(
             const clickedLeafId = options.getLeafId();
             const clickCwd =
               clickedLeafId !== null ? leafCwd(clickedLeafId) : null;
-            const clickedAbsPath = resolvePath(candidate.path, clickCwd);
+            const clickedAbsPath = resolvePath(
+              candidate.path,
+              clickCwd,
+              options.getHomeDir(),
+            );
             if (clickedAbsPath === null) return;
             if (!isInsideWorkspace(clickedAbsPath, explorerRoot)) return;
             try {

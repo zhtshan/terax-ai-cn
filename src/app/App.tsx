@@ -95,6 +95,7 @@ import {
   type PaneBounds,
   type TerminalPaneHandle,
   setExplorerRoot,
+  setHomeDir,
   useTerminalFileDrop,
   writeToSession,
 } from "@/modules/terminal";
@@ -356,6 +357,10 @@ export default function App() {
   useEffect(() => {
     setExplorerRoot(explorerRoot);
   }, [explorerRoot]);
+
+  useEffect(() => {
+    setHomeDir(home);
+  }, [home]);
 
   useWindowTitle(activeTab, explorerRoot);
 

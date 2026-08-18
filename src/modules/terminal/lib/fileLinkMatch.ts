@@ -44,10 +44,20 @@ export function matchFileLinks(line: string): FileLinkCandidate[] {
 
 /**
  * Resolves a candidate path against `cwd` to produce an absolute path.
- * Absolute paths resolve without a cwd; relative paths return null when
- * the cwd is unknown (no OSC 7 yet).
+ * Absolute paths resolve without a cwd; `~`-prefixed paths expand against
+ * `home`; relative paths return null when the cwd is unknown (no OSC 7 yet).
  */
-export function resolvePath(pathStr: string, cwd: string | null): string | null {
+export function resolvePath(
+  pathStr: string,
+  cwd: string | null,
+  home: string | null = null,
+): string | null {
+  if (pathStr === "~" || pathStr.startsWith("~/")) {
+    if (home === null) {
+      return null;
+    }
+    return path.posix.normalize(path.posix.join(home, pathStr.slice(1)));
+  }
   if (pathStr.startsWith("/")) {
     return path.posix.resolve(pathStr);
   }

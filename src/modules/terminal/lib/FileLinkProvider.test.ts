@@ -61,6 +61,7 @@ describe("registerFileLinkProvider", () => {
   const baseOptions = {
     getLeafId: () => 1,
     getExplorerRoot: () => "/repo" as string | null,
+    getHomeDir: () => "/home/user" as string | null,
   } satisfies FileLinkProviderOptions;
 
   function mockLineContent(
@@ -153,6 +154,7 @@ describe("registerFileLinkProvider", () => {
     registerFileLinkProvider(term, {
       getLeafId: () => 1,
       getExplorerRoot: () => root,
+      getHomeDir: () => "/home/user",
     });
     const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
     const provider = call as {
@@ -174,6 +176,42 @@ describe("registerFileLinkProvider", () => {
         resolve();
       });
     });
+  });
+
+  it("activates a ~/ path by expanding it against home", async () => {
+    const navOpenFile = vi.fn();
+    vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    vi.mocked(invoke).mockResolvedValue({ kind: "File" });
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "~/repo/src/app.ts");
+
+    registerFileLinkProvider(term, {
+      ...baseOptions,
+      getExplorerRoot: () => "/home/user/repo",
+    });
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        link.activate(makeClickEvent({ metaKey: true }), "~/repo/src/app.ts");
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(invoke).toHaveBeenCalledWith(
+      "fs_stat",
+      expect.objectContaining({ path: "/home/user/repo/src/app.ts" }),
+    );
+    expect(navOpenFile).toHaveBeenCalledWith("/home/user/repo/src/app.ts", 0);
   });
 
   it("re-reads cwd on every provideLinks call", async () => {

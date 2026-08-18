@@ -73,6 +73,22 @@ describe("resolvePath", () => {
     );
   });
 
+  it("expands a ~/ path against home", () => {
+    expect(resolvePath("~/project/app/foo.ts", "/repo", "/home/user")).toBe(
+      "/home/user/project/app/foo.ts",
+    );
+  });
+
+  it("returns null for a ~/ path when home is unknown", () => {
+    expect(resolvePath("~/project/app/foo.ts", "/repo", null)).toBeNull();
+  });
+
+  it("normalizes dot segments inside a ~/ path", () => {
+    expect(resolvePath("~/../shared/foo.ts", "/repo", "/home/user")).toBe(
+      "/home/shared/foo.ts",
+    );
+  });
+
   it("returns absolute path as-is when already absolute", () => {
     expect(resolvePath("/repo/src/app/foo.ts", "/repo")).toBe(
       "/repo/src/app/foo.ts",
