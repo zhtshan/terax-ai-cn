@@ -3,7 +3,7 @@ import { MarkdownViewToggle } from "@/modules/markdown";
 import type { EditorTab, Tab } from "@/modules/tabs";
 import { useEffect, useRef } from "react";
 import { EditorPane, type EditorPaneHandle } from "./EditorPane";
-import { type MarkdownHeading } from "./lib/outline";
+import type { OutlineItem, OutlineUnavailableReason } from "./lib/outline";
 
 type Props = {
   tabs: Tab[];
@@ -12,7 +12,8 @@ type Props = {
   registerHandle: (id: number, handle: EditorPaneHandle | null) => void;
   onCloseTab: (id: number) => void;
   onSetMarkdownView: (id: number, mode: "rendered" | "raw") => void;
-  onOutlineChange?: (headings: MarkdownHeading[] | null) => void;
+  onOutlineChange?: (items: OutlineItem[] | null) => void;
+  onOutlineUnavailable?: (reason: OutlineUnavailableReason) => void;
   onActiveHeadingChange?: (line: number | null) => void;
   onJumpToHeading?: (line: number) => void;
 };
@@ -25,6 +26,7 @@ export function EditorStack({
   onCloseTab,
   onSetMarkdownView,
   onOutlineChange,
+  onOutlineUnavailable,
   onActiveHeadingChange,
   onJumpToHeading,
 }: Props) {
@@ -125,7 +127,12 @@ export function EditorStack({
                 onDirtyChange={getDirtyCallback(t.id)}
                 onClose={getCloseCallback(t.id)}
                 {...(visible
-                  ? { onOutlineChange, onActiveHeadingChange, onJumpToHeading }
+                  ? {
+                      onOutlineChange,
+                      onOutlineUnavailable,
+                      onActiveHeadingChange,
+                      onJumpToHeading,
+                    }
                   : {})}
               />
             </div>

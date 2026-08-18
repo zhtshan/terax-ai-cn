@@ -4,7 +4,7 @@ import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
 import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
-import type { TeraxLspClient } from "./client";
+import type { RawDocumentSymbol, TeraxLspClient } from "./client";
 import { detectBinary } from "./detect";
 import { getLspNavigator } from "./navigator";
 import { type LspPreset, serverForLanguage } from "./presets";
@@ -344,6 +344,34 @@ async function closeSession(managed: Managed): Promise<void> {
   useLspRuntimeStore.getState().removeSession(managed.key, managed.preset.id);
   await managed.client.shutdownGracefully(SHUTDOWN_TIMEOUT_MS);
   managed.transport.close();
+}
+
+// Read-only: reuses whichever session is already open for `path` (via
+// acquireDocExtension) rather than starting one, so opening the outline never
+// spins up a language server on its own. Returns null when there's no active
+// session or the server doesn't advertise documentSymbol support — the
+// caller treats that as "unsupported/not enabled". Request failures reject
+// and are the caller's job to classify as "request failed".
+export async function requestDocumentSymbols(
+  path: string,
+  langId: string,
+): Promise<RawDocumentSymbol[] | null> {
+  const prefs = usePreferencesStore.getState();
+  const preset = serverForLanguage(
+    langId,
+    prefs.lspCustomServers,
+    prefs.lspActivation,
+  );
+  if (!preset || prefs.lspActivation[preset.id] !== "enabled") return null;
+
+  const uri = pathToFileUri(path);
+  const managed = [...sessions.values()].find(
+    (m) => m.preset.id === preset.id && !m.closing && m.refs.has(uri),
+  );
+  if (!managed?.client.capabilities?.documentSymbolProvider) {
+    return null;
+  }
+  return managed.client.textDocumentSymbol({ textDocument: { uri } });
 }
 
 export function notifyDocumentSaved(path: string): void {

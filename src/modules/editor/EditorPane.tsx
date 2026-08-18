@@ -1,7 +1,12 @@
 import { isMarkdownPath } from "@/lib/utils";
 import { endpointIdFromCompatModel } from "@/modules/ai/config";
 import { getCustomEndpointKey, getKey } from "@/modules/ai/lib/keyring";
-import { lspFormatDocument, useLspExtension } from "@/modules/lsp";
+import {
+  lspFormatDocument,
+  normalizeDocumentSymbols,
+  requestDocumentSymbols,
+  useLspExtension,
+} from "@/modules/lsp";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { onKeysChanged } from "@/modules/settings/store";
 import { acceptCompletion, startCompletion } from "@codemirror/autocomplete";
@@ -52,16 +57,20 @@ import {
   resolveFormatter,
   runExternalFormatter,
 } from "./lib/externalFormat";
-import { type MarkdownHeading, outlineExtension } from "./lib/outline";
 import { detectIndentUnit } from "./lib/indent";
 import { type LanguageResult, resolveLanguage } from "./lib/languageResolver";
+import {
+  type OutlineItem,
+  type OutlineUnavailableReason,
+  outlineExtension,
+} from "./lib/outline";
 import { FORCE_READ_LIMIT, useDocument } from "./lib/useDocument";
 import { useEditorThemeExt } from "./lib/useEditorThemeExt";
 import { initVimGlobals, vimHandlersExtension } from "./lib/vim";
 
 initVimGlobals();
 
-export type { MarkdownHeading } from "./lib/outline";
+export type { OutlineItem, OutlineUnavailableReason } from "./lib/outline";
 export type EditorPaneHandle = {
   setQuery: (q: string) => void;
   findNext: () => void;
@@ -93,7 +102,8 @@ type Props = {
   onDirtyChange?: (dirty: boolean) => void;
   onSaved?: () => void;
   onClose?: () => void;
-  onOutlineChange?: (headings: MarkdownHeading[] | null) => void;
+  onOutlineChange?: (items: OutlineItem[] | null) => void;
+  onOutlineUnavailable?: (reason: OutlineUnavailableReason) => void;
   onActiveHeadingChange?: (line: number | null) => void;
 };
 
@@ -118,6 +128,7 @@ export const EditorPane = memo(
       onSaved,
       onClose,
       onOutlineChange,
+      onOutlineUnavailable,
       onActiveHeadingChange,
     } = props;
 
@@ -193,6 +204,49 @@ export const EditorPane = memo(
     const lspActiveRef = useRef(false);
     const warnedNoLspRef = useRef(false);
     const warnedNoFormatRef = useRef(false);
+    const langIdRef = useRef<string | null>(null);
+    langIdRef.current = langId;
+    const onOutlineChangeRef = useRef(onOutlineChange);
+    onOutlineChangeRef.current = onOutlineChange;
+    const onOutlineUnavailableRef = useRef(onOutlineUnavailable);
+    onOutlineUnavailableRef.current = onOutlineUnavailable;
+    const onActiveHeadingChangeRef = useRef(onActiveHeadingChange);
+    onActiveHeadingChangeRef.current = onActiveHeadingChange;
+    const outlineRequestSeqRef = useRef(0);
+
+    // Code-symbol outline via LSP documentSymbol. Markdown has its own
+    // syntax-tree-driven extension below; this only runs for other
+    // languages, and only for the active tab (onOutlineChange is undefined
+    // for background panes, so this is a no-op there — no wasted requests).
+    const refreshCodeOutline = useCallback((clearFirst: boolean) => {
+      if (isMarkdownPath(pathRef.current) || !onOutlineChangeRef.current) {
+        return;
+      }
+      const requestPath = pathRef.current;
+      const requestLangId = langIdRef.current;
+      const seq = ++outlineRequestSeqRef.current;
+      if (clearFirst) {
+        onOutlineChangeRef.current(null);
+        onActiveHeadingChangeRef.current?.(null);
+      }
+      if (!requestLangId) {
+        onOutlineUnavailableRef.current?.("unsupported-language");
+        return;
+      }
+      requestDocumentSymbols(requestPath, requestLangId)
+        .then((raw) => {
+          if (outlineRequestSeqRef.current !== seq) return;
+          if (raw === null) {
+            onOutlineUnavailableRef.current?.("unsupported-language");
+            return;
+          }
+          onOutlineChangeRef.current?.(normalizeDocumentSymbols(raw));
+        })
+        .catch(() => {
+          if (outlineRequestSeqRef.current !== seq) return;
+          onOutlineUnavailableRef.current?.("request-failed");
+        });
+    }, []);
 
     const performSave = useCallback(async () => {
       const view = cmRef.current?.view;
@@ -228,6 +282,10 @@ export const EditorPane = memo(
       const docAtSave = view?.state.doc;
       const saved = await saveRef.current();
       if (!saved) return;
+      // Don't clear the outline first: the previous symbols are still
+      // roughly valid until the refreshed list lands, so keep them visible
+      // instead of flashing empty on every save.
+      refreshCodeOutline(false);
       if (prefs.editorFormatOnSave && formatter !== "lsp") {
         const error = await runExternalFormatter(
           formatter,
@@ -247,7 +305,7 @@ export const EditorPane = memo(
         }
       }
       onSavedRef.current?.();
-    }, []);
+    }, [refreshCodeOutline]);
     const performSaveRef = useRef(performSave);
     performSaveRef.current = performSave;
 
@@ -392,11 +450,17 @@ export const EditorPane = memo(
     useEffect(() => {
       lspActiveRef.current = lspExt !== null;
       const view = cmRef.current?.view;
-      if (!view) return;
-      view.dispatch({
-        effects: lspCompartment.reconfigure(lspExt ?? []),
-      });
-    }, [lspExt]);
+      if (view) {
+        view.dispatch({
+          effects: lspCompartment.reconfigure(lspExt ?? []),
+        });
+      }
+      // acquireDocExtension resolves asynchronously (binary probe, root
+      // resolution, session spin-up), so the outline's initial fetch above
+      // usually races ahead of the LSP session and lands on "unsupported".
+      // Retry once the session is actually attached.
+      if (lspExt !== null) refreshCodeOutline(false);
+    }, [lspExt, refreshCodeOutline]);
 
     useEffect(
       () => () => useDiagnosticsStore.getState().report(pathRef.current, null),
@@ -444,6 +508,18 @@ export const EditorPane = memo(
         cancelled = true;
       };
     }, [path, doc.status, overrideLanguage]);
+
+    // refreshCodeOutline reads path/langId/onOutlineChange through refs, not
+    // this closure — they're listed purely to control re-fire timing: a new
+    // path/langId means a new file to fetch symbols for, and onOutlineChange
+    // flipping in/out means the tab became active/inactive.
+    // biome-ignore lint/correctness/useExhaustiveDependencies(path): see above
+    // biome-ignore lint/correctness/useExhaustiveDependencies(langId): see above
+    // biome-ignore lint/correctness/useExhaustiveDependencies(onOutlineChange): see above
+    useEffect(() => {
+      if (doc.status !== "ready") return;
+      refreshCodeOutline(true);
+    }, [doc.status, path, langId, onOutlineChange, refreshCodeOutline]);
 
     useImperativeHandle(
       ref,

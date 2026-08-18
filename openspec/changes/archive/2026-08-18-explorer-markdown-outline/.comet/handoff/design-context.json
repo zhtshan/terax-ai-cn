@@ -1,0 +1,14 @@
+{
+  "change": "explorer-markdown-outline",
+  "phase": "design",
+  "mode": "compact",
+  "canonical_spec": "openspec",
+  "generated_by": "comet-handoff.sh",
+  "context_hash": "4a6692623f9f0818efa09ff3cb6659a4b24b3785a9cc38304d84c6e14954655c",
+  "files": [
+    { "path": "openspec/changes/explorer-markdown-outline/proposal.md", "sha256": "b96cd4056c009bfc143a08477b20fcf7f61176ae8e174c3bd3b646281fbc3f57" },
+    { "path": "openspec/changes/explorer-markdown-outline/design.md", "sha256": "e280bffd3c78d1fd81549e373e9ea0f955d150a51351d4ccc1a38e49bb007f57" },
+    { "path": "openspec/changes/explorer-markdown-outline/tasks.md", "sha256": "67cff751f3e143eb33e5946ae762c2a9b073dd8e215b912cbdf3064b046b2aaa" },
+    { "path": "openspec/changes/explorer-markdown-outline/specs/explorer-markdown-outline/spec.md", "sha256": "381d0867c1e1f360eac45b11dcb465904a968f5a5887bd93290b90e6803f6a4e" }
+  ]
+}

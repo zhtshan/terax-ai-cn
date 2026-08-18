@@ -1,11 +1,17 @@
-import type { ComponentProps } from "react";
 import { cn } from "@/lib/utils";
-import { AiDiffStack, EditorStack, GitDiffStack, type MarkdownHeading } from "@/modules/editor";
+import {
+  AiDiffStack,
+  EditorStack,
+  GitDiffStack,
+  type OutlineItem,
+  type OutlineUnavailableReason,
+} from "@/modules/editor";
 import { GitHistoryStack } from "@/modules/git-history";
 import { MarkdownStack } from "@/modules/markdown";
 import { PreviewStack } from "@/modules/preview";
 import type { Tab } from "@/modules/tabs";
 import { TerminalStack } from "@/modules/terminal";
+import type { ComponentProps } from "react";
 
 type TerminalStackProps = ComponentProps<typeof TerminalStack>;
 type EditorStackProps = ComponentProps<typeof EditorStack>;
@@ -32,7 +38,8 @@ type Props = {
   onOpenCommitFile: GitHistoryStackProps["onOpenCommitFile"];
   onGitHistorySearchHandle: GitHistoryStackProps["onSearchHandle"];
   onSetMarkdownView: EditorStackProps["onSetMarkdownView"];
-  onOutlineChange?: (headings: MarkdownHeading[] | null) => void;
+  onOutlineChange?: (items: OutlineItem[] | null) => void;
+  onOutlineUnavailable?: (reason: OutlineUnavailableReason) => void;
   onActiveHeadingChange?: (line: number | null) => void;
   onJumpToHeading?: (line: number) => void;
 };
@@ -62,6 +69,7 @@ export function WorkspaceSurface({
   onGitHistorySearchHandle,
   onSetMarkdownView,
   onOutlineChange,
+  onOutlineUnavailable,
   onActiveHeadingChange,
   onJumpToHeading,
 }: Props) {
@@ -108,6 +116,7 @@ export function WorkspaceSurface({
           onCloseTab={onEditorCloseTab}
           onSetMarkdownView={onSetMarkdownView}
           onOutlineChange={onOutlineChange}
+          onOutlineUnavailable={onOutlineUnavailable}
           onActiveHeadingChange={onActiveHeadingChange}
           onJumpToHeading={onJumpToHeading}
         />

@@ -18,3 +18,5 @@ branch_status: pending
 created_at: 2026-08-17
 verified_at: null
 archived: false
+handoff_context: openspec/changes/explorer-code-outline/.comet/handoff/design-context.json
+handoff_hash: c30d4174d550f8bac85f0d116411b676b2cc3cf44b43d99dc6103c1eda165de7

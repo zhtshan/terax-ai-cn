@@ -32,7 +32,8 @@ import {
   NewEditorDialog,
   useApplyEditorFontSize,
   useEditorFileSync,
-  type MarkdownHeading,
+  type OutlineItem,
+  type OutlineUnavailableReason,
 } from "@/modules/editor";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
 import {
@@ -184,7 +185,11 @@ export default function App() {
   const previewRefs = useRef<Map<number, PreviewPaneHandle>>(new Map());
   const [activeEditorHandle, setActiveEditorHandle] =
     useState<EditorPaneHandle | null>(null);
-  const [outlineHeadings, setOutlineHeadings] = useState<MarkdownHeading[] | null>(null);
+  const [outlineItems, setOutlineItems] = useState<OutlineItem[] | null>(
+    null,
+  );
+  const [outlineUnavailableReason, setOutlineUnavailableReason] =
+    useState<OutlineUnavailableReason | null>(null);
   const [activeHeadingLine, setActiveHeadingLine] = useState<number | null>(null);
   const [gitHistoryHandle, setGitHistoryHandle] =
     useState<GitHistorySearchHandle | null>(null);
@@ -392,14 +397,22 @@ export default function App() {
     setActiveEditorHandle(editorRefs.current.get(activeId) ?? null);
     const tab = tabs.find((t) => t.id === activeId);
     if (!tab || tab.kind !== "editor") {
-      setOutlineHeadings(null);
+      setOutlineItems(null);
+      setOutlineUnavailableReason(null);
       setActiveHeadingLine(null);
     }
   }, [activeId, activeLeafId, tabs]);
 
-  const handleOutlineChange = useCallback(
-    (headings: MarkdownHeading[] | null) => {
-      setOutlineHeadings(headings);
+  const handleOutlineChange = useCallback((items: OutlineItem[] | null) => {
+    setOutlineItems(items);
+    // An outline update always supersedes whatever unavailability reason was
+    // showing before; a fresh reason (if any) arrives via the callback below.
+    setOutlineUnavailableReason(null);
+  }, []);
+
+  const handleOutlineUnavailable = useCallback(
+    (reason: OutlineUnavailableReason) => {
+      setOutlineUnavailableReason(reason);
     },
     [],
   );
@@ -1387,7 +1400,8 @@ export default function App() {
                           explorerGitDecorations ? sourceControl.status : null
                         }
                         activeFilePath={explorerActiveFilePath}
-                        headings={outlineHeadings}
+                        outlineItems={outlineItems}
+                        outlineUnavailableReason={outlineUnavailableReason}
                         activeHeadingLine={activeHeadingLine}
                         onJumpToHeading={handleJumpToHeading}
                         onOpenFile={handleOpenFile}
@@ -1452,6 +1466,7 @@ export default function App() {
                       onGitHistorySearchHandle={setGitHistoryHandle}
                       onSetMarkdownView={setMarkdownView}
                       onOutlineChange={handleOutlineChange}
+                      onOutlineUnavailable={handleOutlineUnavailable}
                       onActiveHeadingChange={handleActiveHeadingChange}
                       onJumpToHeading={handleJumpToHeading}
                     />

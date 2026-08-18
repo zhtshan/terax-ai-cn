@@ -1,17 +1,17 @@
-import { forwardRef, memo, useImperativeHandle, useRef } from "react";
 import {
   ResizableHandle,
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
-import { useDefaultLayout } from "react-resizable-panels";
 import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
+import type { OutlineItem, OutlineUnavailableReason } from "@/modules/editor";
 import type { TerminalPathDropTarget } from "@/modules/terminal";
+import { forwardRef, memo, useImperativeHandle, useRef } from "react";
+import { useDefaultLayout } from "react-resizable-panels";
 import { FileTreeSection, type FileTreeSectionHandle } from "./FileTreeSection";
+import { useSectionCollapse } from "./lib/useSectionCollapse";
 import { OutlineSection } from "./OutlineSection";
 import { TimelineSection } from "./TimelineSection";
-import { useSectionCollapse } from "./lib/useSectionCollapse";
-import { type MarkdownHeading } from "@/modules/editor";
 
 export type FileExplorerHandle = {
   focus: () => void;
@@ -29,7 +29,8 @@ type Props = {
   onAttachToAgent?: (path: string) => void;
   pathDropTarget?: TerminalPathDropTarget;
   gitStatus?: GitStatusSnapshot | null;
-  headings?: MarkdownHeading[] | null;
+  outlineItems?: OutlineItem[] | null;
+  outlineUnavailableReason?: OutlineUnavailableReason | null;
   activeHeadingLine?: number | null;
   onJumpToHeading?: (line: number) => void;
   onOpenCommitFile?: (input: {
@@ -96,7 +97,8 @@ export const FileExplorer = memo(
           <OutlineSection
             collapsed={outline.collapsed}
             onToggle={outline.toggle}
-            headings={props.headings ?? null}
+            items={props.outlineItems ?? null}
+            unavailableReason={props.outlineUnavailableReason ?? null}
             activeLine={props.activeHeadingLine ?? null}
             onJump={props.onJumpToHeading ?? (() => {})}
           />

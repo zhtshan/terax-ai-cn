@@ -47,6 +47,24 @@ type DefinitionResult =
   | null
   | undefined;
 
+// Hierarchical form (server groups children under their parent).
+export type LspDocumentSymbolRaw = {
+  name: string;
+  kind: number;
+  range: LspRange;
+  selectionRange?: LspRange;
+  children?: LspDocumentSymbolRaw[];
+};
+
+// Flat form some servers return instead, with an explicit location per symbol.
+export type LspSymbolInformationRaw = {
+  name: string;
+  kind: number;
+  location: LspLocation;
+};
+
+export type RawDocumentSymbol = LspDocumentSymbolRaw | LspSymbolInformationRaw;
+
 function normalizeLocations(result: DefinitionResult): LspLocation[] {
   if (!result) return [];
   const list = Array.isArray(result) ? result : [result];
@@ -434,6 +452,13 @@ export class TeraxLspClient extends LanguageServerClient {
   }): Promise<LspLocation[] | null> {
     return this.raw.request("textDocument/references", params, 10_000) as
       Promise<LspLocation[] | null>;
+  }
+
+  textDocumentSymbol(params: {
+    textDocument: { uri: string };
+  }): Promise<RawDocumentSymbol[] | null> {
+    return this.raw.request("textDocument/documentSymbol", params, 10_000) as
+      Promise<RawDocumentSymbol[] | null>;
   }
 
   textDocumentDidClose(uri: string): void {

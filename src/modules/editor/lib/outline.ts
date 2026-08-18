@@ -1,19 +1,24 @@
+import type { OutlineItem } from "@/modules/lsp";
 import { syntaxTree } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
-export type MarkdownHeading = {
-  level: number;
-  text: string;
-  line: number;
-};
+export type { OutlineItem } from "@/modules/lsp";
+
+// Why the code-symbol outline came back empty, distinct from "no symbols":
+// "unsupported-language" covers no LSP configured/enabled (or none acquired
+// yet); "request-failed" covers a documentSymbol call that errored or timed
+// out. Markdown outlines never report this — they always have a result.
+export type OutlineUnavailableReason =
+  | "unsupported-language"
+  | "request-failed";
 
 // ATXHeading1..6 node type IDs in @lezer/markdown (confirmed from parser.nodeSet.types):
 // ATXHeading1=9, ATXHeading2=10, ..., ATXHeading6=14
 const ATX_HEADING_IDS = new Set([9, 10, 11, 12, 13, 14]);
 
 function findActiveHeading(
-  headings: MarkdownHeading[],
+  headings: OutlineItem[],
   cursorLine: number,
 ): number | null {
   let active: number | null = null;
@@ -24,17 +29,17 @@ function findActiveHeading(
   return active;
 }
 
-let onOutlineChangeRef = {
-  current: ((_: MarkdownHeading[] | null) => {}) as (
-    h: MarkdownHeading[] | null,
+const onOutlineChangeRef = {
+  current: ((_: OutlineItem[] | null) => {}) as (
+    h: OutlineItem[] | null,
   ) => void,
 };
-let onActiveHeadingRef = {
+const onActiveHeadingRef = {
   current: ((_: number | null) => {}) as (l: number | null) => void,
 };
 
 export function setOutlineCallbacks(
-  onOutlineChange: (h: MarkdownHeading[] | null) => void,
+  onOutlineChange: (h: OutlineItem[] | null) => void,
   onActiveHeadingChange: (l: number | null) => void,
 ): void {
   onOutlineChangeRef.current = onOutlineChange;
@@ -42,7 +47,7 @@ export function setOutlineCallbacks(
 }
 
 export function outlineExtension(
-  onOutlineChange?: (h: MarkdownHeading[] | null) => void,
+  onOutlineChange?: (h: OutlineItem[] | null) => void,
   onActiveHeadingChange?: (l: number | null) => void,
 ): Extension {
   if (onOutlineChange) {
@@ -52,7 +57,7 @@ export function outlineExtension(
   const initialized = new WeakSet<EditorView>();
 
   function extractAndNotify(view: EditorView) {
-    const headings: MarkdownHeading[] = [];
+    const headings: OutlineItem[] = [];
     const tree = syntaxTree(view.state);
     tree.iterate({
       enter(node: any) {
@@ -63,13 +68,13 @@ export function outlineExtension(
         headings.push({ level: node.type.id - 8, text, line: lineNum });
       },
     });
-    const prev = (view as unknown as Record<string, MarkdownHeading[]>)
+    const prev = (view as unknown as Record<string, OutlineItem[]>)
       .outlineHeadings;
     const hasChanged =
       headings.length !== prev?.length ||
       headings.some((h, i) => h.line !== prev?.[i]?.line);
     if (hasChanged) {
-      (view as unknown as Record<string, MarkdownHeading[]>).outlineHeadings =
+      (view as unknown as Record<string, OutlineItem[]>).outlineHeadings =
         headings;
       onOutlineChangeRef.current(headings.length > 0 ? headings : null);
     }
@@ -106,9 +111,8 @@ export function outlineExtension(
       const cursorLine = view.state.doc.lineAt(
         view.state.selection.main.head,
       ).number;
-      const headings = (
-        view as unknown as Record<string, MarkdownHeading[]>
-      ).outlineHeadings;
+      const headings = (view as unknown as Record<string, OutlineItem[]>)
+        .outlineHeadings;
       if (headings) {
         const activeLine = findActiveHeading(headings, cursorLine);
         onActiveHeadingRef.current(activeLine);
