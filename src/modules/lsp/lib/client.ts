@@ -449,7 +449,12 @@ export class TeraxLspClient extends LanguageServerClient {
         dynamicRegistration: false,
         hierarchicalDocumentSymbolSupport: true,
         symbolKind: {
-          valueSet: Array.from({ length: 26 }, (_, i) => i + 1),
+          // LSP 3.17 SymbolKind 1..26, spelled out rather than generated so
+          // the literal types match the protocol's SymbolKind union.
+          valueSet: [
+            1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19,
+            20, 21, 22, 23, 24, 25, 26,
+          ],
         },
       },
     };
