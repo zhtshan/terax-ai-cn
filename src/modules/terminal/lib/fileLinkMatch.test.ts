@@ -63,8 +63,14 @@ describe("resolvePath", () => {
     expect(resolvePath("app/foo.ts", "/repo/src")).toBe("/repo/src/app/foo.ts");
   });
 
-  it("returns null when cwd is null", () => {
+  it("returns null for a relative path when cwd is null", () => {
     expect(resolvePath("app/foo.ts", null)).toBeNull();
+  });
+
+  it("resolves an absolute path even when cwd is null", () => {
+    expect(resolvePath("/repo/src/app/foo.ts", null)).toBe(
+      "/repo/src/app/foo.ts",
+    );
   });
 
   it("returns absolute path as-is when already absolute", () => {

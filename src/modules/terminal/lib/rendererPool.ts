@@ -300,18 +300,16 @@ function createSlot(): Slot {
   slots.push(slot);
 
   // Defer registration to avoid a circular import (rendererPool ->
-  // FileLinkProvider -> useTerminalSession -> rendererPool). The provider
-  // is registered on the next microtask after the slot is fully constructed.
-  if (_explorerRoot !== null && slot.webglAddon === null) {
-    const root = _explorerRoot;
-    queueMicrotask(async () => {
-      const { registerFileLinkProvider } = await import("./FileLinkProvider");
-      slot.fileLinkDisposer = registerFileLinkProvider(term, {
-        getLeafId: () => slot.currentLeafId,
-        explorerRoot: root,
-      });
+  // FileLinkProvider -> useTerminalSession -> rendererPool). Registered
+  // unconditionally: the provider reads the explorer root lazily, so a root
+  // that arrives late (or changes later) still produces links.
+  queueMicrotask(async () => {
+    const { registerFileLinkProvider } = await import("./FileLinkProvider");
+    slot.fileLinkDisposer = registerFileLinkProvider(term, {
+      getLeafId: () => slot.currentLeafId,
+      getExplorerRoot: () => _explorerRoot,
     });
-  }
+  });
 
   return slot;
 }

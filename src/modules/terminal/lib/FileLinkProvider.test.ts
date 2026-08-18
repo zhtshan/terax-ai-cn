@@ -60,7 +60,7 @@ describe("registerFileLinkProvider", () => {
 
   const baseOptions = {
     getLeafId: () => 1,
-    explorerRoot: "/repo",
+    getExplorerRoot: () => "/repo" as string | null,
   } satisfies FileLinkProviderOptions;
 
   function mockLineContent(
@@ -139,6 +139,38 @@ describe("registerFileLinkProvider", () => {
     await new Promise<void>((resolve) => {
       provider.provideLinks(1, (links) => {
         expect(links).toBeUndefined();
+        resolve();
+      });
+    });
+  });
+
+  it("produces links once the explorer root arrives (lazy root read)", async () => {
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    let root: string | null = null;
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "src/app.ts");
+
+    registerFileLinkProvider(term, {
+      getLeafId: () => 1,
+      getExplorerRoot: () => root,
+    });
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        expect(links).toBeUndefined();
+        resolve();
+      });
+    });
+
+    root = "/repo";
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as { text: string }[];
+        expect(arr.length).toBeGreaterThan(0);
         resolve();
       });
     });

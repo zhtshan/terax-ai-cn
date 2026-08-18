@@ -144,13 +144,40 @@ describe("setExplorerRoot", () => {
 });
 
 describe("createSlot file link registration", () => {
-  it("registers FileLinkProvider when explorerRoot is set and webglAddon is null", async () => {
+  function makeContainer(): HTMLDivElement {
+    return {
+      clientWidth: 1024,
+      clientHeight: 768,
+      appendChild: vi.fn(),
+      removeChild: vi.fn(),
+      getBoundingClientRect: vi.fn(() => ({ width: 1024, height: 768 })),
+    } as unknown as HTMLDivElement;
+  }
+
+  function acquireParams(leafId: number) {
+    return {
+      leafId,
+      container: makeContainer(),
+      snapshot: null,
+      altScreen: false,
+      drainRing: vi.fn(),
+      shellExited: false,
+      searchQuery: null,
+      cols: 80,
+      rows: 24,
+      registerOsc: vi.fn(() => []),
+      onSearchReady: vi.fn(),
+    };
+  }
+
+  it("registers FileLinkProvider even before the explorer root is known", async () => {
     const registerMock = vi.fn(() => ({ dispose: vi.fn() }));
     vi.doMock("./FileLinkProvider", () => ({
       registerFileLinkProvider: registerMock,
     }));
 
-    const { configureRendererPool, acquireSlot } = await import("./rendererPool");
+    const { configureRendererPool, acquireSlot, setExplorerRoot } =
+      await import("./rendererPool");
     configureRendererPool({
       resolveLeaf: vi.fn(),
       evictLeaf: vi.fn(),
@@ -161,48 +188,25 @@ describe("createSlot file link registration", () => {
       storeSnapshot: vi.fn(),
     } as never);
 
-    const { setExplorerRoot } = await import("./rendererPool");
-    setExplorerRoot("/workspace/root");
+    setExplorerRoot(null);
+    acquireSlot(acquireParams(1));
 
-    // Provide a minimal container.
-    const container = {
-      clientWidth: 1024,
-      clientHeight: 768,
-      appendChild: vi.fn(),
-      removeChild: vi.fn(),
-      getBoundingClientRect: vi.fn(() => ({ width: 1024, height: 768 })),
-    } as unknown as HTMLDivElement;
-
-    acquireSlot({
-      leafId: 1,
-      container,
-      snapshot: null,
-      altScreen: false,
-      drainRing: vi.fn(),
-      shellExited: false,
-      searchQuery: null,
-      cols: 80,
-      rows: 24,
-      registerOsc: vi.fn(() => []),
-      onSearchReady: vi.fn(),
-    });
-
-    // Registration is deferred via queueMicrotask.
     await vi.waitFor(() => {
       expect(registerMock).toHaveBeenCalledTimes(1);
     });
-    const callOpts = (registerMock.mock.calls[0] as unknown as [unknown, { explorerRoot: string; getLeafId: () => number | null }])[1] as { explorerRoot: string; getLeafId: () => number | null };
-    expect(callOpts.explorerRoot).toBe("/workspace/root");
+    const callOpts = (registerMock.mock.calls[0] as unknown as [unknown, { getExplorerRoot: () => string | null; getLeafId: () => number | null }])[1];
+    expect(callOpts.getExplorerRoot()).toBeNull();
     expect(typeof callOpts.getLeafId).toBe("function");
   });
 
-  it("does NOT register FileLinkProvider when explorerRoot is null", async () => {
+  it("passes a live root getter that tracks later setExplorerRoot updates", async () => {
     const registerMock = vi.fn(() => ({ dispose: vi.fn() }));
     vi.doMock("./FileLinkProvider", () => ({
       registerFileLinkProvider: registerMock,
     }));
 
-    const { configureRendererPool, acquireSlot } = await import("./rendererPool");
+    const { configureRendererPool, acquireSlot, setExplorerRoot } =
+      await import("./rendererPool");
     configureRendererPool({
       resolveLeaf: vi.fn(),
       evictLeaf: vi.fn(),
@@ -213,32 +217,16 @@ describe("createSlot file link registration", () => {
       storeSnapshot: vi.fn(),
     } as never);
 
-    const { setExplorerRoot } = await import("./rendererPool");
     setExplorerRoot(null);
+    acquireSlot(acquireParams(2));
 
-    const container = {
-      clientWidth: 1024,
-      clientHeight: 768,
-      appendChild: vi.fn(),
-      removeChild: vi.fn(),
-      getBoundingClientRect: vi.fn(() => ({ width: 1024, height: 768 })),
-    } as unknown as HTMLDivElement;
-
-    acquireSlot({
-      leafId: 2,
-      container,
-      snapshot: null,
-      altScreen: false,
-      drainRing: vi.fn(),
-      shellExited: false,
-      searchQuery: null,
-      cols: 80,
-      rows: 24,
-      registerOsc: vi.fn(() => []),
-      onSearchReady: vi.fn(),
+    await vi.waitFor(() => {
+      expect(registerMock).toHaveBeenCalledTimes(1);
     });
+    const callOpts = (registerMock.mock.calls[0] as unknown as [unknown, { getExplorerRoot: () => string | null }])[1];
+    expect(callOpts.getExplorerRoot()).toBeNull();
 
-    await new Promise((r) => setTimeout(r, 10));
-    expect(registerMock).not.toHaveBeenCalled();
+    setExplorerRoot("/workspace/root");
+    expect(callOpts.getExplorerRoot()).toBe("/workspace/root");
   });
 });

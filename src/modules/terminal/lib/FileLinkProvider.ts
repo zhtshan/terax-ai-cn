@@ -7,7 +7,9 @@ import { isInsideWorkspace, matchFileLinks, resolvePath } from "./fileLinkMatch"
 
 export type FileLinkProviderOptions = {
   getLeafId: () => number | null;
-  explorerRoot: string;
+  // Lazy read: the workspace root resolves after slot creation and changes
+  // on cd / workspace switch, so it must not be captured at registration.
+  getExplorerRoot: () => string | null;
 };
 
 /**
@@ -122,7 +124,11 @@ export function registerFileLinkProvider(
     ): void {
       const leafId = options.getLeafId();
       const cwd = leafId !== null ? leafCwd(leafId) : null;
-      const explorerRoot = options.explorerRoot;
+      const explorerRoot = options.getExplorerRoot();
+      if (explorerRoot === null) {
+        callback(undefined);
+        return;
+      }
 
       const [lines, startLineIndex] = getWindowedLineStrings(
         term,
@@ -172,6 +178,8 @@ export function registerFileLinkProvider(
             if (!(event.metaKey || event.ctrlKey)) return;
             const nav = getLspNavigator();
             if (!nav) return;
+            const explorerRoot = options.getExplorerRoot();
+            if (explorerRoot === null) return;
             const clickedLeafId = options.getLeafId();
             const clickCwd =
               clickedLeafId !== null ? leafCwd(clickedLeafId) : null;
