@@ -104,12 +104,15 @@ type Props = {
   onClose?: () => void;
   onOutlineChange?: (items: OutlineItem[] | null) => void;
   onOutlineUnavailable?: (reason: OutlineUnavailableReason) => void;
+  onOutlineLoading?: (loading: boolean) => void;
   onActiveHeadingChange?: (line: number | null) => void;
 };
 
 // Above this, syntax highlighting and LSP are disabled: a multi-MB lezer
 // parse tree and a didOpen of that size cost far more than they give.
 const SYNTAX_MAX_BYTES = 4 * 1024 * 1024;
+
+const OUTLINE_EMPTY_RETRY_DELAYS_MS = [800, 1600];
 
 function formatBytes(n: number): string {
   if (n < 1024) return `${n} B`;
@@ -129,6 +132,7 @@ export const EditorPane = memo(
       onClose,
       onOutlineChange,
       onOutlineUnavailable,
+      onOutlineLoading,
       onActiveHeadingChange,
     } = props;
 
@@ -210,6 +214,8 @@ export const EditorPane = memo(
     onOutlineChangeRef.current = onOutlineChange;
     const onOutlineUnavailableRef = useRef(onOutlineUnavailable);
     onOutlineUnavailableRef.current = onOutlineUnavailable;
+    const onOutlineLoadingRef = useRef(onOutlineLoading);
+    onOutlineLoadingRef.current = onOutlineLoading;
     const onActiveHeadingChangeRef = useRef(onActiveHeadingChange);
     onActiveHeadingChangeRef.current = onActiveHeadingChange;
     const outlineRequestSeqRef = useRef(0);
@@ -229,23 +235,45 @@ export const EditorPane = memo(
         onOutlineChangeRef.current(null);
         onActiveHeadingChangeRef.current?.(null);
       }
+      onOutlineLoadingRef.current?.(true);
       if (!requestLangId) {
+        onOutlineLoadingRef.current?.(false);
         onOutlineUnavailableRef.current?.("unsupported-language");
         return;
       }
-      requestDocumentSymbols(requestPath, requestLangId)
-        .then((raw) => {
-          if (outlineRequestSeqRef.current !== seq) return;
-          if (raw === null) {
-            onOutlineUnavailableRef.current?.("unsupported-language");
-            return;
-          }
-          onOutlineChangeRef.current?.(normalizeDocumentSymbols(raw));
-        })
-        .catch(() => {
-          if (outlineRequestSeqRef.current !== seq) return;
-          onOutlineUnavailableRef.current?.("request-failed");
-        });
+      // A freshly spawned/cold language server can resolve documentSymbol
+      // with an empty result while it's still indexing a just-opened file.
+      // Retry a couple of times with backoff before treating that as "no
+      // symbols" so the outline doesn't flash an empty state during warm-up.
+      const attempt = (retryIndex: number) => {
+        requestDocumentSymbols(requestPath, requestLangId)
+          .then((raw) => {
+            if (outlineRequestSeqRef.current !== seq) return;
+            if (raw === null) {
+              onOutlineLoadingRef.current?.(false);
+              onOutlineUnavailableRef.current?.("unsupported-language");
+              return;
+            }
+            const items = normalizeDocumentSymbols(raw);
+            const nextDelay = OUTLINE_EMPTY_RETRY_DELAYS_MS[retryIndex];
+            if (items.length === 0 && nextDelay !== undefined) {
+              setTimeout(() => {
+                if (outlineRequestSeqRef.current === seq) {
+                  attempt(retryIndex + 1);
+                }
+              }, nextDelay);
+              return;
+            }
+            onOutlineLoadingRef.current?.(false);
+            onOutlineChangeRef.current?.(items);
+          })
+          .catch(() => {
+            if (outlineRequestSeqRef.current !== seq) return;
+            onOutlineLoadingRef.current?.(false);
+            onOutlineUnavailableRef.current?.("request-failed");
+          });
+      };
+      attempt(0);
     }, []);
 
     const performSave = useCallback(async () => {

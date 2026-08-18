@@ -14,6 +14,7 @@ type Props = {
   onSetMarkdownView: (id: number, mode: "rendered" | "raw") => void;
   onOutlineChange?: (items: OutlineItem[] | null) => void;
   onOutlineUnavailable?: (reason: OutlineUnavailableReason) => void;
+  onOutlineLoading?: (loading: boolean) => void;
   onActiveHeadingChange?: (line: number | null) => void;
   onJumpToHeading?: (line: number) => void;
 };
@@ -27,6 +28,7 @@ export function EditorStack({
   onSetMarkdownView,
   onOutlineChange,
   onOutlineUnavailable,
+  onOutlineLoading,
   onActiveHeadingChange,
   onJumpToHeading,
 }: Props) {
@@ -130,6 +132,7 @@ export function EditorStack({
                   ? {
                       onOutlineChange,
                       onOutlineUnavailable,
+                      onOutlineLoading,
                       onActiveHeadingChange,
                       onJumpToHeading,
                     }

@@ -190,6 +190,7 @@ export default function App() {
   );
   const [outlineUnavailableReason, setOutlineUnavailableReason] =
     useState<OutlineUnavailableReason | null>(null);
+  const [outlineLoading, setOutlineLoading] = useState(false);
   const [activeHeadingLine, setActiveHeadingLine] = useState<number | null>(null);
   const [gitHistoryHandle, setGitHistoryHandle] =
     useState<GitHistorySearchHandle | null>(null);
@@ -399,6 +400,7 @@ export default function App() {
     if (!tab || tab.kind !== "editor") {
       setOutlineItems(null);
       setOutlineUnavailableReason(null);
+      setOutlineLoading(false);
       setActiveHeadingLine(null);
     }
   }, [activeId, activeLeafId, tabs]);
@@ -416,6 +418,10 @@ export default function App() {
     },
     [],
   );
+
+  const handleOutlineLoading = useCallback((loading: boolean) => {
+    setOutlineLoading(loading);
+  }, []);
 
   const handleActiveHeadingChange = useCallback((line: number | null) => {
     setActiveHeadingLine(line);
@@ -1402,6 +1408,7 @@ export default function App() {
                         activeFilePath={explorerActiveFilePath}
                         outlineItems={outlineItems}
                         outlineUnavailableReason={outlineUnavailableReason}
+                        outlineLoading={outlineLoading}
                         activeHeadingLine={activeHeadingLine}
                         onJumpToHeading={handleJumpToHeading}
                         onOpenFile={handleOpenFile}
@@ -1467,6 +1474,7 @@ export default function App() {
                       onSetMarkdownView={setMarkdownView}
                       onOutlineChange={handleOutlineChange}
                       onOutlineUnavailable={handleOutlineUnavailable}
+                      onOutlineLoading={handleOutlineLoading}
                       onActiveHeadingChange={handleActiveHeadingChange}
                       onJumpToHeading={handleJumpToHeading}
                     />

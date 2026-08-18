@@ -40,6 +40,7 @@ type Props = {
   onSetMarkdownView: EditorStackProps["onSetMarkdownView"];
   onOutlineChange?: (items: OutlineItem[] | null) => void;
   onOutlineUnavailable?: (reason: OutlineUnavailableReason) => void;
+  onOutlineLoading?: (loading: boolean) => void;
   onActiveHeadingChange?: (line: number | null) => void;
   onJumpToHeading?: (line: number) => void;
 };
@@ -70,6 +71,7 @@ export function WorkspaceSurface({
   onSetMarkdownView,
   onOutlineChange,
   onOutlineUnavailable,
+  onOutlineLoading,
   onActiveHeadingChange,
   onJumpToHeading,
 }: Props) {
@@ -117,6 +119,7 @@ export function WorkspaceSurface({
           onSetMarkdownView={onSetMarkdownView}
           onOutlineChange={onOutlineChange}
           onOutlineUnavailable={onOutlineUnavailable}
+          onOutlineLoading={onOutlineLoading}
           onActiveHeadingChange={onActiveHeadingChange}
           onJumpToHeading={onJumpToHeading}
         />

@@ -31,6 +31,7 @@ type Props = {
   gitStatus?: GitStatusSnapshot | null;
   outlineItems?: OutlineItem[] | null;
   outlineUnavailableReason?: OutlineUnavailableReason | null;
+  outlineLoading?: boolean;
   activeHeadingLine?: number | null;
   onJumpToHeading?: (line: number) => void;
   onOpenCommitFile?: (input: {
@@ -99,6 +100,7 @@ export const FileExplorer = memo(
             onToggle={outline.toggle}
             items={props.outlineItems ?? null}
             unavailableReason={props.outlineUnavailableReason ?? null}
+            loading={props.outlineLoading ?? false}
             activeLine={props.activeHeadingLine ?? null}
             onJump={props.onJumpToHeading ?? (() => {})}
           />
