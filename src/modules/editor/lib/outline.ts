@@ -1,3 +1,4 @@
+import { syntaxTree } from "@codemirror/language";
 import type { Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 
@@ -47,11 +48,43 @@ export function outlineExtension(
   if (onOutlineChange) {
     setOutlineCallbacks(onOutlineChange, onActiveHeadingChange ?? (() => {}));
   }
-  // ponytail: @codemirror/language is only imported inside the closure, not at
-  // module load time. Vite/tree-shaking will treat this as a lazy boundary
-  // because `syntaxTree` is never referenced at the top level of this module.
+
+  const initialized = new WeakSet<EditorView>();
+
+  function extractAndNotify(view: EditorView) {
+    const headings: MarkdownHeading[] = [];
+    const tree = syntaxTree(view.state);
+    tree.iterate({
+      enter(node: any) {
+        if (!ATX_HEADING_IDS.has(node.type.id)) return;
+        const lineNum = view.state.doc.lineAt(node.from).number;
+        const lineText = view.state.doc.line(lineNum).text;
+        const text = lineText.replace(/^#+\s*/, "").trim();
+        headings.push({ level: node.type.id - 8, text, line: lineNum });
+      },
+    });
+    const prev = (view as unknown as Record<string, MarkdownHeading[]>)
+      .outlineHeadings;
+    const hasChanged =
+      headings.length !== prev?.length ||
+      headings.some((h, i) => h.line !== prev?.[i]?.line);
+    if (hasChanged) {
+      (view as unknown as Record<string, MarkdownHeading[]>).outlineHeadings =
+        headings;
+      onOutlineChangeRef.current(headings.length > 0 ? headings : null);
+    }
+  }
+
   return EditorView.updateListener.of((update) => {
     const view = update.view;
+
+    // On first update (view initialization), extract headings with a small
+    // delay so the syntax tree has time to parse.
+    if (!initialized.has(view)) {
+      initialized.add(view);
+      setTimeout(() => extractAndNotify(view), 50);
+    }
+
     // Document changed: re-extract headings with debounce.
     if (update.docChanged) {
       clearTimeout(
@@ -61,29 +94,7 @@ export function outlineExtension(
       (
         view as unknown as Record<string, ReturnType<typeof setTimeout>>
       ).outlineDebounceRef = setTimeout(() => {
-        const { syntaxTree } = require("@codemirror/language");
-        const headings: MarkdownHeading[] = [];
-        const tree = syntaxTree(view.state);
-        tree.iterate({
-          enter(node: any) {
-            if (!ATX_HEADING_IDS.has(node.type.id)) return;
-            const lineNum = view.state.doc.lineAt(node.from).number;
-            const lineText = view.state.doc.line(lineNum).text;
-            const text = lineText.replace(/^#+\s*/, "").trim();
-            headings.push({ level: node.type.id - 8, text, line: lineNum });
-          },
-        });
-        const prev = (view as unknown as Record<string, MarkdownHeading[]>)
-          .outlineHeadings;
-        const hasChanged =
-          headings.length !== prev?.length ||
-          headings.some((h, i) => h.line !== prev?.[i]?.line);
-        if (hasChanged) {
-          (
-            view as unknown as Record<string, MarkdownHeading[]>
-          ).outlineHeadings = headings;
-          onOutlineChangeRef.current(headings.length > 0 ? headings : null);
-        }
+        extractAndNotify(view);
       }, 300);
     }
     // Cursor moved (not an explicit selection set): detect by comparing head position.
