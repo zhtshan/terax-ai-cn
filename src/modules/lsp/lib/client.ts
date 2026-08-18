@@ -61,6 +61,7 @@ export type LspSymbolInformationRaw = {
   name: string;
   kind: number;
   location: LspLocation;
+  containerName?: string;
 };
 
 export type RawDocumentSymbol = LspDocumentSymbolRaw | LspSymbolInformationRaw;
@@ -460,15 +461,21 @@ export class TeraxLspClient extends LanguageServerClient {
     position: LspPos;
     context: { includeDeclaration: boolean };
   }): Promise<LspLocation[] | null> {
-    return this.raw.request("textDocument/references", params, 10_000) as
-      Promise<LspLocation[] | null>;
+    return this.raw.request(
+      "textDocument/references",
+      params,
+      10_000,
+    ) as Promise<LspLocation[] | null>;
   }
 
   textDocumentSymbol(params: {
     textDocument: { uri: string };
   }): Promise<RawDocumentSymbol[] | null> {
-    return this.raw.request("textDocument/documentSymbol", params, 10_000) as
-      Promise<RawDocumentSymbol[] | null>;
+    return this.raw.request(
+      "textDocument/documentSymbol",
+      params,
+      10_000,
+    ) as Promise<RawDocumentSymbol[] | null>;
   }
 
   textDocumentDidClose(uri: string): void {

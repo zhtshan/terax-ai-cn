@@ -5,8 +5,8 @@
 
 ## 2. 扁平结果的层级兜底
 
-- [ ] 2.1 `src/modules/lsp/lib/documentSymbol.ts` 的 SymbolInformation 分支用 `containerName` 推断 level，匹配不到父符号时保持 level 1
-- [ ] 2.2 补 `documentSymbol.test.ts`：层级 DocumentSymbol 分支产出递增 level；扁平 + containerName 分支还原父子；扁平无 containerName 全为 level 1
+- [x] 2.1 `src/modules/lsp/lib/documentSymbol.ts` 的 SymbolInformation 分支用 `containerName` 推断 level，匹配不到父符号时保持 level 1
+- [x] 2.2 补 `documentSymbol.test.ts`：层级 DocumentSymbol 分支产出递增 level；扁平 + containerName 分支还原父子；扁平无 containerName 全为 level 1
 
 ## 3. 无可折叠节点时不显示全局折叠按钮
 
