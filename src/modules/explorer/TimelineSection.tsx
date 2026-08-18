@@ -168,11 +168,7 @@ export function TimelineSection({
       );
     }
     if (commits.length === 0) {
-      return (
-        <div className="flex flex-1 items-center justify-center px-3 py-3 text-center text-[11px] text-muted-foreground">
-          {t("explorer.timelineEmpty")}
-        </div>
-      );
+      return null;
     }
     return (
       <div className="flex-1 overflow-y-auto">
