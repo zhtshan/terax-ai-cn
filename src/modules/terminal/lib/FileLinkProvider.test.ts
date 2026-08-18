@@ -182,7 +182,7 @@ describe("registerFileLinkProvider", () => {
     const navOpenFile = vi.fn();
     vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
     vi.mocked(leafCwd).mockReturnValue("/repo/src");
-    vi.mocked(invoke).mockResolvedValue({ kind: "File" });
+    vi.mocked(invoke).mockResolvedValue({ kind: "file" });
     const { term, getLineMock } = makeMockTerm();
     mockLineContent(getLineMock, "~/repo/src/app.ts");
 
@@ -248,7 +248,7 @@ describe("registerFileLinkProvider", () => {
     const navOpenFile = vi.fn();
     vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
     vi.mocked(leafCwd).mockReturnValue("/repo/src");
-    vi.mocked(invoke).mockResolvedValue({ kind: "File" });
+    vi.mocked(invoke).mockResolvedValue({ kind: "file" });
     const { term, getLineMock } = makeMockTerm();
     mockLineContent(getLineMock, "src/app.ts");
 
@@ -281,7 +281,7 @@ describe("registerFileLinkProvider", () => {
     const navOpenFile = vi.fn();
     vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
     vi.mocked(leafCwd).mockReturnValue("/repo/src");
-    vi.mocked(invoke).mockResolvedValue({ kind: "File" });
+    vi.mocked(invoke).mockResolvedValue({ kind: "file" });
     const { term, getLineMock } = makeMockTerm();
     mockLineContent(getLineMock, "src/app.ts:42");
 
@@ -343,7 +343,7 @@ describe("registerFileLinkProvider", () => {
     const navOpenFile = vi.fn();
     vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
     vi.mocked(leafCwd).mockReturnValue("/repo/src");
-    vi.mocked(invoke).mockResolvedValue({ kind: "Dir" });
+    vi.mocked(invoke).mockResolvedValue({ kind: "dir" });
     const { term, getLineMock } = makeMockTerm();
     mockLineContent(getLineMock, "some/file.ts");
 

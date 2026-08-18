@@ -266,16 +266,37 @@ export function useTabs(initial?: Partial<TerminalTab>) {
   const [booted, setBooted] = useState(false);
   const nextIdRef = useRef(3);
   const activeSpaceIdRef = useRef(DEFAULT_SPACE_ID);
+  // Mirror `tabs` during render so synchronous callers (openFileTab's id
+  // pre-allocation) read the latest committed state within a batch.
   const tabsRef = useRef(tabs);
+  tabsRef.current = tabs;
   const activeIdRef = useRef(activeId);
+  // Ids allocated for tabs still sitting in un-flushed setTabs updaters.
+  // Keyed by dedupe key (path / approvalId) so calls within one React batch
+  // resolve the same id instead of each allocating a fresh one.
+  const pendingTargetIdsRef = useRef(new Map<string, number>());
 
   useEffect(() => {
     tabsRef.current = tabs;
+    pendingTargetIdsRef.current.clear();
   }, [tabs]);
 
   useEffect(() => {
     activeIdRef.current = activeId;
   }, [activeId]);
+
+  const syncTargetId = useCallback(
+    (key: string, findExisting: (tabs: Tab[]) => Tab | undefined): number => {
+      const fromTabs = findExisting(tabsRef.current);
+      if (fromTabs) return fromTabs.id;
+      const pending = pendingTargetIdsRef.current.get(key);
+      if (pending !== undefined) return pending;
+      const id = nextIdRef.current++;
+      pendingTargetIdsRef.current.set(key, id);
+      return id;
+    },
+    [],
+  );
 
   // Activating a cold tab warms it: one choke point for every activation path.
   useEffect(() => {
@@ -496,7 +517,13 @@ export function useTabs(initial?: Partial<TerminalTab>) {
    *   otherwise the current preview slot is replaced with the new path.
    */
   const openFileTab = useCallback((path: string, pin = true) => {
-    let targetId: number | null = null;
+    // The id is decided synchronously so the return value and setActiveId
+    // work immediately: React runs setTabs updaters lazily, so a variable
+    // assigned inside the updater reads as null here.
+    const targetId = syncTargetId(
+      `editor:${path}`,
+      (tabs) => tabs.find((t) => t.kind === "editor" && t.path === path),
+    );
     setTabs((curr) => {
       if (pin) {
         // Persistent open: find any existing editor tab, pin it if needed.
@@ -504,7 +531,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           (t) => t.kind === "editor" && t.path === path,
         );
         if (existing) {
-          targetId = existing.id;
           if ((existing as EditorTab).preview) {
             return curr.map((t) =>
               t.id === existing.id ? { ...t, preview: false } : t,
@@ -512,12 +538,10 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           }
           return curr;
         }
-        const id = nextIdRef.current++;
-        targetId = id;
         return [
           ...curr,
           {
-            id,
+            id: targetId,
             kind: "editor",
             spaceId: activeSpaceIdRef.current,
             title: basename(path),
@@ -533,7 +557,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
             t.kind === "editor" && t.path === path && !(t as EditorTab).preview,
         );
         if (persistent) {
-          targetId = persistent.id;
           return curr;
         }
         // Reuse the slot if it already shows the same path.
@@ -542,17 +565,14 @@ export function useTabs(initial?: Partial<TerminalTab>) {
             t.kind === "editor" && t.path === path && (t as EditorTab).preview,
         );
         if (existingPreview) {
-          targetId = existingPreview.id;
           return curr;
         }
         // Replace the current preview slot, or append a new one.
         const previewIdx = curr.findIndex(
           (t) => t.kind === "editor" && (t as EditorTab).preview,
         );
-        const id = nextIdRef.current++;
-        targetId = id;
         const tab: EditorTab = {
-          id,
+          id: targetId,
           kind: "editor",
           spaceId: activeSpaceIdRef.current,
           title: basename(path),
@@ -566,8 +586,8 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         return next;
       }
     });
-    if (targetId !== null) setActiveId(targetId);
-    return targetId as number | null;
+    setActiveId(targetId);
+    return targetId;
   }, []);
 
   /**
@@ -590,22 +610,25 @@ export function useTabs(initial?: Partial<TerminalTab>) {
       approvalId: string;
       isNewFile: boolean;
     }) => {
-      let targetId: number | null = null;
+      // Same synchronous-id pattern as openFileTab: setTabs updaters run
+      // lazily, so the id is decided before scheduling.
+      const targetId = syncTargetId(
+        `ai-diff:${input.approvalId}`,
+        (tabs) =>
+          tabs.find((t) => t.kind === "ai-diff" && t.approvalId === input.approvalId),
+      );
       setTabs((curr) => {
         const existing = curr.find(
           (t) => t.kind === "ai-diff" && t.approvalId === input.approvalId,
         );
         if (existing) {
-          targetId = existing.id;
           return curr;
         }
-        const id = nextIdRef.current++;
-        targetId = id;
         const title = `${basename(input.path)} (AI diff)`;
         return [
           ...curr,
           {
-            id,
+            id: targetId,
             kind: "ai-diff",
             spaceId: activeSpaceIdRef.current,
             title,
@@ -618,8 +641,8 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           },
         ];
       });
-      if (targetId !== null) setActiveId(targetId);
-      return targetId as number | null;
+      setActiveId(targetId);
+      return targetId;
     },
     [],
   );
@@ -674,21 +697,22 @@ export function useTabs(initial?: Partial<TerminalTab>) {
   }, []);
 
   const newMarkdownTab = useCallback((path: string) => {
-    let targetId: number | null = null;
+    // Same synchronous-id pattern as openFileTab.
+    const targetId = syncTargetId(
+      `markdown:${path}`,
+      (tabs) => tabs.find((t) => t.kind === "markdown" && t.path === path),
+    );
     setTabs((curr) => {
       const existing = curr.find(
         (t) => t.kind === "markdown" && t.path === path,
       );
       if (existing) {
-        targetId = existing.id;
         return curr;
       }
-      const id = nextIdRef.current++;
-      targetId = id;
       return [
         ...curr,
         {
-          id,
+          id: targetId,
           kind: "markdown",
           spaceId: activeSpaceIdRef.current,
           title: basename(path),
@@ -696,7 +720,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         },
       ];
     });
-    if (targetId !== null) setActiveId(targetId);
+    setActiveId(targetId);
     return targetId;
   }, []);
 

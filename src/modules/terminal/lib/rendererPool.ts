@@ -312,7 +312,9 @@ function createSlot(): Slot {
   queueMicrotask(async () => {
     const { registerFileLinkProvider } = await import("./FileLinkProvider");
     slot.fileLinkDisposer = registerFileLinkProvider(term, {
-      getLeafId: () => slot.currentLeafId,
+      // A released-but-retained slot keeps this leaf's buffer on screen;
+      // fall back to retainedLeafId so cwd resolution survives the release.
+      getLeafId: () => slot.currentLeafId ?? slot.retainedLeafId,
       getExplorerRoot: () => _explorerRoot,
       getHomeDir: () => _homeDir,
     });

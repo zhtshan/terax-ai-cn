@@ -197,7 +197,8 @@ export function registerFileLinkProvider(
                 "fs_stat",
                 { path: clickedAbsPath },
               );
-              if (result.kind === "Dir") {
+              // StatKind serializes lowercase (serde rename_all).
+              if (result.kind === "dir") {
                 toast.error("不能打开目录");
                 return;
               }

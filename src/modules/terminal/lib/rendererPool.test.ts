@@ -121,6 +121,10 @@ afterEach(async () => {
       const stats = mod.poolSlotStats();
       for (const s of stats) {
         if (s.leafId !== null) mod.disposeLeafSlot(s.leafId);
+        // Released-but-retained slots have no currentLeafId yet still hold
+        // a slot; dispose via retainedLeafId or the loop never drains.
+        else if (s.retainedLeafId !== null)
+          mod.disposeLeafSlot(s.retainedLeafId);
       }
     }
   } catch {}
@@ -197,6 +201,39 @@ describe("createSlot file link registration", () => {
     const callOpts = (registerMock.mock.calls[0] as unknown as [unknown, { getExplorerRoot: () => string | null; getLeafId: () => number | null }])[1];
     expect(callOpts.getExplorerRoot()).toBeNull();
     expect(typeof callOpts.getLeafId).toBe("function");
+  });
+
+  it("getLeafId falls back to retainedLeafId after a release", async () => {
+    const registerMock = vi.fn(() => ({ dispose: vi.fn() }));
+    vi.doMock("./FileLinkProvider", () => ({
+      registerFileLinkProvider: registerMock,
+    }));
+
+    const { configureRendererPool, acquireSlot, releaseSlot, setExplorerRoot } =
+      await import("./rendererPool");
+    configureRendererPool({
+      resolveLeaf: vi.fn(),
+      evictLeaf: vi.fn(),
+      isLeafFocused: vi.fn(),
+      isLeafBlocks: vi.fn(),
+      isLeafBusy: vi.fn(),
+      isLeafVisible: vi.fn(),
+      storeSnapshot: vi.fn(),
+    } as never);
+
+    setExplorerRoot("/workspace/root");
+    acquireSlot(acquireParams(5));
+
+    await vi.waitFor(() => {
+      expect(registerMock).toHaveBeenCalledTimes(1);
+    });
+    const callOpts = (registerMock.mock.calls[0] as unknown as [unknown, { getLeafId: () => number | null }])[1];
+    expect(callOpts.getLeafId()).toBe(5);
+
+    // Hidden-idle release retains the slot with leaf 5's buffer; the
+    // provider must still resolve that leaf's cwd for links on screen.
+    releaseSlot(5);
+    expect(callOpts.getLeafId()).toBe(5);
   });
 
   it("passes a live root getter that tracks later setExplorerRoot updates", async () => {
