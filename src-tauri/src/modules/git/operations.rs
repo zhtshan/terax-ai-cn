@@ -529,6 +529,7 @@ pub fn log_file(
         if stderr.contains("does not have any commits yet")
             || stderr.contains("bad default revision")
             || stderr.contains("unknown revision")
+            || stderr.contains("bad revision")
             || stderr.contains("ambiguous argument 'head'")
         {
             return Ok(Vec::new());
@@ -647,6 +648,7 @@ pub fn log(
         if stderr.contains("does not have any commits yet")
             || stderr.contains("bad default revision")
             || stderr.contains("unknown revision")
+            || stderr.contains("bad revision")
             || stderr.contains("ambiguous argument 'head'")
         {
             return Ok(Vec::new());
