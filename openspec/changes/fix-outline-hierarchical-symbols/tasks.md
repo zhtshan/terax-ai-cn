@@ -1,7 +1,7 @@
 ## 1. LSP 客户端声明层级能力
 
-- [ ] 1.1 `src/modules/lsp/lib/client.ts` 的 `TeraxLspClient.getInitializeParams()` 补充 `textDocument.documentSymbol`：`hierarchicalDocumentSymbolSupport: true` + `symbolKind.valueSet`（1..26）
-- [ ] 1.2 用 typescript-language-server 实测确认握手后 documentSymbol 返回 `DocumentSymbol[]`（带 children）而非 `SymbolInformation[]`
+- [x] 1.1 `src/modules/lsp/lib/client.ts` 的 `TeraxLspClient.getInitializeParams()` 补充 `textDocument.documentSymbol`：`hierarchicalDocumentSymbolSupport: true` + `symbolKind.valueSet`（1..26）
+- [x] 1.2 用 typescript-language-server 实测确认握手后 documentSymbol 返回 `DocumentSymbol[]`（带 children）而非 `SymbolInformation[]`
 
 ## 2. 扁平结果的层级兜底
 

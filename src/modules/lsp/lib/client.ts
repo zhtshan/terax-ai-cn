@@ -433,7 +433,10 @@ export class TeraxLspClient extends LanguageServerClient {
 
   // The lib omits the publishDiagnostics capability and servers like
   // typescript-language-server push no diagnostics without it. processId
-  // enables the server-side parent watchdog.
+  // enables the server-side parent watchdog. Without the documentSymbol
+  // capability servers fall back to flat SymbolInformation[], which strips
+  // the nesting the outline tree is built from; valueSet must be spelled out
+  // or servers assume the LSP 1.x kinds (1..17) and downgrade the rest.
   protected override getInitializeParams() {
     const params = super.getInitializeParams();
     params.processId = TeraxLspClient.hostPid;
@@ -441,6 +444,13 @@ export class TeraxLspClient extends LanguageServerClient {
       ...params.capabilities.textDocument,
       publishDiagnostics: { relatedInformation: true },
       references: { dynamicRegistration: false },
+      documentSymbol: {
+        dynamicRegistration: false,
+        hierarchicalDocumentSymbolSupport: true,
+        symbolKind: {
+          valueSet: Array.from({ length: 26 }, (_, i) => i + 1),
+        },
+      },
     };
     return params;
   }
