@@ -18,4 +18,3 @@
 - [x] 4.1 走查 `specs/explorer-code-outline/spec.md` 的全部场景
 - [x] 4.2 用真实 typescript-language-server 响应跑通 normalize 链路（修复后 25 条 / 4 层，修复前 17 条全平铺）
 - [x] 4.3 跑 `pnpm lint && pnpm check-types && pnpm test`
-- [ ] 4.4 GUI 手测：启动应用打开含类/方法的代码文件，确认树形缩进与展开/折叠全部生效（留给用户在 verify 阶段确认）
