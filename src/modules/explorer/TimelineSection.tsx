@@ -1,11 +1,8 @@
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
-import { native, type GitLogEntry } from "@/modules/ai/lib/native";
+import { type GitLogEntry, native } from "@/modules/ai/lib/native";
 import { formatRelativeTime } from "@/modules/git-history/lib/relativeTime";
-import {
-  Clock01Icon,
-  GitBranchIcon,
-} from "@hugeicons/core-free-icons";
+import { Clock01Icon, GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -72,7 +69,9 @@ export function TimelineSection({
       if (!root) {
         try {
           // gitResolveRepo expects a directory, not a file path.
-          const dir = activeFilePath.substring(0, activeFilePath.lastIndexOf("/")) || activeFilePath;
+          const dir =
+            activeFilePath.substring(0, activeFilePath.lastIndexOf("/")) ||
+            activeFilePath;
           const info = await native.gitResolveRepo(dir);
           if (cancelled || requestId !== requestIdRef.current) return;
           root = info?.repoRoot ?? null;
@@ -118,10 +117,14 @@ export function TimelineSection({
     moreInflightRef.current = true;
     setStatus("more");
     try {
-      const entries = await native.gitLogFile(resolvedRepoRoot, activeFilePath, {
-        limit: PAGE_SIZE,
-        beforeSha: last.sha,
-      });
+      const entries = await native.gitLogFile(
+        resolvedRepoRoot,
+        activeFilePath,
+        {
+          limit: PAGE_SIZE,
+          beforeSha: last.sha,
+        },
+      );
       setCommits((prev) => {
         const seen = new Set(prev.map((c) => c.sha));
         const merged = [...prev];
@@ -170,7 +173,11 @@ export function TimelineSection({
       );
     }
     if (commits.length === 0) {
-      return null;
+      return (
+        <div className="flex flex-1 items-center justify-center px-3 py-3 text-center text-[11px] text-muted-foreground">
+          {t("explorer.timelineEmpty")}
+        </div>
+      );
     }
     return (
       <div className="flex-1 overflow-y-auto">
@@ -239,7 +246,9 @@ export function TimelineSection({
         onToggle={onToggle}
         icon={<HugeiconsIcon icon={Clock01Icon} size={12} strokeWidth={2} />}
       />
-      {!collapsed && <div className="flex min-h-0 flex-1 flex-col">{listContent}</div>}
+      {!collapsed && (
+        <div className="flex min-h-0 flex-1 flex-col">{listContent}</div>
+      )}
     </div>
   );
 }
