@@ -1,5 +1,3 @@
-import path from "node:path";
-
 export type FileLinkCandidate = {
   path: string;
   line?: number;
@@ -7,6 +5,27 @@ export type FileLinkCandidate = {
   start: number;
   end: number;
 };
+
+// node:path is externalized in the webview (access throws), so POSIX
+// normalization is inlined. Matches path.posix.normalize for the shapes
+// this module produces (no trailing slashes, no relative "." parts kept).
+function normalizePosix(p: string): string {
+  const isAbs = p.startsWith("/");
+  const out: string[] = [];
+  for (const part of p.split("/")) {
+    if (part === "" || part === ".") continue;
+    if (part === "..") {
+      if (out.length > 0 && out[out.length - 1] !== "..") {
+        out.pop();
+      } else if (!isAbs) {
+        out.push("..");
+      }
+      continue;
+    }
+    out.push(part);
+  }
+  return (isAbs ? "/" : "") + out.join("/");
+}
 
 /**
  * Matches file paths in a line of terminal output.
@@ -56,15 +75,15 @@ export function resolvePath(
     if (home === null) {
       return null;
     }
-    return path.posix.normalize(path.posix.join(home, pathStr.slice(1)));
+    return normalizePosix(`${home}/${pathStr.slice(1)}`);
   }
   if (pathStr.startsWith("/")) {
-    return path.posix.resolve(pathStr);
+    return normalizePosix(pathStr);
   }
   if (cwd === null) {
     return null;
   }
-  return path.posix.normalize(path.posix.join(cwd, pathStr));
+  return normalizePosix(`${cwd}/${pathStr}`);
 }
 
 /**
