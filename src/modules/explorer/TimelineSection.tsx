@@ -71,7 +71,9 @@ export function TimelineSection({
       let root = providedRepoRoot ?? null;
       if (!root) {
         try {
-          const info = await native.gitResolveRepo(activeFilePath);
+          // gitResolveRepo expects a directory, not a file path.
+          const dir = activeFilePath.substring(0, activeFilePath.lastIndexOf("/")) || activeFilePath;
+          const info = await native.gitResolveRepo(dir);
           if (cancelled || requestId !== requestIdRef.current) return;
           root = info?.repoRoot ?? null;
         } catch (err) {
