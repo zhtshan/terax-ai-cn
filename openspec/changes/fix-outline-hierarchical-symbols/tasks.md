@@ -18,3 +18,10 @@
 - [x] 4.1 走查 `specs/explorer-code-outline/spec.md` 的全部场景
 - [x] 4.2 用真实 typescript-language-server 响应跑通 normalize 链路（修复后 25 条 / 4 层，修复前 17 条全平铺）
 - [x] 4.3 跑 `pnpm lint && pnpm check-types && pnpm test`
+
+## 5. 冷启动时序：首次打开误报「未配置 LSP」
+
+- [x] 5.1 `requestDocumentSymbols` 在找到 session 后先 await `client.initializePromise`，再判断 `documentSymbolProvider`，避免把「initialize 未完成」当成「服务器不支持」
+- [x] 5.2 `EditorPane` 对 `raw === null` 复用退避重试，覆盖 session 尚在创建中的窗口；重试耗尽后才报 `unsupported-language`
+- [x] 5.3 补测试覆盖：initialize 未完成时不返回 null；已完成且不支持 documentSymbol 时返回 null
+- [x] 5.4 重跑 `pnpm lint && pnpm check-types && pnpm test`（594/594 通过）

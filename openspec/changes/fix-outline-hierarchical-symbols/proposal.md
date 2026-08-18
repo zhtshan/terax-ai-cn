@@ -17,6 +17,7 @@
 
 - `TeraxLspClient.getInitializeParams()` 补充 `textDocument.documentSymbol` capability，声明 `hierarchicalDocumentSymbolSupport: true`，并补 `symbolKind.valueSet` 以对齐已有的 `symbolKindIcons` 映射
 - 对仍返回扁平 `SymbolInformation[]` 的服务器（规范允许），`normalizeDocumentSymbols` 用 `containerName` 推断父子层级，作为兜底而非主路径
+- `requestDocumentSymbols` 等待 `client.initializePromise` 后再判断 capabilities，并让 `EditorPane` 对 null 结果退避重试：冷启动时 session 已注册但 initialize 未完成，capabilities 为 undefined，导致首次打开代码文件误报「未配置/未启用语言服务器」且不会自愈（切走再切回才恢复）
 - 无接口变更、无新依赖、无 breaking change
 
 ## Capabilities

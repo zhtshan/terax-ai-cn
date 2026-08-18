@@ -242,26 +242,39 @@ export const EditorPane = memo(
         return;
       }
       // A freshly spawned/cold language server can resolve documentSymbol
-      // with an empty result while it's still indexing a just-opened file.
-      // Retry a couple of times with backoff before treating that as "no
-      // symbols" so the outline doesn't flash an empty state during warm-up.
+      // with an empty result while it's still indexing a just-opened file,
+      // and a null result while acquireDocExtension has yet to register the
+      // session at all. Retry both a couple of times with backoff: a null
+      // that survives the retries is a genuinely unconfigured language,
+      // while an empty list that survives is a genuinely symbol-free file.
       const attempt = (retryIndex: number) => {
+        const retryOr = (fallback: () => void) => {
+          const nextDelay = OUTLINE_EMPTY_RETRY_DELAYS_MS[retryIndex];
+          if (nextDelay === undefined) {
+            fallback();
+            return;
+          }
+          setTimeout(() => {
+            if (outlineRequestSeqRef.current === seq) attempt(retryIndex + 1);
+          }, nextDelay);
+        };
+
         requestDocumentSymbols(requestPath, requestLangId)
           .then((raw) => {
             if (outlineRequestSeqRef.current !== seq) return;
             if (raw === null) {
-              onOutlineLoadingRef.current?.(false);
-              onOutlineUnavailableRef.current?.("unsupported-language");
+              retryOr(() => {
+                onOutlineLoadingRef.current?.(false);
+                onOutlineUnavailableRef.current?.("unsupported-language");
+              });
               return;
             }
             const items = normalizeDocumentSymbols(raw);
-            const nextDelay = OUTLINE_EMPTY_RETRY_DELAYS_MS[retryIndex];
-            if (items.length === 0 && nextDelay !== undefined) {
-              setTimeout(() => {
-                if (outlineRequestSeqRef.current === seq) {
-                  attempt(retryIndex + 1);
-                }
-              }, nextDelay);
+            if (items.length === 0) {
+              retryOr(() => {
+                onOutlineLoadingRef.current?.(false);
+                onOutlineChangeRef.current?.(items);
+              });
               return;
             }
             onOutlineLoadingRef.current?.(false);

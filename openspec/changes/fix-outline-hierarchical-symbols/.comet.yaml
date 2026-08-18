@@ -1,5 +1,5 @@
 workflow: hotfix
-phase: archive
+phase: build
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -12,7 +12,7 @@ auto_transition: true
 base_ref: 852168702e94a6e7f71043001bde74a3e9f0d61c
 design_doc: null
 plan: null
-verify_result: pass
+verify_result: fail
 verification_report: docs/superpowers/reports/2026-08-18-fix-outline-hierarchical-symbols-verify.md
 branch_status: handled
 created_at: 2026-08-18

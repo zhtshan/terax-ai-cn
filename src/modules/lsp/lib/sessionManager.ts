@@ -350,8 +350,9 @@ async function closeSession(managed: Managed): Promise<void> {
 // acquireDocExtension) rather than starting one, so opening the outline never
 // spins up a language server on its own. Returns null when there's no active
 // session or the server doesn't advertise documentSymbol support — the
-// caller treats that as "unsupported/not enabled". Request failures reject
-// and are the caller's job to classify as "request failed".
+// caller treats that as "unsupported/not enabled" and retries a few times
+// first, since acquireDocExtension may still be in flight. Request failures
+// reject and are the caller's job to classify as "request failed".
 export async function requestDocumentSymbols(
   path: string,
   langId: string,
@@ -368,9 +369,18 @@ export async function requestDocumentSymbols(
   const managed = [...sessions.values()].find(
     (m) => m.preset.id === preset.id && !m.closing && m.refs.has(uri),
   );
-  if (!managed?.client.capabilities?.documentSymbolProvider) {
-    return null;
-  }
+  if (!managed) return null;
+
+  // createSession returns before initialize resolves, so capabilities is still
+  // undefined for the first outline request after a cold start. Reading it
+  // right away reports "server doesn't support documentSymbol" for a server
+  // that simply hasn't answered initialize yet, and nothing re-requests
+  // afterwards. initializePromise is already .catch()-ed by the client, so a
+  // failed handshake settles here instead of hanging.
+  await managed.client.initializePromise;
+  if (managed.closing || !sessions.has(managed.key)) return null;
+  if (!managed.client.capabilities?.documentSymbolProvider) return null;
+
   return managed.client.textDocumentSymbol({ textDocument: { uri } });
 }
 
