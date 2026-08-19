@@ -36,25 +36,24 @@ function maxHeight(): number {
  *
  * Once a height has been saved, call `setOpen` whenever the input bar's
  * open/closed state changes: it clears the pinned height while closed (so
- * `.terax-reveal` can collapse the wrapper to 0) and restores it on reopen —
- * otherwise the saved pixel height would keep the wrapper's box reserved
+ * `.terax-reveal` can collapse the wrapper to 0) and restores it on reopen.
+ * Otherwise the saved pixel height would keep the wrapper's box reserved
  * even while the inner content is collapsed.
  *
  * When `containerRef` is provided, also observes the container's size and
- * clamps the saved height to fit — so resizing the parent panel (e.g. the
+ * clamps the saved height to fit, so resizing the parent panel (e.g. the
  * workspace ResizablePanel) propagates to the input bar. */
 export function useInputBarHeightResize(
   containerRef?: React.RefObject<HTMLDivElement | null>,
 ) {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const height = useRef<number | null>(null);
-  const savedHeight = useRef<number | null>(null);
+  const openRef = useRef(true);
 
   useLayoutEffect(() => {
     const saved = loadHeight();
     if (saved == null) return;
     height.current = Math.min(saved, maxHeight());
-    savedHeight.current = height.current;
     const el = wrapperRef.current;
     if (el) el.style.height = `${height.current}px`;
   }, []);
@@ -66,13 +65,14 @@ export function useInputBarHeightResize(
     const observer = new ResizeObserver(() => {
       const el = wrapperRef.current;
       if (!el) return;
-      const maxH = Math.min(maxHeight(), container.clientHeight - 44);
       if (height.current == null) return;
+      const maxH = Math.min(maxHeight(), container.clientHeight - 44);
       const next = Math.min(height.current, maxH);
-      if (Math.abs(next - height.current) > 2) {
-        height.current = next;
-        el.style.height = `${next}px`;
-      }
+      if (Math.abs(next - height.current) <= 2) return;
+      height.current = next;
+      // While closed the wrapper must stay unpinned so `.terax-reveal` can
+      // collapse it; the clamped value lands on the next setOpen(true).
+      if (openRef.current) el.style.height = `${next}px`;
     });
     observer.observe(container);
     return () => observer.disconnect();
@@ -92,6 +92,7 @@ export function useInputBarHeightResize(
     document.body.style.cursor = "ns-resize";
 
     const onMove = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
       const dy = startY - ev.clientY;
       const next = Math.min(
         Math.max(startHeight + dy, MIN_HEIGHT),
@@ -100,21 +101,30 @@ export function useInputBarHeightResize(
       height.current = next;
       el.style.height = `${next}px`;
     };
-    const onUp = () => {
-      target.removeEventListener("pointermove", onMove);
-      target.removeEventListener("pointerup", onUp);
-      target.removeEventListener("pointercancel", onUp);
-      target.releasePointerCapture?.(pointerId);
+    // Listeners live on window, not the handle: the handle unmounts when the
+    // input bar closes mid-drag, and an element-scoped pointerup would never
+    // fire, stranding the body's cursor and user-select overrides.
+    const onUp = (ev: PointerEvent) => {
+      if (ev.pointerId !== pointerId) return;
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      try {
+        target.releasePointerCapture?.(pointerId);
+      } catch {
+        // handle already unmounted, capture is released with it
+      }
       document.body.style.userSelect = "";
       document.body.style.cursor = "";
       if (height.current != null) saveHeight(height.current);
     };
-    target.addEventListener("pointermove", onMove);
-    target.addEventListener("pointerup", onUp);
-    target.addEventListener("pointercancel", onUp);
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
   }, []);
 
   const setOpen = useCallback((open: boolean) => {
+    openRef.current = open;
     const el = wrapperRef.current;
     if (!el) return;
     el.style.height = open && height.current != null ? `${height.current}px` : "";

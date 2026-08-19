@@ -315,12 +315,12 @@ export default function App() {
     toggleExplorerFocus,
   } = useSidebarPanel(explorerRef);
 
+  const workspaceContainerRef = useRef<HTMLDivElement>(null);
   const {
     wrapperRef: inputBarWrapperRef,
     onHandlePointerDown: onInputBarHandlePointerDown,
     setOpen: setInputBarOpen,
-  } = useInputBarHeightResize();
-  const workspaceContainerRef = useRef<HTMLDivElement>(null);
+  } = useInputBarHeightResize(workspaceContainerRef);
 
   const [newEditorOpen, setNewEditorOpen] = useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
@@ -1491,14 +1491,7 @@ export default function App() {
                       onCwd={handleTerminalCwd}
                       onExit={handleLeafExit}
                       onFocusLeaf={handleFocusLeaf}
-                      onClosePane={
-                        activeTerminalTab && leafIds(activeTerminalTab.paneTree).length > 1
-                          ? handlePaneCloseByLeaf
-                          : undefined
-                      }
-                      isMultiPane={
-                        activeTerminalTab != null && leafIds(activeTerminalTab.paneTree).length > 1
-                      }
+                      onClosePane={handlePaneCloseByLeaf}
                       registerEditorHandle={registerEditorHandle}
                       onEditorDirtyChange={handleEditorDirty}
                       onEditorCloseTab={disposeTab}

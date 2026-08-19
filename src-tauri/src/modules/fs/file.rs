@@ -44,6 +44,9 @@ pub struct FileStat {
     pub size: u64,
     pub mtime: u64,
     pub kind: StatKind,
+    /// Whether the path resolves to a directory. `kind` reports the link
+    /// itself, so a symlink pointing at a directory is `Symlink` here.
+    pub is_dir: bool,
 }
 
 fn mtime_millis(meta: &fs::Metadata) -> u64 {
@@ -188,6 +191,7 @@ pub async fn fs_stat(path: String, workspace: Option<WorkspaceEnv>) -> Result<Fi
         size: meta.len(),
         mtime: mtime_millis(&meta),
         kind,
+        is_dir: meta.is_dir(),
     })
 }
 
@@ -279,5 +283,39 @@ mod tests {
         assert_eq!(std::fs::read(&target).unwrap(), b"payload");
         // The pre-staged symlink target must not have been written through.
         assert_eq!(std::fs::read(&outside).unwrap(), b"untouched");
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn stat_reports_is_dir_through_a_symlink() {
+        use std::os::unix::fs::symlink;
+        let dir = tempfile::tempdir().unwrap();
+        let real_dir = dir.path().join("real");
+        std::fs::create_dir(&real_dir).unwrap();
+        let real_file = dir.path().join("real.txt");
+        std::fs::write(&real_file, b"x").unwrap();
+
+        let dir_link = dir.path().join("dir-link");
+        symlink(&real_dir, &dir_link).unwrap();
+        let file_link = dir.path().join("file-link");
+        symlink(&real_file, &file_link).unwrap();
+
+        let s = fs_stat(dir_link.to_string_lossy().into_owned(), None)
+            .await
+            .unwrap();
+        assert!(matches!(s.kind, StatKind::Symlink));
+        assert!(s.is_dir);
+
+        let s = fs_stat(file_link.to_string_lossy().into_owned(), None)
+            .await
+            .unwrap();
+        assert!(matches!(s.kind, StatKind::Symlink));
+        assert!(!s.is_dir);
+
+        let s = fs_stat(real_dir.to_string_lossy().into_owned(), None)
+            .await
+            .unwrap();
+        assert!(matches!(s.kind, StatKind::Dir));
+        assert!(s.is_dir);
     }
 }

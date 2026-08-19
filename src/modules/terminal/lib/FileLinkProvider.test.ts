@@ -343,7 +343,7 @@ describe("registerFileLinkProvider", () => {
     const navOpenFile = vi.fn();
     vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
     vi.mocked(leafCwd).mockReturnValue("/repo/src");
-    vi.mocked(invoke).mockResolvedValue({ kind: "dir" });
+    vi.mocked(invoke).mockResolvedValue({ kind: "dir", is_dir: true });
     const { term, getLineMock } = makeMockTerm();
     mockLineContent(getLineMock, "some/file.ts");
 
@@ -368,6 +368,65 @@ describe("registerFileLinkProvider", () => {
     expect(invoke).toHaveBeenCalledWith("fs_stat", expect.objectContaining({ path: "/repo/src/some/file.ts" }));
     expect(navOpenFile).not.toHaveBeenCalled();
     expect(toast.error).toHaveBeenCalledWith("不能打开目录");
+  });
+
+  it("shows toast.error when target is a symlink pointing at a directory", async () => {
+    const navOpenFile = vi.fn();
+    vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    vi.mocked(invoke).mockResolvedValue({ kind: "symlink", is_dir: true });
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "some/file.ts");
+
+    registerFileLinkProvider(term, baseOptions);
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        link.activate(makeClickEvent({ metaKey: true }), "some/file.ts");
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(navOpenFile).not.toHaveBeenCalled();
+    expect(toast.error).toHaveBeenCalledWith("不能打开目录");
+  });
+
+  it("opens a symlink pointing at a file", async () => {
+    const navOpenFile = vi.fn();
+    vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/src");
+    vi.mocked(invoke).mockResolvedValue({ kind: "symlink", is_dir: false });
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "some/file.ts");
+
+    registerFileLinkProvider(term, baseOptions);
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        link.activate(makeClickEvent({ metaKey: true }), "some/file.ts");
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(navOpenFile).toHaveBeenCalledWith("/repo/src/some/file.ts", 0);
   });
 
   it("silently ignores activate when navigator is null", async () => {

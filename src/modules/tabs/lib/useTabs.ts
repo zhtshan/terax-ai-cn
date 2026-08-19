@@ -267,9 +267,16 @@ export function useTabs(initial?: Partial<TerminalTab>) {
   const nextIdRef = useRef(3);
   const activeSpaceIdRef = useRef(DEFAULT_SPACE_ID);
   // Mirror `tabs` during render so synchronous callers (openFileTab's id
-  // pre-allocation) read the latest committed state within a batch.
+  // pre-allocation) read the latest committed state within a batch. Gated on
+  // the state identity actually changing: openGitDiffTab and friends push a
+  // value that is *ahead* of the commit into this ref, and an unrelated
+  // re-render must not roll it back to the stale committed array.
   const tabsRef = useRef(tabs);
-  tabsRef.current = tabs;
+  const committedTabsRef = useRef(tabs);
+  if (committedTabsRef.current !== tabs) {
+    committedTabsRef.current = tabs;
+    tabsRef.current = tabs;
+  }
   const activeIdRef = useRef(activeId);
   // Ids allocated for tabs still sitting in un-flushed setTabs updaters.
   // Keyed by dedupe key (path / approvalId) so calls within one React batch
@@ -277,7 +284,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
   const pendingTargetIdsRef = useRef(new Map<string, number>());
 
   useEffect(() => {
-    tabsRef.current = tabs;
     pendingTargetIdsRef.current.clear();
   }, [tabs]);
 

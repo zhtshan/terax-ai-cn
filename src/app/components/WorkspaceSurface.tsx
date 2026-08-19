@@ -29,7 +29,6 @@ type Props = {
   onExit: TerminalStackProps["onExit"];
   onFocusLeaf: TerminalStackProps["onFocusLeaf"];
   onClosePane?: TerminalStackProps["onClosePane"];
-  isMultiPane?: TerminalStackProps["isMultiPane"];
   registerEditorHandle: EditorStackProps["registerHandle"];
   onEditorDirtyChange: EditorStackProps["onDirtyChange"];
   onEditorCloseTab: EditorStackProps["onCloseTab"];
@@ -62,7 +61,6 @@ export function WorkspaceSurface({
   onExit,
   onFocusLeaf,
   onClosePane,
-  isMultiPane,
   registerEditorHandle,
   onEditorDirtyChange,
   onEditorCloseTab,
@@ -106,7 +104,6 @@ export function WorkspaceSurface({
           onExit={onExit}
           onFocusLeaf={onFocusLeaf}
           onClosePane={onClosePane}
-          isMultiPane={isMultiPane ?? false}
         />
       </div>
       <div

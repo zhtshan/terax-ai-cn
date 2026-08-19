@@ -16,7 +16,6 @@ type Props = {
   onExit: (leafId: number, code: number) => void;
   onFocusLeaf: (tabId: number, leafId: number) => void;
   onClosePane?: (leafId: number) => void;
-  isMultiPane: boolean;
 };
 
 type Bundle = {
@@ -35,7 +34,6 @@ export function TerminalStack({
   onExit,
   onFocusLeaf,
   onClosePane,
-  isMultiPane,
 }: Props) {
   const terminals = useMemo(() => selectLiveTerminals(tabs), [tabs]);
 
@@ -103,7 +101,7 @@ export function TerminalStack({
               onFocusLeaf={(leafId) => onFocusLeaf(t.id, leafId)}
               getBundle={getBundle}
               onClosePane={onClosePane}
-              isMultiPane={isMultiPane}
+              isMultiPane={leafIds(t.paneTree).length > 1}
             />
           </div>
         );

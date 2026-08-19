@@ -73,7 +73,10 @@ export function PaneTreeView(props: Props) {
               e.stopPropagation();
               onClosePane(node.id);
             }}
-            className="absolute right-2 top-2 z-10 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-70 focus-within:opacity-70 group-hover:focus-within:opacity-100"
+            // Invisible until hover: pointer-events must be off too, or the
+            // transparent button swallows clicks and drag-selects aimed at the
+            // terminal's top-right corner.
+            className="absolute right-2 top-2 z-10 rounded p-1 text-muted-foreground opacity-0 pointer-events-none transition-opacity hover:bg-accent hover:text-foreground hover:opacity-100 focus:opacity-100 focus:pointer-events-auto group-hover:opacity-70 group-hover:pointer-events-auto"
           >
             <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} />
           </button>

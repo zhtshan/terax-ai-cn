@@ -193,12 +193,13 @@ export function registerFileLinkProvider(
             if (clickedAbsPath === null) return;
             if (!isInsideWorkspace(clickedAbsPath, explorerRoot)) return;
             try {
-              const result = await invoke<{ kind: string }>(
+              const result = await invoke<{ kind: string; is_dir: boolean }>(
                 "fs_stat",
                 { path: clickedAbsPath },
               );
-              // StatKind serializes lowercase (serde rename_all).
-              if (result.kind === "dir") {
+              // is_dir follows symlinks; kind describes the link itself, so a
+              // symlinked directory reports kind "symlink".
+              if (result.is_dir) {
                 toast.error("不能打开目录");
                 return;
               }
