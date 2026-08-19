@@ -1445,6 +1445,7 @@ export default function App() {
                         onPathDeleted={handlePathDeleted}
                         onRevealInTerminal={cdInNewTab}
                         onAttachToAgent={handleAttachFileToAgent}
+                        onNavigate={sendCd}
                         pathDropTarget={terminalPathDropTarget}
                       />
                     ) : sidebarView === "search" ? (

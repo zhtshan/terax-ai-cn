@@ -1,5 +1,12 @@
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
@@ -26,7 +33,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
-import { IS_MAC } from "@/lib/platform";
+import { IS_MAC, IS_WINDOWS } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { ExplorerSearch, type ExplorerSearchHandle } from "./ExplorerSearch";
 import { EntryRow, PendingRow, StatusRow, type RowActions } from "./TreeRow";
@@ -48,6 +55,7 @@ import { useGlobalShortcuts } from "@/modules/shortcuts";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
 import type { TerminalPathDropTarget } from "@/modules/terminal";
+import { invoke } from "@tauri-apps/api/core";
 
 export type FileTreeSectionHandle = {
   focus: () => void;
@@ -63,6 +71,7 @@ type Props = {
   onPathDeleted?: (path: string) => void;
   onRevealInTerminal?: (path: string) => void;
   onAttachToAgent?: (path: string) => void;
+  onNavigate?: (path: string) => void;
   pathDropTarget?: TerminalPathDropTarget;
   gitStatus?: GitStatusSnapshot | null;
   collapsed: boolean;
@@ -203,6 +212,7 @@ export const FileTreeSection = memo(
       onPathDeleted,
       onRevealInTerminal,
       onAttachToAgent,
+      onNavigate,
       pathDropTarget,
       gitStatus,
       collapsed,
@@ -224,6 +234,17 @@ export const FileTreeSection = memo(
     const searchRef = useRef<ExplorerSearchHandle>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    // Windows drive letter switcher
+    const [drives, setDrives] = useState<string[]>([]);
+    const currentDrive = rootPath?.match(/^([A-Za-z]:)/)?.[1] ?? null;
+
+    useEffect(() => {
+      if (!IS_WINDOWS) return;
+      invoke<string[]>("list_drives")
+        .then(setDrives)
+        .catch(() => setDrives([]));
+    }, []);
 
     const { rows, entryIndexByPath } = useMemo(() => {
       if (!rootPath)
@@ -551,6 +572,27 @@ export const FileTreeSection = memo(
           onToggle={onToggle}
           actions={
             <>
+              {IS_WINDOWS && drives.length > 1 && currentDrive && (
+                <Select
+                  value={currentDrive}
+                  onValueChange={(drive) => onNavigate?.(`${drive}/`)}
+                >
+                  <SelectTrigger
+                    size="sm"
+                    className="h-6 w-auto min-w-0 gap-1 border-none bg-transparent px-1.5 text-xs"
+                  >
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {drives.map((d) => (
+                      <SelectItem key={d} value={d}>
+                        {d}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+
               <Button
                 variant="ghost"
                 size="icon"

@@ -35,6 +35,24 @@ fn strip_verbatim(s: &str) -> String {
     stripped.replace('\\', "/")
 }
 
+/// List available Windows drive letters (A:-Z:). Returns only drives that
+/// actually exist. Non-Windows platforms return an empty vec.
+#[tauri::command]
+pub async fn list_drives() -> Result<Vec<String>, String> {
+    #[allow(unused_mut)]
+    let mut drives = Vec::new();
+    #[cfg(target_os = "windows")]
+    {
+        for letter in b'A'..=b'Z' {
+            let path = format!("{}:/", letter as char);
+            if std::fs::metadata(&path).is_ok() {
+                drives.push(format!("{}:", letter as char));
+            }
+        }
+    }
+    Ok(drives)
+}
+
 #[cfg(test)]
 mod tests {
     use super::strip_verbatim;
