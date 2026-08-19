@@ -17,6 +17,10 @@ All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog
 - `defaultModel` 支持自定义 OpenAI 兼容端点
 - Workspace 停靠 AI 输入框高度可拖拽
 - 文件浏览器 `F2` / macOS `Enter` 重命名快捷键
+- 侧栏 Markdown 大纲区块（基于 LSP documentSymbol，支持树形展示 + 展开/折叠全部）
+- 侧栏文件级 Git 时间线（基于 git_log_file，支持 follow + 分页）
+- Windows 盘符快速切换功能（drive-letter-switcher）
+- 终端分屏 pane 关闭按钮（带前台进程确认）
 
 ### Changed
 - 标签页切换性能优化 50-60%（renderer pool 5 → 12，`POOL_MAX_SIZE = 12`）
@@ -38,6 +42,21 @@ All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog
 - Windows MSI 在 `-cn` 版本号下构建失败（跳过 MSI，仅出便携版）
 - LSP 跳转定义/查找引用无结果时不再静默失败，明确提示用户
 - `grep` IPC 在 WSL 路径与并发双击场景下加固
+- 分屏关闭按钮相关的若干回归问题
+- pane 关闭按钮补上前台进程确认
+- 标签关闭按钮改回关闭被点击标签而非当前激活标签
+- AI 代理关闭时输入条整块收起而非留空盒子
+- 终端文件路径点击后编辑器未激活及失活后链接消失
+- 文件链接路径归一化去除 node:path 依赖，支持波浪号路径展开
+- LSP 冷启动时先等 initialize 完成再判断 documentSymbol 能力
+- LSP symbolKind.valueSet 用字面量数组匹配协议类型
+- LSP 扁平 SymbolInformation 用 containerName 还原大纲层级
+- 大纲无可折叠节点时隐藏展开/折叠全部按钮
+- 大纲首次打开文件时不显示标题
+- 文件无提交历史时显示时间线空态
+- 时间线无数据时显示空白
+- 时间线 bad revision 错误处理
+- 非 Markdown 文件不显示大纲占位提示
 
 ## [0.8.5] - 2026-07-23
 

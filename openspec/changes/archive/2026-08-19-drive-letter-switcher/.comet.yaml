@@ -1,5 +1,5 @@
 workflow: hotfix
-phase: build
+phase: archive
 context_compression: off
 build_mode: direct
 build_pause: null
@@ -12,9 +12,9 @@ auto_transition: true
 base_ref: 6f1be36baae6afac90602fa4ac030c6d2475e28a
 design_doc: null
 plan: null
-verify_result: pending
-verification_report: null
-branch_status: pending
+verify_result: pass
+verification_report: docs/superpowers/reports/2026-08-19-drive-letter-switcher-verify.md
+branch_status: handled
 created_at: 2026-08-19
-verified_at: null
-archived: false
+verified_at: 2026-08-19
+archived: true
