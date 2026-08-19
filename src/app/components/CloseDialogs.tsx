@@ -18,6 +18,7 @@ type Props = {
   onCancelClose: () => void;
   onConfirmClose: () => void;
   pendingTerminalCloseTab: number | null;
+  pendingClosePaneLeaf: number | null;
   onCancelTerminalClose: () => void;
   onConfirmTerminalClose: () => void;
   pendingDeleteTabs: number[] | null;
@@ -35,6 +36,7 @@ export function CloseDialogs({
   onCancelClose,
   onConfirmClose,
   pendingTerminalCloseTab,
+  pendingClosePaneLeaf,
   onCancelTerminalClose,
   onConfirmTerminalClose,
   pendingDeleteTabs,
@@ -83,14 +85,16 @@ export function CloseDialogs({
       </AlertDialog>
 
       <AlertDialog
-        open={pendingTerminalCloseTab !== null}
+        open={pendingTerminalCloseTab !== null || pendingClosePaneLeaf !== null}
         onOpenChange={(open) => !open && onCancelTerminalClose()}
       >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{t("app.closeTerminalTitle")}</AlertDialogTitle>
             <AlertDialogDescription>
-              {t("app.closeTerminalDesc")}
+              {pendingClosePaneLeaf !== null
+                ? t("app.closePaneDesc")
+                : t("app.closeTerminalDesc")}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

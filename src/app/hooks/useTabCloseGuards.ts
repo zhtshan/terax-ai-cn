@@ -5,16 +5,20 @@ import { nextActiveInSpace, type Tab } from "@/modules/tabs";
 type Params = {
   tabs: Tab[];
   disposeTab: (id: number) => void;
+  closePane: (leafId: number) => void;
 };
 
 /**
  * Guards tab closing: dirty editors and terminals with a live foreground
  * process route through a confirmation dialog instead of closing immediately.
- * Owns the three pending-close states the dialogs render from.
+ * Owns the pending-close states the dialogs render from.
  */
-export function useTabCloseGuards({ tabs, disposeTab }: Params) {
+export function useTabCloseGuards({ tabs, disposeTab, closePane }: Params) {
   const [pendingCloseTab, setPendingCloseTab] = useState<number | null>(null);
   const [pendingTerminalCloseTab, setPendingTerminalCloseTab] = useState<
+    number | null
+  >(null);
+  const [pendingClosePaneLeaf, setPendingClosePaneLeaf] = useState<
     number | null
   >(null);
   const [pendingDeleteTabs, setPendingDeleteTabs] = useState<number[] | null>(
@@ -44,6 +48,19 @@ export function useTabCloseGuards({ tabs, disposeTab }: Params) {
     [tabs, disposeTab],
   );
 
+  // Same guard as handleClose, scoped to a single pane: the pane close button
+  // must not kill a live foreground process without asking.
+  const handleClosePane = useCallback(
+    async (leafId: number) => {
+      if (await leafHasForegroundProcess(leafId)) {
+        setPendingClosePaneLeaf(leafId);
+        return;
+      }
+      closePane(leafId);
+    },
+    [closePane],
+  );
+
   const confirmClose = useCallback(() => {
     if (pendingCloseTab !== null) {
       disposeTab(pendingCloseTab);
@@ -57,11 +74,14 @@ export function useTabCloseGuards({ tabs, disposeTab }: Params) {
 
   const confirmTerminalClose = useCallback(() => {
     if (pendingTerminalCloseTab !== null) disposeTab(pendingTerminalCloseTab);
+    if (pendingClosePaneLeaf !== null) closePane(pendingClosePaneLeaf);
     setPendingTerminalCloseTab(null);
-  }, [pendingTerminalCloseTab, disposeTab]);
+    setPendingClosePaneLeaf(null);
+  }, [pendingTerminalCloseTab, pendingClosePaneLeaf, disposeTab, closePane]);
 
   const cancelTerminalClose = useCallback(() => {
     setPendingTerminalCloseTab(null);
+    setPendingClosePaneLeaf(null);
   }, []);
 
   const confirmDeleteClose = useCallback(() => {
@@ -95,8 +115,10 @@ export function useTabCloseGuards({ tabs, disposeTab }: Params) {
   return {
     pendingCloseTab,
     pendingTerminalCloseTab,
+    pendingClosePaneLeaf,
     pendingDeleteTabs,
     handleClose,
+    handleClosePane,
     confirmClose,
     cancelClose,
     confirmTerminalClose,

@@ -770,6 +770,7 @@
     "closeBusy": "A process is still running in a terminal. Quitting will terminate it.",
     "closeTerminalTitle": "Close Terminal?",
     "closeTerminalDesc": "A process is running. Closing this tab will terminate it.",
+    "closePaneDesc": "A process is running. Closing this pane will terminate it.",
     "quitTitle": "Quit Terax?",
     "quitAnyway": "Quit Anyway"
   },

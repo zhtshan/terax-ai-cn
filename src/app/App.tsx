@@ -161,7 +161,6 @@ export default function App() {
     focusNextPaneInTab,
     swapActivePaneInDirection,
     splitActivePane,
-    closeActivePane,
     closePaneByLeaf,
     resetWorkspace,
   } = useTabs(getLaunchDir() ? { cwd: getLaunchDir() } : undefined);
@@ -478,8 +477,10 @@ export default function App() {
   const {
     pendingCloseTab,
     pendingTerminalCloseTab,
+    pendingClosePaneLeaf,
     pendingDeleteTabs,
     handleClose,
+    handleClosePane,
     confirmClose,
     cancelClose,
     confirmTerminalClose,
@@ -487,7 +488,7 @@ export default function App() {
     confirmDeleteClose,
     cancelDeleteClose,
     handlePathDeleted,
-  } = useTabCloseGuards({ tabs, disposeTab });
+  } = useTabCloseGuards({ tabs, disposeTab, closePane: closePaneByLeaf });
 
   const { pendingAppClose, confirmAppClose, cancelAppClose } =
     useAppCloseGuard(tabsRef);
@@ -797,17 +798,17 @@ export default function App() {
   const handleCloseTabOrPane = useCallback(() => {
     const t = tabsRef.current.find((x) => x.id === activeId);
     if (t?.kind === "terminal" && leafIds(t.paneTree).length > 1) {
-      closeActivePane(activeId);
+      void handleClosePane(t.activeLeafId);
       return;
     }
     void handleClose(activeId);
-  }, [activeId, closeActivePane, handleClose]);
+  }, [activeId, handleClosePane, handleClose]);
 
   const handlePaneCloseByLeaf = useCallback(
     (leafId: number) => {
-      closePaneByLeaf(leafId);
+      void handleClosePane(leafId);
     },
-    [closePaneByLeaf],
+    [handleClosePane],
   );
 
   const [zenMode, setZenMode] = useState(false);
@@ -1620,6 +1621,7 @@ export default function App() {
             onCancelClose={cancelClose}
             onConfirmClose={confirmClose}
             pendingTerminalCloseTab={pendingTerminalCloseTab}
+            pendingClosePaneLeaf={pendingClosePaneLeaf}
             onCancelTerminalClose={cancelTerminalClose}
             onConfirmTerminalClose={confirmTerminalClose}
             pendingDeleteTabs={pendingDeleteTabs}

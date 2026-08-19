@@ -765,6 +765,7 @@
     "closeBusy": "终端中仍有进程在运行。退出将终止它。",
     "closeTerminalTitle": "关闭终端？",
     "closeTerminalDesc": "有进程正在运行。关闭此标签页将终止它。",
+    "closePaneDesc": "有进程正在运行。关闭此分屏将终止它。",
     "quitTitle": "退出 Terax？",
     "quitAnyway": "仍然退出"
   },
