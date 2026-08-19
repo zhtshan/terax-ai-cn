@@ -105,7 +105,14 @@ import { useWorkspaceEnvStore, type WorkspaceEnv } from "@/modules/workspace";
 import { listen } from "@tauri-apps/api/event";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { SearchAddon } from "@xterm/addon-search";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { CloseDialogs } from "./components/CloseDialogs";
 import {
   TOGGLE_BLOCK_INPUT_EVENT,
@@ -312,6 +319,7 @@ export default function App() {
   const {
     wrapperRef: inputBarWrapperRef,
     onHandlePointerDown: onInputBarHandlePointerDown,
+    setOpen: setInputBarOpen,
   } = useInputBarHeightResize();
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
 
@@ -344,6 +352,14 @@ export default function App() {
   const isBlockTab = activeTerminalTab?.blocks === true;
   const isEditorTab = activeTab?.kind === "editor";
   const isGitHistoryTab = activeTab?.kind === "git-history";
+
+  // Mirrors WorkspaceInputBar's own `open` formula so a previously
+  // drag-resized wrapper height doesn't keep the box reserved while the
+  // input bar's content is collapsed.
+  const inputBarOpen = isBlockTab || (keysLoaded && panelOpen);
+  useLayoutEffect(() => {
+    setInputBarOpen(inputBarOpen);
+  }, [inputBarOpen, setInputBarOpen]);
 
   useEditorFileSync({ tabs, tabsRef, editorRefs });
   useThemeFileEditing({ tabsRef, openFileTab });
@@ -1500,12 +1516,14 @@ export default function App() {
                     />
                   </div>
 
-                  <div
-                    onPointerDown={onInputBarHandlePointerDown}
-                    className="group relative h-1.5 shrink-0 cursor-ns-resize touch-none select-none"
-                  >
-                    <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-foreground/30" />
-                  </div>
+                  {inputBarOpen && (
+                    <div
+                      onPointerDown={onInputBarHandlePointerDown}
+                      className="group relative h-1.5 shrink-0 cursor-ns-resize touch-none select-none"
+                    >
+                      <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-foreground/30" />
+                    </div>
+                  )}
                   <div
                     ref={inputBarWrapperRef}
                     className="min-h-0 shrink-0 overflow-y-auto"

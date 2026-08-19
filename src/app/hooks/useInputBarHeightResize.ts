@@ -34,6 +34,12 @@ function maxHeight(): number {
  * input bar's own CSS-grid open/close animation (`.terax-reveal`, which
  * needs an intrinsically-sized container) is never disturbed by default.
  *
+ * Once a height has been saved, call `setOpen` whenever the input bar's
+ * open/closed state changes: it clears the pinned height while closed (so
+ * `.terax-reveal` can collapse the wrapper to 0) and restores it on reopen —
+ * otherwise the saved pixel height would keep the wrapper's box reserved
+ * even while the inner content is collapsed.
+ *
  * When `containerRef` is provided, also observes the container's size and
  * clamps the saved height to fit — so resizing the parent panel (e.g. the
  * workspace ResizablePanel) propagates to the input bar. */
@@ -108,5 +114,11 @@ export function useInputBarHeightResize(
     target.addEventListener("pointercancel", onUp);
   }, []);
 
-  return { wrapperRef, onHandlePointerDown };
+  const setOpen = useCallback((open: boolean) => {
+    const el = wrapperRef.current;
+    if (!el) return;
+    el.style.height = open && height.current != null ? `${height.current}px` : "";
+  }, []);
+
+  return { wrapperRef, onHandlePointerDown, setOpen };
 }
