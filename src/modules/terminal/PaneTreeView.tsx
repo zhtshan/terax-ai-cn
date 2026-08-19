@@ -3,6 +3,9 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { cn } from "@/lib/utils";
+import { Cancel01Icon } from "@hugeicons/core-free-icons";
+import { HugeiconsIcon } from "@hugeicons/react";
 import type { SearchAddon } from "@xterm/addon-search";
 import { Fragment } from "react";
 import { useTerminalDropStore } from "./lib/dropStore";
@@ -23,10 +26,12 @@ type Props = {
   blocks: boolean;
   onFocusLeaf: (leafId: number) => void;
   getBundle: (leafId: number) => LeafBundle;
+  onClosePane?: (leafId: number) => void;
+  isMultiPane: boolean;
 };
 
 export function PaneTreeView(props: Props) {
-  const { node } = props;
+  const { node, onClosePane, isMultiPane } = props;
   if (node.kind === "leaf") {
     const { tabVisible, activeLeafId, blocks, onFocusLeaf, getBundle } = props;
     const focused = node.id === activeLeafId;
@@ -42,7 +47,10 @@ export function PaneTreeView(props: Props) {
           if (!focused) onFocusLeaf(node.id);
         }}
         data-pane-leaf={node.id}
-        className="relative h-full w-full"
+        className={cn(
+          "group relative h-full w-full",
+          isMultiPane && "focus-within:outline focus-within:outline-1 focus-within:outline-primary/30",
+        )}
       >
         <TerminalPane
           leafId={node.id}
@@ -56,6 +64,20 @@ export function PaneTreeView(props: Props) {
           onExit={b.onExit}
         />
         <DropOverlay leafId={node.id} />
+        {isMultiPane && onClosePane && (
+          <button
+            type="button"
+            aria-label="Close pane"
+            data-pane-close
+            onClick={(e) => {
+              e.stopPropagation();
+              onClosePane(node.id);
+            }}
+            className="absolute right-2 top-2 z-10 rounded p-1 text-muted-foreground opacity-0 transition-opacity hover:bg-accent hover:text-foreground group-hover:opacity-70 focus-within:opacity-70 group-hover:focus-within:opacity-100"
+          >
+            <HugeiconsIcon icon={Cancel01Icon} size={14} strokeWidth={2} />
+          </button>
+        )}
       </div>
     );
   }

@@ -787,6 +787,13 @@ export default function App() {
     void handleClose(activeId);
   }, [activeId, closeActivePane, handleClose]);
 
+  const handlePaneCloseByLeaf = useCallback(
+    (leafId: number) => {
+      closePaneByLeaf(leafId);
+    },
+    [closePaneByLeaf],
+  );
+
   const [zenMode, setZenMode] = useState(false);
 
   // Focus an agent's tab, switching to its space first so the header and tab
@@ -1259,7 +1266,7 @@ export default function App() {
       onDeleteSpace={handleDeleteSpace}
       onNewTabInSpace={handleNewTabInSpace}
       onJumpTab={jumpToTab}
-      onCloseTab={handleClose}
+      onCloseTab={handleCloseTabOrPane}
       onMoveTabToSpace={handleMoveTab}
       onReorderTab={handleReorderTab}
       onReorderSpaces={(ids) => useSpaces.getState().reorder(ids)}
@@ -1360,7 +1367,7 @@ export default function App() {
               onNewPreview={() => openPreviewTab("")}
               onNewEditor={() => setNewEditorOpen(true)}
               onNewGitGraph={openGitGraphFromContext}
-              onClose={handleClose}
+              onClose={handleCloseTabOrPane}
               onPin={pinTab}
               onRename={handleRenameTab}
               onReorder={reorderTabByGap}
@@ -1467,6 +1474,14 @@ export default function App() {
                       onCwd={handleTerminalCwd}
                       onExit={handleLeafExit}
                       onFocusLeaf={handleFocusLeaf}
+                      onClosePane={
+                        activeTerminalTab && leafIds(activeTerminalTab.paneTree).length > 1
+                          ? handlePaneCloseByLeaf
+                          : undefined
+                      }
+                      isMultiPane={
+                        activeTerminalTab != null && leafIds(activeTerminalTab.paneTree).length > 1
+                      }
                       registerEditorHandle={registerEditorHandle}
                       onEditorDirtyChange={handleEditorDirty}
                       onEditorCloseTab={disposeTab}
