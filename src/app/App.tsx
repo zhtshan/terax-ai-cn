@@ -1282,7 +1282,7 @@ export default function App() {
       onDeleteSpace={handleDeleteSpace}
       onNewTabInSpace={handleNewTabInSpace}
       onJumpTab={jumpToTab}
-      onCloseTab={handleCloseTabOrPane}
+      onCloseTab={handleClose}
       onMoveTabToSpace={handleMoveTab}
       onReorderTab={handleReorderTab}
       onReorderSpaces={(ids) => useSpaces.getState().reorder(ids)}
@@ -1383,7 +1383,7 @@ export default function App() {
               onNewPreview={() => openPreviewTab("")}
               onNewEditor={() => setNewEditorOpen(true)}
               onNewGitGraph={openGitGraphFromContext}
-              onClose={handleCloseTabOrPane}
+              onClose={handleClose}
               onPin={pinTab}
               onRename={handleRenameTab}
               onReorder={reorderTabByGap}
