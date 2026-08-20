@@ -48,6 +48,7 @@ import { fileIconUrl, folderIconUrl } from "./lib/iconResolver";
 import { COMPACT_CONTENT, COMPACT_ITEM } from "./lib/menuItemClass";
 import { useExplorerDnd } from "./lib/useExplorerDnd";
 import { useExplorerFileDrop } from "./lib/useExplorerFileDrop";
+import { useFileClipboard } from "./lib/useFileClipboard";
 import { useFileTree } from "./lib/useFileTree";
 import { useGitStatus } from "./lib/useGitStatus";
 import type { GitStatusCode } from "./lib/gitStatusUtils";
@@ -234,6 +235,7 @@ export const FileTreeSection = memo(
     const searchRef = useRef<ExplorerSearchHandle>(null);
     const containerRef = useRef<HTMLDivElement>(null);
     const scrollRef = useRef<HTMLDivElement>(null);
+    const clipboard = useFileClipboard();
 
     // Windows drive letter switcher
     const [drives, setDrives] = useState<string[]>([]);
@@ -522,6 +524,7 @@ export const FileTreeSection = memo(
               isSelected={selectedPath === row.path}
               isRenaming={row.kind === "rename"}
               isDropTarget={dropTargetDir === row.path}
+              isCut={clipboard.mode === "cut" && clipboard.paths.includes(row.path)}
               onOpenFile={onOpenFile}
               onSelectPath={setSelectedPath}
               gitStatusCode={row.gitStatusCode}
@@ -758,6 +761,27 @@ export const FileTreeSection = memo(
             >
               {menuTarget ? (
                 <>
+                  {menuTarget.isDir && !clipboard.isEmpty && (
+                    <ContextMenuItem
+                      className={COMPACT_ITEM}
+                      onSelect={() => {
+                        const clip = clipboard.paste();
+                        if (!clip) return;
+                        void invoke("fs_copy", {
+                          sources: clip.paths,
+                          dest_dir: menuTarget.path,
+                        }).then(() => {
+                          tree.refresh(menuTarget.path);
+                          if (clip.mode === "cut") clipboard.clear();
+                        });
+                      }}
+                    >
+                      {t("explorer.paste")}
+                    </ContextMenuItem>
+                  )}
+                  {menuTarget.isDir && !clipboard.isEmpty && (
+                    <ContextMenuSeparator />
+                  )}
                   {!menuTarget.isDir && (
                     <ContextMenuItem
                       className={COMPACT_ITEM}
@@ -806,6 +830,19 @@ export const FileTreeSection = memo(
                     }
                   >
                     {t("explorer.newFolderCtx")}
+                  </ContextMenuItem>
+                  <ContextMenuSeparator />
+                  <ContextMenuItem
+                    className={COMPACT_ITEM}
+                    onSelect={() => clipboard.copy(menuTarget.path)}
+                  >
+                    {t("explorer.copyFile")}
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    className={COMPACT_ITEM}
+                    onSelect={() => clipboard.cut(menuTarget.path)}
+                  >
+                    {t("explorer.cutFile")}
                   </ContextMenuItem>
                   <ContextMenuSeparator />
                   <ContextMenuItem

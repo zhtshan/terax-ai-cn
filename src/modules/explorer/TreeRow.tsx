@@ -26,6 +26,7 @@ export type EntryRowProps = {
   isSelected: boolean;
   isRenaming: boolean;
   isDropTarget?: boolean;
+  isCut?: boolean;
   onOpenFile: (path: string, pin?: boolean) => void;
   onSelectPath: (path: string) => void;
   gitStatusCode?: GitStatusCode | null;
@@ -44,6 +45,7 @@ function EntryRowImpl(props: EntryRowProps) {
     isSelected,
     isRenaming,
     isDropTarget = false,
+    isCut = false,
     onOpenFile,
     onSelectPath,
     gitStatusCode,
@@ -95,6 +97,7 @@ function EntryRowImpl(props: EntryRowProps) {
             ? "text-muted-foreground/70"
             : "text-foreground/85",
         isDropTarget && "bg-primary/10 ring-1 ring-inset ring-primary/60",
+        isCut && "opacity-50",
       )}
       style={{ paddingLeft }}
     >
