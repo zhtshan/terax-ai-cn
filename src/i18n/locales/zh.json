@@ -702,6 +702,7 @@
     "noMatches": "无匹配",
     "partialResults": "显示部分结果 — 请缩小查询范围。",
     "open": "打开",
+    "viewHistory": "查看文件历史",
     "outline": "大纲",
     "outlinePlaceholder": "大纲功能尚未提供数据",
     "outlineEmpty": "此文件没有可显示的大纲项",
