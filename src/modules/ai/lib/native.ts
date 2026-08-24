@@ -377,6 +377,19 @@ export const native = {
       originalPath: originalPath ?? null,
       workspace: currentWorkspaceEnv(),
     }),
+  gitCommitFileDiffWorking: (
+    repoRoot: string,
+    sha: string,
+    path: string,
+    originalPath?: string | null,
+  ) =>
+    invoke<GitDiffContentResult>("git_commit_file_diff_working", {
+      repoRoot,
+      sha,
+      path,
+      originalPath: originalPath ?? null,
+      workspace: currentWorkspaceEnv(),
+    }),
   gitRemoteUrl: (repoRoot: string, name?: string) =>
     invoke<string | null>("git_remote_url", {
       repoRoot,

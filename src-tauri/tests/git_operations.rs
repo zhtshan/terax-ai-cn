@@ -453,6 +453,41 @@ fn commit_file_diff_returns_original_and_modified_text() {
 }
 
 #[test]
+fn commit_file_diff_against_working_compares_commit_to_current_disk_content() {
+    if skip_if_no_git() {
+        return;
+    }
+    let fx = GitRepoFixture::new();
+    fx.write_file("a.txt", "v1\n");
+    fx.run_git(&["add", "a.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "v1"]);
+    fx.write_file("a.txt", "v2\n");
+    fx.run_git(&["add", "a.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "v2"]);
+
+    let entries =
+        operations::log(&fx.registry, &fx.repo_str(), 10, None, &fx.workspace).unwrap();
+    let first_sha = &entries[1].sha;
+
+    // Uncommitted edit on top of v2 - the working comparison must see this,
+    // unlike commit_file_diff which only ever compares committed blobs.
+    fx.write_file("a.txt", "v3-dirty\n");
+
+    let diff = operations::commit_file_diff_against_working(
+        &fx.registry,
+        &fx.repo_str(),
+        first_sha,
+        "a.txt",
+        None,
+        &fx.workspace,
+    )
+    .unwrap();
+    assert_eq!(diff.original_content, "v1\n");
+    assert_eq!(diff.modified_content, "v3-dirty\n");
+    assert!(!diff.is_binary);
+}
+
+#[test]
 fn remote_url_returns_none_for_missing_remote() {
     if skip_if_no_git() {
         return;

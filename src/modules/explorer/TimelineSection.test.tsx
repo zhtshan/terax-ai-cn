@@ -218,6 +218,7 @@ describe("TimelineSection pagination & click", () => {
       subject: "rename",
       path: "/r/foo.txt",
       originalPath: "old/path.txt",
+      compareTo: "working",
     });
   });
 });

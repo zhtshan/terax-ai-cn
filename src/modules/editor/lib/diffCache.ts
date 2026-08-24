@@ -51,6 +51,14 @@ export function commitDiffKey(
   return `${currentWorkspaceScopeKey()}|${repoRoot}|c|${sha}|${path}`;
 }
 
+export function commitWorkingDiffKey(
+  repoRoot: string,
+  sha: string,
+  path: string,
+): string {
+  return `${currentWorkspaceScopeKey()}|${repoRoot}|cw|${sha}|${path}`;
+}
+
 export async function fetchWorkingDiff(
   repoRoot: string,
   path: string,
@@ -92,6 +100,27 @@ export async function fetchCommitDiff(
       touch(key, res);
       return res;
     })
+    .finally(() => {
+      inflight.delete(key);
+    });
+  inflight.set(key, p);
+  return p;
+}
+
+// The working-tree side can change between visits (edits, saves), so unlike
+// the other fetchers this never persists into the long-lived `cache` - only
+// concurrent calls for the same key are deduped via `inflight`.
+export async function fetchCommitDiffAgainstWorking(
+  repoRoot: string,
+  sha: string,
+  path: string,
+  originalPath: string | null,
+): Promise<GitDiffContentResult> {
+  const key = commitWorkingDiffKey(repoRoot, sha, path);
+  const pending = inflight.get(key);
+  if (pending) return pending;
+  const p = native
+    .gitCommitFileDiffWorking(repoRoot, sha, path, originalPath)
     .finally(() => {
       inflight.delete(key);
     });

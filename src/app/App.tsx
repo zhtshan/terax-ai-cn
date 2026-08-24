@@ -124,6 +124,16 @@ import { useInputBarHeightResize } from "./hooks/useInputBarHeightResize";
 import { useTabCloseGuards } from "./hooks/useTabCloseGuards";
 import { useWorkspaceSwitcher } from "./hooks/useWorkspaceSwitcher";
 
+// git-diff/git-commit-file tabs store `path` either already-absolute (opened
+// from the explorer timeline) or repo-relative (opened from git history) -
+// normalize both to an absolute path anchored at the tab's own repoRoot.
+function resolveGitTabFilePath(repoRoot: string, path: string): string {
+  if (/^([A-Za-z]:|\/|\\)/.test(path)) return path;
+  const root = repoRoot.replace(/[\\/]+$/, "");
+  const rel = path.replace(/^[\\/]+/, "");
+  return `${root}/${rel}`;
+}
+
 export default function App() {
   const {
     tabs,
@@ -718,23 +728,24 @@ export default function App() {
 
   const activeFilePath = (() => {
     if (activeTab?.kind === "editor") return activeTab.path;
-    if (activeTab?.kind === "git-diff") {
-      if (/^([A-Za-z]:|\/|\\)/.test(activeTab.path)) return activeTab.path;
-      const root = activeTab.repoRoot.replace(/[\\/]+$/, "");
-      const rel = activeTab.path.replace(/^[\\/]+/, "");
-      return `${root}/${rel}`;
-    }
-    if (activeTab?.kind === "git-commit-file") {
-      const root = activeTab.repoRoot.replace(/[\\/]+$/, "");
-      const rel = activeTab.path.replace(/^[\\/]+/, "");
-      return `${root}/${rel}`;
+    if (activeTab?.kind === "git-diff" || activeTab?.kind === "git-commit-file") {
+      return resolveGitTabFilePath(activeTab.repoRoot, activeTab.path);
     }
     return null;
   })();
-  const explorerActiveFilePath =
-    activeTab?.kind === "editor" || activeTab?.kind === "markdown"
-      ? activeTab.path
-      : null;
+  // Keeps the explorer's file-scoped sections (tree highlight, timeline)
+  // pointed at the file behind a diff tab, not just plain editor/markdown
+  // tabs - otherwise opening a commit from the timeline immediately makes
+  // the timeline report "no file selected".
+  const explorerActiveFilePath = (() => {
+    if (activeTab?.kind === "editor" || activeTab?.kind === "markdown") {
+      return activeTab.path;
+    }
+    if (activeTab?.kind === "git-diff" || activeTab?.kind === "git-commit-file") {
+      return resolveGitTabFilePath(activeTab.repoRoot, activeTab.path);
+    }
+    return null;
+  })();
   const { sourceControl, toggleSourceControl, openGitGraphFromContext } =
     useSourceControlContext({
       activeTab,
@@ -1447,6 +1458,7 @@ export default function App() {
                         onAttachToAgent={handleAttachFileToAgent}
                         onNavigate={sendCd}
                         pathDropTarget={terminalPathDropTarget}
+                        onOpenCommitFile={openCommitFileDiffTab}
                       />
                     ) : sidebarView === "search" ? (
                       <SearchPanel

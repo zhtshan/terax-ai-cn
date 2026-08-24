@@ -796,7 +796,9 @@
       "binaryBadge": "二进制 / 补丁回退",
       "largeFileBadge": "大文件 / 补丁视图",
       "loading": "加载差异中…",
-      "unavailable": "该文件无法预览差异。"
+      "unavailable": "该文件无法预览差异。",
+      "compareToWorking": "对比当前文件",
+      "jumpToDiff": "跳转到差异位置"
     }
   },
   "gitHistory": {

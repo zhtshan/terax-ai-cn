@@ -53,6 +53,7 @@ type Props = {
     subject: string;
     path: string;
     originalPath: string | null;
+    compareTo?: "parent" | "working";
   }) => void;
 };
 

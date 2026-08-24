@@ -290,6 +290,7 @@ pub fn run() {
             git::commands::git_show_commit,
             git::commands::git_commit_files,
             git::commands::git_commit_file_diff,
+            git::commands::git_commit_file_diff_working,
             git::commands::git_remote_url,
             git::commands::git_list_branches,
             git::commands::git_checkout_branch,

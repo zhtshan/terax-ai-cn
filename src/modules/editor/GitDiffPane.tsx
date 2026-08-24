@@ -1,24 +1,22 @@
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Spinner } from "@/components/ui/spinner";
-import { unifiedMergeView } from "@codemirror/merge";
+import { MergeView } from "@codemirror/merge";
 import { EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
-import CodeMirror, { type ReactCodeMirrorRef } from "@uiw/react-codemirror";
+import { basicSetup } from "@uiw/react-codemirror";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
   commitDiffKey,
+  commitWorkingDiffKey,
   fetchCommitDiff,
+  fetchCommitDiffAgainstWorking,
   fetchWorkingDiff,
   getCachedDiff,
   workingDiffKey,
 } from "./lib/diffCache";
-import {
-  buildSharedExtensions,
-  DEFAULT_INDENT,
-  languageCompartment,
-} from "./lib/extensions";
+import { buildSharedExtensions, DEFAULT_INDENT } from "./lib/extensions";
 import { resolveLanguage, resolveLanguageSync } from "./lib/languageResolver";
 import { useEditorThemeExt } from "./lib/useEditorThemeExt";
 
@@ -36,6 +34,10 @@ type CommitSource = {
   sha: string;
   path: string;
   originalPath: string | null;
+  /** "parent" (default) diffs the commit against its own parent - what this
+   * commit changed. "working" diffs it against the current on-disk file -
+   * what has changed since this version. */
+  compareTo?: "parent" | "working";
 };
 
 type Props = {
@@ -51,41 +53,55 @@ const READONLY_EXT = [
   EditorState.readOnly.of(true),
   EditorView.editable.of(false),
 ];
-const DIFF_THEME = EditorView.theme({
-  "&.cm-merge-b .cm-changedText, .cm-changedText": {
-    background: "rgba(110, 200, 120, 0.20) !important",
-    borderRadius: "3px",
-    padding: "0 1px",
-  },
-  ".cm-deletedChunk .cm-deletedText, &.cm-merge-b .cm-deletedText": {
-    background: "rgba(220, 90, 90, 0.22) !important",
-    borderRadius: "3px",
-    padding: "0 1px",
-  },
-  "&.cm-merge-b .cm-changedLine, .cm-changedLine, .cm-inlineChangedLine": {
-    backgroundColor: "rgba(110, 200, 120, 0.05) !important",
-  },
-  ".cm-deletedChunk": {
-    backgroundColor: "rgba(220, 90, 90, 0.05) !important",
-    paddingTop: "1px",
-    paddingBottom: "1px",
-  },
-  "&.cm-merge-b .cm-changedLineGutter, .cm-changedLineGutter": {
-    background: "rgba(110, 200, 120, 0.55) !important",
-  },
-  ".cm-deletedLineGutter, &.cm-merge-a .cm-changedLineGutter": {
-    background: "rgba(220, 90, 90, 0.5) !important",
-  },
+
+const PANE_BASIC_SETUP = basicSetup({
+  lineNumbers: true,
+  foldGutter: true,
+  highlightActiveLine: false,
+  highlightActiveLineGutter: false,
+  searchKeymap: true,
+});
+
+// Shared layout/chrome, identical on both panes of the side-by-side view.
+// Only rules that target elements *inside* an editor root belong here -
+// EditorView.theme() rewrites any selector without `&` into a descendant
+// selector of that editor's own scope class, so it can never reach ancestor
+// elements like `.cm-mergeView`/`.cm-mergeViewEditor` (see the imperative
+// sizing done on `view.dom`/`view.b.dom` in the mount effect below instead).
+const MERGE_LAYOUT_THEME = EditorView.theme({
   ".cm-changeGutter": {
     width: "2px !important",
     paddingLeft: "0 !important",
   },
-  ".cm-collapsedLines": {
-    backgroundColor: "transparent",
-    color: "var(--muted-foreground, #9ca3af)",
-    fontSize: "10.5px",
-    padding: "2px 8px",
-    opacity: 0.7,
+});
+
+// Left pane (the older/original content) - removed-line styling.
+const DIFF_THEME_ORIGINAL = EditorView.theme({
+  ".cm-changedText, .cm-deletedChunk .cm-deletedText": {
+    background: "rgba(220, 90, 90, 0.22) !important",
+    borderRadius: "3px",
+    padding: "0 1px",
+  },
+  ".cm-changedLine, .cm-deletedChunk": {
+    backgroundColor: "rgba(220, 90, 90, 0.07) !important",
+  },
+  ".cm-changedLineGutter, .cm-deletedLineGutter": {
+    background: "rgba(220, 90, 90, 0.5) !important",
+  },
+});
+
+// Right pane (the newer/modified content) - added-line styling.
+const DIFF_THEME_MODIFIED = EditorView.theme({
+  ".cm-changedText": {
+    background: "rgba(110, 200, 120, 0.20) !important",
+    borderRadius: "3px",
+    padding: "0 1px",
+  },
+  ".cm-changedLine": {
+    backgroundColor: "rgba(110, 200, 120, 0.07) !important",
+  },
+  ".cm-changedLineGutter": {
+    background: "rgba(110, 200, 120, 0.55) !important",
   },
 });
 
@@ -112,19 +128,27 @@ type LoadState =
       modifiedContent: string;
       isBinary: boolean;
       fallbackPatch: string;
-      /** Resolved before mount: a late compartment reconfigure would leave
-       * the merge view's deleted-chunk widgets unhighlighted. */
+      /** null until resolved; the mount effect rebuilds the merge view once
+       * it lands so syntax highlighting isn't stuck on plain text. */
       langExt: Extension | null;
     }
   | { kind: "error"; message: string };
 
 function cacheKey(source: WorkingSource | CommitSource): string {
-  return source.kind === "working"
-    ? workingDiffKey(source.repoRoot, source.path, source.mode)
+  if (source.kind === "working") {
+    return workingDiffKey(source.repoRoot, source.path, source.mode);
+  }
+  return source.compareTo === "working"
+    ? commitWorkingDiffKey(source.repoRoot, source.sha, source.path)
     : commitDiffKey(source.repoRoot, source.sha, source.path);
 }
 
 function loadStateFromCache(source: WorkingSource | CommitSource): LoadState {
+  // The commit-vs-working comparison is never persisted (see
+  // fetchCommitDiffAgainstWorking) since the working side can go stale.
+  if (source.kind === "commit" && source.compareTo === "working") {
+    return { kind: "idle" };
+  }
   const hit = getCachedDiff(cacheKey(source));
   if (!hit) return { kind: "idle" };
   return {
@@ -139,8 +163,8 @@ function loadStateFromCache(source: WorkingSource | CommitSource): LoadState {
 
 export function GitDiffPane({ source, chipLabel, active }: Props) {
   const { t } = useTranslation();
-  const cmRef = useRef<ReactCodeMirrorRef>(null);
   const themeExt = useEditorThemeExt();
+  const mergeContainerRef = useRef<HTMLDivElement>(null);
   const [state, setState] = useState<LoadState>(() =>
     active ? loadStateFromCache(source) : { kind: "idle" },
   );
@@ -164,12 +188,19 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
             source.mode,
             source.originalPath,
           )
-        : fetchCommitDiff(
-            source.repoRoot,
-            source.sha,
-            source.path,
-            source.originalPath,
-          );
+        : source.compareTo === "working"
+          ? fetchCommitDiffAgainstWorking(
+              source.repoRoot,
+              source.sha,
+              source.path,
+              source.originalPath,
+            )
+          : fetchCommitDiff(
+              source.repoRoot,
+              source.sha,
+              source.path,
+              source.originalPath,
+            );
     Promise.all([promise, resolveLanguage(source.path).catch(() => null)])
       .then(([res, lang]) => {
         if (cancelled) return;
@@ -200,6 +231,8 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
   const path = source.path;
   const repoRoot = source.repoRoot;
   const mode = source.kind === "working" ? source.mode : "+";
+  const compareToWorking =
+    source.kind === "commit" && source.compareTo === "working";
   const loaded = state.kind === "loaded" ? state : null;
   const originalContent = loaded?.originalContent ?? "";
   const modifiedContent = loaded?.modifiedContent ?? "";
@@ -212,40 +245,143 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
   const useFallback = isBinary || isTooLarge;
 
   const langExt = loaded?.langExt ?? null;
-  const extensions = useMemo(
-    () => [
-      ...SHARED_EXT,
-      DEFAULT_INDENT,
-      languageCompartment.of(langExt ?? []),
-      ...READONLY_EXT,
-      unifiedMergeView({
-        original: originalContent,
-        mergeControls: false,
-        highlightChanges: true,
-        gutter: true,
-        syntaxHighlightDeletions: true,
-        collapseUnchanged: { margin: 3, minSize: 6 },
-      }),
-      DIFF_THEME,
-    ],
-    [originalContent, langExt],
-  );
 
   // Cache-hit path only: the diff came from the cache before the language
-  // pack was imported. Resolve and reconfigure once the view exists.
+  // pack was imported. Resolve once and let the mount effect below pick it up.
   useEffect(() => {
     if (useFallback || state.kind !== "loaded" || state.langExt) return;
     let cancelled = false;
     resolveLanguage(path).then((res) => {
       if (cancelled || !res) return;
-      setState((s) =>
-        s.kind === "loaded" ? { ...s, langExt: res.ext } : s,
-      );
+      setState((s) => (s.kind === "loaded" ? { ...s, langExt: res.ext } : s));
     });
     return () => {
       cancelled = true;
     };
   }, [useFallback, path, state]);
+
+  // Side-by-side (VS Code style) diff: two independent, vertically-aligned
+  // read-only editors wired together by @codemirror/merge's `MergeView`,
+  // rebuilt whenever the content/language/theme changes.
+  useEffect(() => {
+    if (useFallback || state.kind !== "loaded") return;
+    const container = mergeContainerRef.current;
+    if (!container) return;
+    const sharedExt: Extension[] = [
+      ...SHARED_EXT,
+      DEFAULT_INDENT,
+      langExt ?? [],
+      ...READONLY_EXT,
+      themeExt,
+      MERGE_LAYOUT_THEME,
+      PANE_BASIC_SETUP,
+    ];
+    const view = new MergeView({
+      a: {
+        doc: originalContent,
+        extensions: [...sharedExt, DIFF_THEME_ORIGINAL],
+      },
+      b: {
+        doc: modifiedContent,
+        extensions: [...sharedExt, DIFF_THEME_MODIFIED],
+      },
+      parent: container,
+      highlightChanges: true,
+      gutter: true,
+    });
+    // `.cm-mergeView` and its pane wrappers sit *outside* both editor roots,
+    // so EditorView.theme() can't reach them (see MERGE_LAYOUT_THEME above) -
+    // size and divide them directly instead. Without an explicit height the
+    // view grows to fit its full content and nothing scrolls.
+    view.dom.style.height = "100%";
+    view.dom.style.overflowY = "auto";
+    const rightWrap = view.b.dom.parentElement;
+    if (rightWrap) rightWrap.style.borderLeft = "1px solid var(--border)";
+
+    // Right-edge diff overview bar. The merge view has no built-in mapbar, so
+    // overlay one in JS: chunk positions via `lineBlockAt` are document-relative,
+    // so marks stay put while content scrolls; only a resize/rebuild re-runs.
+    container.style.position = "relative";
+    const bar = document.createElement("div");
+    bar.className = "diff-mapbar";
+    container.appendChild(bar);
+
+    const layout = () => {
+      bar.replaceChildren();
+      const barHeight = container.clientHeight;
+      const contentHeight = view.a.contentHeight;
+      if (!barHeight || !contentHeight) return;
+      const scale = barHeight / contentHeight;
+      view.chunks.forEach((chunk) => {
+        const markerTop = view.a.lineBlockAt(chunk.fromA).top * scale;
+        if (markerTop > barHeight) return;
+        const added = chunk.fromA === chunk.toA;
+        const removed = chunk.fromB === chunk.toB;
+        const el = document.createElement("div");
+        el.className = added
+          ? "diff-mapbar-chunk added"
+          : removed
+            ? "diff-mapbar-chunk removed"
+            : "diff-mapbar-chunk mixed";
+        el.title = t("editor.diff.jumpToDiff");
+        el.style.top = `${markerTop}px`;
+        el.style.height = `${Math.max(3, (chunk.endA - chunk.fromA) * 0.6 * scale + 1)}px`;
+        el.addEventListener("mousedown", (ev) => {
+          ev.preventDefault();
+          ev.stopPropagation();
+          view.dom.scrollTop = Math.max(
+            0,
+            view.a.lineBlockAt(chunk.fromA).top -
+              view.a.defaultLineHeight * 2.5,
+          );
+        });
+        bar.appendChild(el);
+      });
+    };
+    bar.addEventListener("mousedown", (ev) => {
+      if ((ev.target as HTMLElement).classList.contains("diff-mapbar-chunk"))
+        return;
+      const rect = bar.getBoundingClientRect();
+      const fraction = Math.min(
+        1,
+        Math.max(0, (ev.clientY - rect.top) / rect.height),
+      );
+      view.dom.scrollTop =
+        fraction * (view.dom.scrollHeight - view.dom.clientHeight);
+    });
+
+    let nextLayoutFrame = 0;
+    const scheduleLayout = () => {
+      cancelAnimationFrame(nextLayoutFrame);
+      nextLayoutFrame = requestAnimationFrame(layout);
+    };
+    // The merge view measures its line blocks on the frames after mount, so
+    // re-run the layout a few frames in a row until positions settle.
+    const settle = (frames: number) => {
+      nextLayoutFrame = requestAnimationFrame(() => {
+        layout();
+        if (frames > 1) settle(frames - 1);
+      });
+    };
+    settle(3);
+    const ro = new ResizeObserver(scheduleLayout);
+    ro.observe(container);
+
+    return () => {
+      cancelAnimationFrame(nextLayoutFrame);
+      ro.disconnect();
+      bar.remove();
+      view.destroy();
+    };
+  }, [
+    useFallback,
+    state.kind,
+    originalContent,
+    modifiedContent,
+    langExt,
+    themeExt,
+    t,
+  ]);
 
   const stats = useMemo(
     () =>
@@ -263,6 +399,11 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
           >
             {chipLabel ?? mode}
           </Badge>
+          {compareToWorking ? (
+            <Badge variant="secondary" className="text-[10px]">
+              {t("editor.diff.compareToWorking")}
+            </Badge>
+          ) : null}
           {isBinary ? (
             <Badge variant="secondary" className="text-[10px]">
               {t("editor.diff.binaryBadge")}
@@ -311,22 +452,7 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
             </pre>
           </ScrollArea>
         ) : (
-          <CodeMirror
-            ref={cmRef}
-            value={modifiedContent}
-            theme={themeExt}
-            extensions={extensions}
-            editable={false}
-            height="100%"
-            className="h-full"
-            basicSetup={{
-              lineNumbers: true,
-              foldGutter: true,
-              highlightActiveLine: false,
-              highlightActiveLineGutter: false,
-              searchKeymap: true,
-            }}
-          />
+          <div ref={mergeContainerRef} className="h-full" />
         )}
       </div>
     </div>

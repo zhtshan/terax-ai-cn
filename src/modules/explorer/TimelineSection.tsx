@@ -17,6 +17,7 @@ type CommitFileDiffOpenInput = {
   subject: string;
   path: string;
   originalPath: string | null;
+  compareTo?: "parent" | "working";
 };
 
 type LoadStatus = "idle" | "loading" | "more" | "error" | "initial";
@@ -194,6 +195,7 @@ export function TimelineSection({
                     subject: c.subject,
                     path: activeFilePath,
                     originalPath: c.oldPath,
+                    compareTo: "working",
                   })
                 }
                 className="flex w-full flex-col gap-0.5 px-2 py-1.5 text-left transition-colors hover:bg-accent"

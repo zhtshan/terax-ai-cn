@@ -239,6 +239,34 @@ html[data-chrome="borderless"] #settings-root {
   display: none !important;
 }
 
+/* Right-edge diff overview bar inside the merge view. */
+.diff-mapbar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 10px;
+  cursor: pointer;
+  padding: 2px 2px;
+  background: transparent;
+  z-index: 5;
+}
+.diff-mapbar-chunk {
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  border-radius: 2px;
+}
+.diff-mapbar-chunk.added {
+  background: rgb(110 200 120 / 0.85);
+}
+.diff-mapbar-chunk.removed {
+  background: rgb(220 90 90 / 0.85);
+}
+.diff-mapbar-chunk.mixed {
+  background: rgb(200 140 90 / 0.9);
+}
+
 body {
   -webkit-user-select: none;
   user-select: none;

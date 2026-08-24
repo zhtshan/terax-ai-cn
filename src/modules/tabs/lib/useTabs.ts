@@ -112,6 +112,9 @@ export type GitCommitFileDiffTab = TabBase & {
   subject: string;
   path: string;
   originalPath: string | null;
+  /** "parent" (default) shows what the commit changed; "working" compares it
+   * against the current on-disk file - used by the explorer timeline. */
+  compareTo?: "parent" | "working";
 };
 
 export type Tab =
@@ -878,16 +881,22 @@ export function useTabs(initial?: Partial<TerminalTab>) {
       subject: string;
       path: string;
       originalPath: string | null;
+      compareTo?: "parent" | "working";
     }) => {
+      const compareTo = input.compareTo ?? "parent";
       const curr = tabsRef.current;
       const existing = curr.find(
         (t) =>
           t.kind === "git-commit-file" &&
           t.repoRoot === input.repoRoot &&
           t.sha === input.sha &&
-          t.path === input.path,
+          t.path === input.path &&
+          (t.compareTo ?? "parent") === compareTo,
       );
-      const title = `${basename(input.path)} @ ${input.shortSha}`;
+      const title =
+        compareTo === "working"
+          ? `${basename(input.path)} @ ${input.shortSha} vs current`
+          : `${basename(input.path)} @ ${input.shortSha}`;
       if (existing) {
         const nextTabs = curr.map((t) =>
           t.id === existing.id
@@ -918,6 +927,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           subject: input.subject,
           path: input.path,
           originalPath: input.originalPath,
+          compareTo,
         } satisfies GitCommitFileDiffTab,
       ];
       tabsRef.current = nextTabs;

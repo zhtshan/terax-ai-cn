@@ -923,6 +923,81 @@ pub fn commit_file_diff(
     })
 }
 
+/// Diffs a file as it stood at `sha` against its current working-tree content
+/// (not the commit's own parent) - the timeline's "what changed since this
+/// version" view, as opposed to `commit_file_diff`'s "what this commit changed".
+pub fn commit_file_diff_against_working(
+    registry: &WorkspaceRegistry,
+    repo_root: &str,
+    sha: &str,
+    path: &str,
+    original_path: Option<&str>,
+    workspace: &WorkspaceEnv,
+) -> Result<GitDiffContentResult> {
+    let repo_root = authorized_repo_root(registry, repo_root, workspace)?;
+    ensure_git_available(&repo_root.workspace)?;
+    if !sha_is_safe(sha) {
+        return Err(GitError::command("git show", "invalid commit sha"));
+    }
+    let resolved = resolve_within_repo(&repo_root.local_path, path)?;
+    let rel = resolved
+        .strip_prefix(&repo_root.local_path)
+        .map(|p| p.to_string_lossy().replace('\\', "/"))
+        .unwrap_or_else(|_| path.replace('\\', "/"));
+
+    let original_rel = match original_path {
+        Some(orig) if !orig.is_empty() => {
+            let resolved_orig = resolve_within_repo(&repo_root.local_path, orig)?;
+            resolved_orig
+                .strip_prefix(&repo_root.local_path)
+                .map(|p| p.to_string_lossy().replace('\\', "/"))
+                .unwrap_or_else(|_| orig.replace('\\', "/"))
+        }
+        _ => rel.clone(),
+    };
+
+    let original = git_show_text(
+        &repo_root.workspace,
+        &repo_root.git_path,
+        &format!("{sha}:{original_rel}"),
+    )?;
+    let modified = read_text_file(&resolved)?;
+
+    let mut diff_args: Vec<OsString> = vec![
+        "diff".into(),
+        "--no-color".into(),
+        "--no-ext-diff".into(),
+        sha.into(),
+        "--".into(),
+    ];
+    diff_args.push(rel.clone().into());
+    if original_rel != rel {
+        diff_args.push(original_rel.clone().into());
+    }
+    let patch_output = run_git(
+        &repo_root.workspace,
+        Some(&repo_root.git_path),
+        diff_args,
+        DEFAULT_TIMEOUT_SECS,
+    )?;
+    ensure_success(&patch_output, "git diff <commit> -- <path> failed")?;
+    let patch_text = match String::from_utf8(patch_output.stdout) {
+        Ok(text) => text,
+        Err(e) => String::from_utf8_lossy(&e.into_bytes()).into_owned(),
+    };
+
+    let is_binary =
+        matches!(original, TextSource::Binary) || matches!(modified, TextSource::Binary);
+
+    Ok(GitDiffContentResult {
+        original_content: original.into_text(),
+        modified_content: modified.into_text(),
+        is_binary,
+        fallback_patch: patch_text,
+        truncated: patch_output.truncated,
+    })
+}
+
 pub fn remote_url(
     registry: &WorkspaceRegistry,
     repo_root: &str,
