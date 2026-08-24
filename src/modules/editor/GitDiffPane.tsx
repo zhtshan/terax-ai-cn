@@ -360,7 +360,21 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
     const settle = (frames: number) => {
       nextLayoutFrame = requestAnimationFrame(() => {
         layout();
-        if (frames > 1) settle(frames - 1);
+        if (frames > 1) {
+          settle(frames - 1);
+          // return;
+        }
+        // Positions are final now - land on the first change, with the same
+        // offset the mapbar chunk jumps use. Scrolling earlier would compute
+        // from unmeasured (estimated) line blocks and miss the chunk.
+        const first = view.chunks[0];
+        if (first) {
+          view.dom.scrollTop = Math.max(
+            0,
+            view.a.lineBlockAt(first.fromA).top -
+              view.a.defaultLineHeight * 2.5,
+          );
+        }
       });
     };
     settle(3);
