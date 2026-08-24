@@ -22,7 +22,6 @@ export type UseSectionCollapseReturn = {
   panelRef: ReturnType<typeof usePanelRef>;
   collapsed: boolean;
   onResize: () => void;
-  toggle: () => void;
 };
 
 export function useSectionCollapse(
@@ -41,15 +40,5 @@ export function useSectionCollapse(
     setStoredCollapsed(sectionId, isCollapsed);
   }, [panelRef, sectionId]);
 
-  const toggle = useCallback(() => {
-    const p = panelRef.current;
-    if (!p) return;
-    if (p.isCollapsed()) {
-      p.expand();
-    } else {
-      p.collapse();
-    }
-  }, [panelRef]);
-
-  return { panelRef, collapsed, onResize, toggle };
+  return { panelRef, collapsed, onResize };
 }

@@ -6,8 +6,19 @@ import {
 import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
 import type { OutlineItem, OutlineUnavailableReason } from "@/modules/editor";
 import type { TerminalPathDropTarget } from "@/modules/terminal";
-import { forwardRef, memo, useCallback, useImperativeHandle, useRef } from "react";
-import { useDefaultLayout, useGroupRef } from "react-resizable-panels";
+import {
+  forwardRef,
+  memo,
+  useCallback,
+  useImperativeHandle,
+  useRef,
+  type RefObject,
+} from "react";
+import {
+  useDefaultLayout,
+  useGroupRef,
+  type PanelImperativeHandle,
+} from "react-resizable-panels";
 import { FileTreeSection, type FileTreeSectionHandle } from "./FileTreeSection";
 import { useSectionCollapse } from "./lib/useSectionCollapse";
 import { OutlineSection } from "./OutlineSection";
@@ -45,31 +56,50 @@ type Props = {
   }) => void;
 };
 
-// Percentage outline/timeline grow to on expand (matches their `defaultSize`).
-const SECTION_EXPANDED_PCT = 15;
-// Below every panel's minSize; the group's own collapsedSize clamp snaps this
-// down to the panel's real collapsed percentage, so no pixel math is needed.
-const SECTION_COLLAPSE_HINT = 0;
+type PanelId = "file-tree" | "outline" | "timeline";
 
-// react-resizable-panels' imperative expand()/collapse() only negotiates
-// space with the panel adjacent to it by array index (a fixed boundary), so
-// outline and timeline only ever traded space with EACH OTHER, never with
-// file-tree. That made toggling one a no-op whenever the other was already
-// collapsed (it had nothing left to give). Routing the swap through the
-// group's setLayout and always trading against file-tree instead means
-// outline/timeline never depend on each other's state.
-function borrowFromFileTree(
+// Outline/timeline's `defaultSize` and their first-ever expand target.
+const SECTION_DEFAULT_PCT = 15;
+
+// Mirrors each panel's own `minSize` prop below: the floor a panel can be
+// squeezed to as a donor without being pushed into a collapsed state.
+const FLOOR_PCT: Record<PanelId, number> = {
+  "file-tree": 15,
+  outline: 8,
+  timeline: 8,
+};
+
+// Below every panel's own collapsedSize; the group's clamp snaps whichever
+// panel we target directly to its real collapsed percentage.
+const COLLAPSE_HINT = 0;
+
+// Caps every donor at its own floor, so toggling one section can never force
+// a sibling into a collapsed state as a side effect.
+function shiftLayout(
   layout: Record<string, number>,
-  id: "outline" | "timeline",
-  collapse: boolean,
+  id: PanelId,
+  target: number,
+  donors: readonly PanelId[],
 ): Record<string, number> {
-  const target = collapse ? SECTION_COLLAPSE_HINT : SECTION_EXPANDED_PCT;
-  const delta = target - layout[id];
-  return {
-    ...layout,
-    [id]: target,
-    "file-tree": layout["file-tree"] - delta,
-  };
+  const wanted = target - layout[id];
+  const next = { ...layout, [id]: target };
+  if (wanted > 0) {
+    const givers = donors
+      .map((d) => ({ id: d, avail: Math.max(layout[d] - FLOOR_PCT[d], 0) }))
+      .filter((d) => d.avail > 0);
+    const totalAvail = givers.reduce((sum, d) => sum + d.avail, 0);
+    const take = Math.min(wanted, totalAvail);
+    next[id] = layout[id] + take;
+    for (const g of givers) next[g.id] = layout[g.id] - take * (g.avail / totalAvail);
+  } else if (wanted < 0) {
+    const give = -wanted;
+    const totalCurrent = donors.reduce((sum, d) => sum + layout[d], 0);
+    for (const d of donors) {
+      const share = totalCurrent > 0 ? layout[d] / totalCurrent : 1 / donors.length;
+      next[d] = layout[d] + give * share;
+    }
+  }
+  return next;
 }
 
 export const FileExplorer = memo(
@@ -80,23 +110,44 @@ export const FileExplorer = memo(
     const timeline = useSectionCollapse("timeline", true);
     const groupRef = useGroupRef();
 
-    const toggleOutline = useCallback(() => {
-      const group = groupRef.current;
-      const panel = outline.panelRef.current;
-      if (!group || !panel) return;
-      group.setLayout(
-        borrowFromFileTree(group.getLayout(), "outline", !panel.isCollapsed()),
-      );
-    }, [groupRef, outline.panelRef]);
+    // Restores each panel's pre-collapse size on re-expand, instead of always
+    // snapping back to a fixed default.
+    const lastExpandedRef = useRef<Record<PanelId, number>>({
+      "file-tree": 100 - SECTION_DEFAULT_PCT * 2,
+      outline: SECTION_DEFAULT_PCT,
+      timeline: SECTION_DEFAULT_PCT,
+    });
 
-    const toggleTimeline = useCallback(() => {
-      const group = groupRef.current;
-      const panel = timeline.panelRef.current;
-      if (!group || !panel) return;
-      group.setLayout(
-        borrowFromFileTree(group.getLayout(), "timeline", !panel.isCollapsed()),
-      );
-    }, [groupRef, timeline.panelRef]);
+    const toggleSection = useCallback(
+      (
+        id: PanelId,
+        panelRef: RefObject<PanelImperativeHandle | null>,
+        donors: readonly PanelId[],
+      ) => {
+        const group = groupRef.current;
+        const panel = panelRef.current;
+        if (!group || !panel) return;
+        const layout = group.getLayout();
+        const collapsing = !panel.isCollapsed();
+        if (collapsing) lastExpandedRef.current[id] = layout[id];
+        const target = collapsing ? COLLAPSE_HINT : lastExpandedRef.current[id];
+        group.setLayout(shiftLayout(layout, id, target, donors));
+      },
+      [groupRef],
+    );
+
+    const toggleFileTree = useCallback(
+      () => toggleSection("file-tree", fileTree.panelRef, ["outline", "timeline"]),
+      [toggleSection, fileTree.panelRef],
+    );
+    const toggleOutline = useCallback(
+      () => toggleSection("outline", outline.panelRef, ["file-tree"]),
+      [toggleSection, outline.panelRef],
+    );
+    const toggleTimeline = useCallback(
+      () => toggleSection("timeline", timeline.panelRef, ["file-tree"]),
+      [toggleSection, timeline.panelRef],
+    );
 
     // 显式面板 id 让布局持久化键跨会话稳定（自动 id 基于 useId，会随组件树变化失效）
     const { defaultLayout, onLayoutChanged } = useDefaultLayout({
@@ -123,7 +174,7 @@ export const FileExplorer = memo(
         <ResizablePanel
           id="file-tree"
           panelRef={fileTree.panelRef}
-          minSize="15"
+          minSize={String(FLOOR_PCT["file-tree"])}
           collapsedSize={32}
           collapsible
           onResize={fileTree.onResize}
@@ -131,7 +182,7 @@ export const FileExplorer = memo(
           <FileTreeSection
             ref={treeRef}
             collapsed={fileTree.collapsed}
-            onToggle={fileTree.toggle}
+            onToggle={toggleFileTree}
             {...props}
           />
         </ResizablePanel>
@@ -141,8 +192,8 @@ export const FileExplorer = memo(
         <ResizablePanel
           id="outline"
           panelRef={outline.panelRef}
-          defaultSize="15"
-          minSize="8"
+          defaultSize={String(SECTION_DEFAULT_PCT)}
+          minSize={String(FLOOR_PCT.outline)}
           collapsedSize={32}
           collapsible
           onResize={outline.onResize}
@@ -163,8 +214,8 @@ export const FileExplorer = memo(
         <ResizablePanel
           id="timeline"
           panelRef={timeline.panelRef}
-          defaultSize="15"
-          minSize="8"
+          defaultSize={String(SECTION_DEFAULT_PCT)}
+          minSize={String(FLOOR_PCT.timeline)}
           collapsedSize={32}
           collapsible
           onResize={timeline.onResize}
