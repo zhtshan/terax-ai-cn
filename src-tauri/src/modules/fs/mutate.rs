@@ -90,11 +90,14 @@ fn copy_recursive(src: &std::path::Path, dst: &std::path::Path) -> std::io::Resu
 
 /// Copies external files/dirs into a destination directory, recursively for
 /// dirs. Sources are absolute OS paths (from a drag-drop); only the destination
-/// is workspace-resolved. Refuses to overwrite existing entries.
+/// is workspace-resolved. Refuses to overwrite existing entries unless
+/// `auto_rename` is set, in which case colliding names get a VS Code-style
+/// "copy" suffix instead.
 #[tauri::command]
 pub fn fs_copy(
     sources: Vec<String>,
     dest_dir: String,
+    auto_rename: Option<bool>,
     workspace: Option<WorkspaceEnv>,
 ) -> Result<(), String> {
     let workspace = WorkspaceEnv::from_option(workspace);
@@ -103,8 +106,14 @@ pub fn fs_copy(
         let src = std::path::PathBuf::from(source);
         let name = src
             .file_name()
-            .ok_or_else(|| format!("invalid source: {source}"))?;
-        let target = dest.join(name);
+            .ok_or_else(|| format!("invalid source: {source}"))?
+            .to_string_lossy();
+        let name = if auto_rename.unwrap_or(false) {
+            copy_name_available(&dest, &name)
+        } else {
+            name.to_string()
+        };
+        let target = dest.join(&name);
         if target.exists() {
             return Err(format!("already exists: {}", target.display()));
         }
@@ -118,6 +127,31 @@ pub fn fs_copy(
         })?;
     }
     Ok(())
+}
+
+/// VS Code-style copy name for an existing target: `name` becomes `name copy`,
+/// then `name copy 2`, `name copy 3`, ... Returns `name` unchanged when no
+/// collision exists. Dotfiles (`.gitignore`) keep the whole name as the stem.
+fn copy_name_available(dest: &std::path::Path, name: &str) -> String {
+    if !dest.join(name).exists() {
+        return name.to_string();
+    }
+    let (stem, ext) = match name.rfind('.') {
+        Some(i) if i > 0 => (&name[..i], &name[i..]),
+        _ => (name, ""),
+    };
+    let mut n = 1usize;
+    loop {
+        let candidate = if n == 1 {
+            format!("{stem} copy{ext}")
+        } else {
+            format!("{stem} copy {n}{ext}")
+        };
+        if !dest.join(&candidate).exists() {
+            return candidate;
+        }
+        n += 1;
+    }
 }
 
 #[cfg(test)]
@@ -189,6 +223,7 @@ mod tests {
             vec![s(src.path().join("a.txt")), s(src.path().join("d"))],
             s(dest.path().to_path_buf()),
             None,
+            None,
         )
         .expect("copy");
 
@@ -207,9 +242,69 @@ mod tests {
             vec![s(src.path().join("a.txt"))],
             s(dest.path().to_path_buf()),
             None,
+            None,
         )
         .unwrap_err();
         assert!(err.contains("already exists"), "got: {err}");
+    }
+
+    #[test]
+    fn copy_auto_renames_on_conflict() {
+        let src = tempfile::tempdir().unwrap();
+        let dest = tempfile::tempdir().unwrap();
+        std::fs::write(src.path().join("a.txt"), b"payload").unwrap();
+
+        // First copy keeps the plain name; collisions get the "copy" suffix.
+        for expected in ["a.txt", "a copy.txt", "a copy 2.txt"] {
+            fs_copy(
+                vec![s(src.path().join("a.txt"))],
+                s(dest.path().to_path_buf()),
+                Some(true),
+                None,
+            )
+            .expect("copy");
+            assert_eq!(
+                std::fs::read(dest.path().join(expected)).unwrap(),
+                b"payload"
+            );
+        }
+
+        // Dotfiles treat the whole name as the stem.
+        std::fs::write(src.path().join(".gitignore"), b"x").unwrap();
+        fs_copy(
+            vec![s(src.path().join(".gitignore"))],
+            s(dest.path().to_path_buf()),
+            Some(true),
+            None,
+        )
+        .expect("copy dotfile");
+        fs_copy(
+            vec![s(src.path().join(".gitignore"))],
+            s(dest.path().to_path_buf()),
+            Some(true),
+            None,
+        )
+        .expect("copy dotfile copy");
+        assert!(dest.path().join(".gitignore copy").exists());
+
+        // Directories get the same treatment, recursively.
+        std::fs::create_dir_all(src.path().join("docs/inner")).unwrap();
+        std::fs::write(src.path().join("docs/inner/x.txt"), b"x").unwrap();
+        fs_copy(
+            vec![s(src.path().join("docs"))],
+            s(dest.path().to_path_buf()),
+            Some(true),
+            None,
+        )
+        .expect("copy dir");
+        fs_copy(
+            vec![s(src.path().join("docs"))],
+            s(dest.path().to_path_buf()),
+            Some(true),
+            None,
+        )
+        .expect("copy dir copy");
+        assert!(dest.path().join("docs copy/inner/x.txt").is_file());
     }
 
     #[test]

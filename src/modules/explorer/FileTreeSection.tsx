@@ -33,6 +33,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
 import { IS_MAC, IS_WINDOWS } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { ExplorerSearch, type ExplorerSearchHandle } from "./ExplorerSearch";
@@ -52,6 +53,7 @@ import { useFileClipboard } from "./lib/useFileClipboard";
 import { useFileTree } from "./lib/useFileTree";
 import { useGitStatus } from "./lib/useGitStatus";
 import type { GitStatusCode } from "./lib/gitStatusUtils";
+import { currentWorkspaceEnv } from "@/modules/workspace";
 import { useGlobalShortcuts } from "@/modules/shortcuts";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
@@ -290,6 +292,25 @@ export const FileTreeSection = memo(
     // change alone, only on scroll/resize).
     const [menuNonce, setMenuNonce] = useState(0);
 
+    const pasteTo = useCallback(
+      (destDir: string) => {
+        const clip = clipboard.paste();
+        if (!clip) return;
+        void invoke("fs_copy", {
+          sources: clip.paths,
+          destDir,
+          autoRename: true,
+          workspace: currentWorkspaceEnv(),
+        })
+          .then(() => {
+            tree.refresh(destDir);
+            if (clip.mode === "cut") clipboard.clear();
+          })
+          .catch((e) => toast.error(`Copy failed: ${String(e)}`));
+      },
+      [clipboard, tree],
+    );
+
     const entryPaths = useMemo<string[]>(() => {
       const out: string[] = [];
       for (const row of rows) if (row.kind === "entry") out.push(row.path);
@@ -420,6 +441,12 @@ export const FileTreeSection = memo(
     const pendingAtRoot =
       tree.pendingCreate?.parentPath === rootPath ? tree.pendingCreate : null;
 
+    const menuDestDir = menuTarget
+      ? menuTarget.isDir
+        ? menuTarget.path
+        : parentOf(menuTarget.path, rootPath)
+      : null;
+
     const handleKeyDown = (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (tree.renaming || tree.pendingCreate || isSearchOpen) return;
       const target = e.target as HTMLElement;
@@ -429,6 +456,33 @@ export const FileTreeSection = memo(
         target.isContentEditable
       )
         return;
+      // Copy / cut / paste on the selected entry (paste falls back to the
+      // tree root, or the selected folder). Scoped to the tree container, so
+      // the terminal/editor keep their own Cmd/Ctrl+C/V handling.
+      if ((e.metaKey || e.ctrlKey) && !e.altKey && !e.shiftKey) {
+        const key = e.key.toLowerCase();
+        if (key === "c" && selectedPath) {
+          e.preventDefault();
+          clipboard.copy(selectedPath);
+          return;
+        }
+        if (key === "x" && selectedPath) {
+          e.preventDefault();
+          clipboard.cut(selectedPath);
+          return;
+        }
+        if (key === "v") {
+          if (clipboard.isEmpty) return;
+          e.preventDefault();
+          const destDir = selectedPath
+            ? isDirAt(selectedPath)
+              ? selectedPath
+              : parentOf(selectedPath, rootPath)
+            : rootPath;
+          pasteTo(destDir);
+          return;
+        }
+      }
       if (entryPaths.length === 0) return;
 
       const currentIdx = selectedPath ? entryPaths.indexOf(selectedPath) : -1;
@@ -761,25 +815,15 @@ export const FileTreeSection = memo(
             >
               {menuTarget ? (
                 <>
-                  {menuTarget.isDir && !clipboard.isEmpty && (
+                  {menuDestDir !== null && !clipboard.isEmpty && (
                     <ContextMenuItem
                       className={COMPACT_ITEM}
-                      onSelect={() => {
-                        const clip = clipboard.paste();
-                        if (!clip) return;
-                        void invoke("fs_copy", {
-                          sources: clip.paths,
-                          dest_dir: menuTarget.path,
-                        }).then(() => {
-                          tree.refresh(menuTarget.path);
-                          if (clip.mode === "cut") clipboard.clear();
-                        });
-                      }}
+                      onSelect={() => pasteTo(menuDestDir)}
                     >
                       {t("explorer.paste")}
                     </ContextMenuItem>
                   )}
-                  {menuTarget.isDir && !clipboard.isEmpty && (
+                  {menuDestDir !== null && !clipboard.isEmpty && (
                     <ContextMenuSeparator />
                   )}
                   {!menuTarget.isDir && (
@@ -897,6 +941,15 @@ export const FileTreeSection = memo(
                 </>
               ) : (
                 <>
+                  {!clipboard.isEmpty && (
+                    <ContextMenuItem
+                      className={COMPACT_ITEM}
+                      onSelect={() => pasteTo(rootPath)}
+                    >
+                      {t("explorer.paste")}
+                    </ContextMenuItem>
+                  )}
+                  {!clipboard.isEmpty && <ContextMenuSeparator />}
                   {onRevealInTerminal && (
                     <ContextMenuItem
                       className={COMPACT_ITEM}
