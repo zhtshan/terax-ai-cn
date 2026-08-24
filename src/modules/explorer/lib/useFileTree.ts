@@ -296,7 +296,16 @@ export function useFileTree(rootPath: string | null, options?: Options) {
 
   const refresh = useCallback(
     (path: string) => {
+      // VS Code-style refresh: re-list the clicked directory AND every loaded
+      // (visible) descendant. Re-fetching only `path` misses changes in nested
+      // expanded dirs, which made the header reload button a no-op for them.
+      const current = nodesRef.current;
       void fetchChildren(path);
+      for (const key of Object.keys(current)) {
+        if (key !== path && isUnder(key, path) && current[key]?.status === "loaded") {
+          void fetchChildren(key);
+        }
+      }
     },
     [fetchChildren],
   );

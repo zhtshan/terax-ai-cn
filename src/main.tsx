@@ -13,6 +13,14 @@ if (USE_CUSTOM_WINDOW_CONTROLS) {
   document.documentElement.dataset.chrome = "borderless";
 }
 
+// Suppress the native WebView context menu app-wide. Areas with their own
+// menus (explorer rows, tab bar) stop propagation already; everywhere else a
+// right-click used to open the native menu, whose "Reload" reloads the whole
+// webview and re-runs pty_close_all below — killing live terminal sessions.
+document.addEventListener("contextmenu", (e) => {
+  e.preventDefault();
+});
+
 // Render-instrumentation overlay, opt-in: `VITE_REACT_SCAN=true pnpm dev`.
 // Dev-only dynamic import so it never reaches the production bundle.
 if (import.meta.env.DEV && import.meta.env.VITE_REACT_SCAN === "true") {
