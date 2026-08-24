@@ -181,8 +181,7 @@ describe("TimelineSection pagination & click", () => {
     expect(lastCall?.[2]).toMatchObject({ beforeSha: "1".repeat(40) });
   });
 
-  it("invokes onOpenCommitFile with originalPath when entry was a rename", async () => {
-    (native.gitResolveRepo as ReturnType<typeof vi.fn>).mockResolvedValue({
+  it("invokes onOpenCommitFile with originalPath when entry was a rename", async () => {    (native.gitResolveRepo as ReturnType<typeof vi.fn>).mockResolvedValue({
       repoRoot: "/r",
       branch: "main",
       upstream: null,
@@ -219,6 +218,65 @@ describe("TimelineSection pagination & click", () => {
       path: "/r/foo.txt",
       originalPath: "old/path.txt",
       compareTo: "working",
+    });
+  });
+
+  it("uses timelineFilePath over activeFilePath when both are provided", async () => {
+    (native.gitResolveRepo as ReturnType<typeof vi.fn>).mockResolvedValue({
+      repoRoot: "/r",
+      branch: "main",
+      upstream: null,
+      isDetached: false,
+    });
+    (native.gitLogFile as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeEntry({ subject: "timeline-path commit" }),
+    ]);
+
+    render(
+      <TimelineSection
+        collapsed={false}
+        onToggle={() => {}}
+        activeFilePath="/r/other.txt"
+        timelineFilePath="/r/foo.txt"
+        repoRoot={null}
+        onOpenCommitFile={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("timeline-path commit")).toBeTruthy();
+    });
+    expect(native.gitLogFile).toHaveBeenCalledWith(
+      "/r",
+      "/r/foo.txt",
+      expect.any(Object),
+    );
+  });
+
+  it("uses timelineFilePath to show commits when activeFilePath is null", async () => {
+    (native.gitResolveRepo as ReturnType<typeof vi.fn>).mockResolvedValue({
+      repoRoot: "/r",
+      branch: "main",
+      upstream: null,
+      isDetached: false,
+    });
+    (native.gitLogFile as ReturnType<typeof vi.fn>).mockResolvedValue([
+      makeEntry({ subject: "solo timeline" }),
+    ]);
+
+    render(
+      <TimelineSection
+        collapsed={false}
+        onToggle={() => {}}
+        activeFilePath={null}
+        timelineFilePath="/r/bar.txt"
+        repoRoot={null}
+        onOpenCommitFile={() => {}}
+      />,
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText("solo timeline")).toBeTruthy();
     });
   });
 });
