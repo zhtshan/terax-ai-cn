@@ -41,6 +41,7 @@ export function GitDiffStack({ tabs, activeId }: Props) {
           sha: active.sha,
           path: active.path,
           originalPath: active.originalPath,
+          compareTo: active.compareTo,
         }}
         chipLabel={active.shortSha}
       />

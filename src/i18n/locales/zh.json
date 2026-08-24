@@ -702,6 +702,7 @@
     "noMatches": "无匹配",
     "partialResults": "显示部分结果 — 请缩小查询范围。",
     "open": "打开",
+    "viewHistory": "打开时间线",
     "outline": "大纲",
     "outlinePlaceholder": "大纲功能尚未提供数据",
     "outlineEmpty": "此文件没有可显示的大纲项",
@@ -796,7 +797,9 @@
       "binaryBadge": "二进制 / 补丁回退",
       "largeFileBadge": "大文件 / 补丁视图",
       "loading": "加载差异中…",
-      "unavailable": "该文件无法预览差异。"
+      "unavailable": "该文件无法预览差异。",
+      "compareToWorking": "对比当前文件",
+      "jumpToDiff": "跳转到差异位置"
     }
   },
   "gitHistory": {

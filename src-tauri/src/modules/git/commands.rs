@@ -293,6 +293,30 @@ pub async fn git_commit_file_diff(
 }
 
 #[tauri::command]
+pub async fn git_commit_file_diff_working(
+    repo_root: String,
+    sha: String,
+    path: String,
+    original_path: Option<String>,
+    workspace: Option<WorkspaceEnv>,
+    app: AppHandle,
+) -> Result<GitDiffContentResult, String> {
+    let workspace = WorkspaceEnv::from_option(workspace);
+    blocking(app, move |r| {
+        operations::commit_file_diff_against_working(
+            r,
+            &repo_root,
+            &sha,
+            &path,
+            original_path.as_deref(),
+            &workspace,
+        )
+        .map_err(Into::into)
+    })
+    .await
+}
+
+#[tauri::command]
 pub async fn git_remote_url(
     repo_root: String,
     name: Option<String>,

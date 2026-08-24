@@ -707,6 +707,7 @@
     "noMatches": "No matches",
     "partialResults": "Showing partial results — refine your query.",
     "open": "Open",
+    "viewHistory": "Open timeline",
     "outline": "Outline",
     "outlinePlaceholder": "Outline data not yet available",
     "outlineEmpty": "No outline items in this file",
@@ -801,7 +802,9 @@
       "binaryBadge": "Binary / patch fallback",
       "largeFileBadge": "Large file / patch view",
       "loading": "Loading diff…",
-      "unavailable": "Diff preview is not available for this file."
+      "unavailable": "Diff preview is not available for this file.",
+      "compareToWorking": "vs current file",
+      "jumpToDiff": "Jump to a diff position"
     }
   },
   "gitHistory": {

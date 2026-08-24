@@ -79,6 +79,7 @@ type Props = {
   gitStatus?: GitStatusSnapshot | null;
   collapsed: boolean;
   onToggle: () => void;
+  onOpenTimeline?: (path: string) => void;
 };
 
 type Row =
@@ -220,6 +221,7 @@ export const FileTreeSection = memo(
       gitStatus,
       collapsed,
       onToggle,
+      onOpenTimeline,
     },
     ref,
   ) {
@@ -827,12 +829,20 @@ export const FileTreeSection = memo(
                     <ContextMenuSeparator />
                   )}
                   {!menuTarget.isDir && (
-                    <ContextMenuItem
-                      className={COMPACT_ITEM}
-                      onSelect={() => onOpenFile(menuTarget.path, true)}
-                    >
-                      {t("explorer.open")}
-                    </ContextMenuItem>
+                    <>
+                      <ContextMenuItem
+                        className={COMPACT_ITEM}
+                        onSelect={() => onOpenFile(menuTarget.path, true)}
+                      >
+                        {t("explorer.open")}
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        className={COMPACT_ITEM}
+                        onSelect={() => onOpenTimeline?.(menuTarget.path)}
+                      >
+                        {t("explorer.viewHistory")}
+                      </ContextMenuItem>
+                    </>
                   )}
                   {menuTarget.isDir && onRevealInTerminal && (
                     <ContextMenuItem

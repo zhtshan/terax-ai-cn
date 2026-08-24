@@ -17,6 +17,7 @@ type CommitFileDiffOpenInput = {
   subject: string;
   path: string;
   originalPath: string | null;
+  compareTo?: "parent" | "working";
 };
 
 type LoadStatus = "idle" | "loading" | "more" | "error" | "initial";
@@ -27,6 +28,8 @@ type Props = {
   activeFilePath?: string | null;
   repoRoot?: string | null;
   onOpenCommitFile: (input: CommitFileDiffOpenInput) => void;
+  /** Explicit timeline path set via context menu — overrides activeFilePath. */
+  timelineFilePath?: string | null;
 };
 
 export function TimelineSection({
@@ -35,7 +38,9 @@ export function TimelineSection({
   activeFilePath,
   repoRoot: providedRepoRoot,
   onOpenCommitFile,
+  timelineFilePath,
 }: Props) {
+  const effectiveFilePath = timelineFilePath ?? activeFilePath ?? null;
   const { t } = useTranslation();
   const [commits, setCommits] = useState<GitLogEntry[]>([]);
   const [status, setStatus] = useState<LoadStatus>("idle");
@@ -48,9 +53,9 @@ export function TimelineSection({
   const requestIdRef = useRef(0);
   const moreInflightRef = useRef(false);
 
-  // activeFilePath 变化：重置 + 解析 repo root + 加载首页
+  // filepath 变化：重置 + 解析 repo root + 加载首页
   useEffect(() => {
-    if (!activeFilePath) {
+    if (!effectiveFilePath) {
       setCommits([]);
       setStatus("idle");
       setError(null);
@@ -70,8 +75,8 @@ export function TimelineSection({
         try {
           // gitResolveRepo expects a directory, not a file path.
           const dir =
-            activeFilePath.substring(0, activeFilePath.lastIndexOf("/")) ||
-            activeFilePath;
+            effectiveFilePath.substring(0, effectiveFilePath.lastIndexOf("/")) ||
+            effectiveFilePath;
           const info = await native.gitResolveRepo(dir);
           if (cancelled || requestId !== requestIdRef.current) return;
           root = info?.repoRoot ?? null;
@@ -88,7 +93,7 @@ export function TimelineSection({
         return;
       }
       try {
-        const entries = await native.gitLogFile(root, activeFilePath, {
+        const entries = await native.gitLogFile(root, effectiveFilePath, {
           limit: PAGE_SIZE,
         });
         if (cancelled || requestId !== requestIdRef.current) return;
@@ -106,10 +111,10 @@ export function TimelineSection({
     return () => {
       cancelled = true;
     };
-  }, [activeFilePath, providedRepoRoot]);
+  }, [effectiveFilePath, providedRepoRoot]);
 
   const loadMore = useCallback(async () => {
-    if (!resolvedRepoRoot || !activeFilePath) return;
+    if (!resolvedRepoRoot || !effectiveFilePath) return;
     if (moreInflightRef.current) return;
     if (status !== "idle" || endReached) return;
     const last = commits[commits.length - 1];
@@ -119,7 +124,7 @@ export function TimelineSection({
     try {
       const entries = await native.gitLogFile(
         resolvedRepoRoot,
-        activeFilePath,
+        effectiveFilePath,
         {
           limit: PAGE_SIZE,
           beforeSha: last.sha,
@@ -139,11 +144,11 @@ export function TimelineSection({
     } finally {
       moreInflightRef.current = false;
     }
-  }, [resolvedRepoRoot, activeFilePath, commits, endReached, status]);
+  }, [resolvedRepoRoot, effectiveFilePath, commits, endReached, status]);
 
   // 列表内容
   const listContent = useMemo(() => {
-    if (!activeFilePath) {
+    if (!effectiveFilePath) {
       return (
         <div className="flex flex-1 items-center justify-center px-3 py-3 text-center text-[11px] text-muted-foreground">
           {t("explorer.timelineNoFile")}
@@ -192,8 +197,9 @@ export function TimelineSection({
                     sha: c.sha,
                     shortSha: c.shortSha,
                     subject: c.subject,
-                    path: activeFilePath,
+                    path: effectiveFilePath,
                     originalPath: c.oldPath,
+                    compareTo: "working",
                   })
                 }
                 className="flex w-full flex-col gap-0.5 px-2 py-1.5 text-left transition-colors hover:bg-accent"
@@ -227,7 +233,7 @@ export function TimelineSection({
       </div>
     );
   }, [
-    activeFilePath,
+    effectiveFilePath,
     status,
     error,
     resolvedRepoRoot,
