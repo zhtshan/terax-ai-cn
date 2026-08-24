@@ -149,6 +149,17 @@ export const FileExplorer = memo(
       () => toggleSection("timeline", timeline.panelRef, ["file-tree"]),
       [toggleSection, timeline.panelRef],
     );
+    const handleOpenTimeline = useCallback(
+      (path: string) => {
+        props.onOpenFile(path, true);
+        const group = groupRef.current;
+        const panel = timeline.panelRef.current;
+        if (group && panel && panel.isCollapsed()) {
+          toggleSection("timeline", timeline.panelRef, ["file-tree"]);
+        }
+      },
+      [props.onOpenFile, groupRef, timeline.panelRef, toggleSection],
+    );
 
     // 显式面板 id 让布局持久化键跨会话稳定（自动 id 基于 useId，会随组件树变化失效）
     const { defaultLayout, onLayoutChanged } = useDefaultLayout({
@@ -184,6 +195,7 @@ export const FileExplorer = memo(
             ref={treeRef}
             collapsed={fileTree.collapsed}
             onToggle={toggleFileTree}
+            onOpenTimeline={handleOpenTimeline}
             {...props}
           />
         </ResizablePanel>
