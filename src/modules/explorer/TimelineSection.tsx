@@ -53,7 +53,7 @@ export function TimelineSection({
   const requestIdRef = useRef(0);
   const moreInflightRef = useRef(false);
 
-  // activeFilePath 变化：重置 + 解析 repo root + 加载首页
+  // filepath 变化：重置 + 解析 repo root + 加载首页
   useEffect(() => {
     if (!effectiveFilePath) {
       setCommits([]);
