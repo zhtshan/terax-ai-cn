@@ -2,6 +2,30 @@
 
 All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
+## [0.8.7] - 2026-08-24
+
+### Added
+- 文件右键菜单「打开时间线」：点击后直接在左侧 Timeline 面板显示该文件的 git 提交历史，无需打开 editor tab
+- 文件浏览器剪贴板操作：支持复制（Copy）、剪切（Cut）、粘贴（Paste）文件和文件夹，粘贴冲突自动追加后缀
+- Rust 新增 `fs_copy` / `fs_cut` 命令（deny-list 网关 + atomic rename）
+- 编辑器 diff 视图并排对比：支持提交与工作区 diff 对比，打开后自动定位到第一处差异
+- 底部状态栏添加 diff 可视化标记
+- codegraph 索引入库，支持本地代码图检索
+
+### Changed
+- Explorer 大纲/时间线分区折叠逻辑统一为通用带下限保护的布局函数（`shiftLayout`），各分区互不干扰
+- 大纲/时间线分区样式优化，折叠态持久化更稳定
+
+### Fixed
+- 修复 reload 按钮无效问题
+- 修复原生右键菜单误杀终端会话的问题
+- 修复大纲/时间线分区展开折叠交互问题
+- 修复 diff 合并视图 settle 动画帧清理泄漏
+- 修复 TimelineSection 注释引用未更新问题
+- 标签页状态管理优化（`useTabs`）
+
+---
+
 ## [0.8.6] - 2026-08-16
 
 ### Added
