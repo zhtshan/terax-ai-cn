@@ -181,7 +181,8 @@ describe("TimelineSection pagination & click", () => {
     expect(lastCall?.[2]).toMatchObject({ beforeSha: "1".repeat(40) });
   });
 
-  it("invokes onOpenCommitFile with originalPath when entry was a rename", async () => {    (native.gitResolveRepo as ReturnType<typeof vi.fn>).mockResolvedValue({
+  it("invokes onOpenCommitFile with originalPath when entry was a rename", async () => {
+    (native.gitResolveRepo as ReturnType<typeof vi.fn>).mockResolvedValue({
       repoRoot: "/r",
       branch: "main",
       upstream: null,
