@@ -357,12 +357,16 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
     };
     // The merge view measures its line blocks on the frames after mount, so
     // re-run the layout a few frames in a row until positions settle.
+    // Separate frame handle from scheduleLayout's: the ResizeObserver fires
+    // an initial callback right after observe(), whose cancelAnimationFrame
+    // would otherwise kill this chain before its last frame runs.
+    let settleFrame = 0;
     const settle = (frames: number) => {
-      nextLayoutFrame = requestAnimationFrame(() => {
+      settleFrame = requestAnimationFrame(() => {
         layout();
         if (frames > 1) {
           settle(frames - 1);
-          // return;
+          return;
         }
         // Positions are final now - land on the first change, with the same
         // offset the mapbar chunk jumps use. Scrolling earlier would compute
@@ -383,6 +387,7 @@ export function GitDiffPane({ source, chipLabel, active }: Props) {
 
     return () => {
       cancelAnimationFrame(nextLayoutFrame);
+      cancelAnimationFrame(settleFrame);
       ro.disconnect();
       bar.remove();
       view.destroy();
