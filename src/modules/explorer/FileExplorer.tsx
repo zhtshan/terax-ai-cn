@@ -12,6 +12,7 @@ import {
   useCallback,
   useImperativeHandle,
   useRef,
+  useState,
   type RefObject,
 } from "react";
 import {
@@ -110,6 +111,7 @@ export const FileExplorer = memo(
     const outline = useSectionCollapse("outline", true);
     const timeline = useSectionCollapse("timeline", true);
     const groupRef = useGroupRef();
+    const [timelineFilePath, setTimelineFilePath] = useState<string | null>(null);
 
     // Restores each panel's pre-collapse size on re-expand, instead of always
     // snapping back to a fixed default.
@@ -151,14 +153,14 @@ export const FileExplorer = memo(
     );
     const handleOpenTimeline = useCallback(
       (path: string) => {
-        props.onOpenFile(path, true);
+        setTimelineFilePath(path);
         const group = groupRef.current;
         const panel = timeline.panelRef.current;
         if (group && panel && panel.isCollapsed()) {
           toggleSection("timeline", timeline.panelRef, ["file-tree"]);
         }
       },
-      [props.onOpenFile, groupRef, timeline.panelRef, toggleSection],
+      [groupRef, timeline.panelRef, toggleSection],
     );
 
     // 显式面板 id 让布局持久化键跨会话稳定（自动 id 基于 useId，会随组件树变化失效）
@@ -237,6 +239,7 @@ export const FileExplorer = memo(
             collapsed={timeline.collapsed}
             onToggle={toggleTimeline}
             activeFilePath={props.activeFilePath}
+            timelineFilePath={timelineFilePath}
             repoRoot={props.gitStatus?.repoRoot ?? null}
             onOpenCommitFile={props.onOpenCommitFile ?? (() => {})}
           />
