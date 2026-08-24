@@ -1,7 +1,7 @@
-import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 import { ChevronRightIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import type { ReactNode } from "react";
 
 export type SectionHeaderProps = {
   icon?: ReactNode;
@@ -21,12 +21,21 @@ export function SectionHeader({
   actions,
 }: SectionHeaderProps) {
   return (
-    <div className="flex h-8 shrink-0 items-center gap-1 border-b border-border/60 px-2">
+    <div
+      className={cn(
+        "flex h-8 shrink-0 items-center gap-1 border-b px-2 transition-colors",
+        collapsed ? "border-transparent" : "border-border/60",
+        "hover:bg-accent/40",
+      )}
+    >
       <button
         type="button"
         onClick={onToggle}
-        className="flex flex-1 items-center gap-1 truncate text-xs font-medium text-foreground/80 hover:text-foreground"
         title={titleAttr}
+        className={cn(
+          "flex flex-1 select-none items-center gap-1 truncate text-xs font-medium transition-colors hover:text-foreground",
+          collapsed ? "text-muted-foreground" : "text-foreground/80",
+        )}
       >
         <HugeiconsIcon
           icon={ChevronRightIcon}

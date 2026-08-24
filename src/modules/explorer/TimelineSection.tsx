@@ -180,8 +180,8 @@ export function TimelineSection({
       );
     }
     return (
-      <div className="flex-1 overflow-y-auto">
-        <ul className="divide-y divide-border">
+      <div className="flex-1 overflow-y-auto py-1">
+        <ul className="divide-y divide-border/60">
           {commits.map((c) => (
             <li key={c.sha}>
               <button
@@ -196,7 +196,7 @@ export function TimelineSection({
                     originalPath: c.oldPath,
                   })
                 }
-                className="flex w-full flex-col gap-0.5 px-3 py-1.5 text-left transition-colors hover:bg-accent/60"
+                className="flex w-full flex-col gap-0.5 px-2 py-1.5 text-left transition-colors hover:bg-accent"
               >
                 <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
                   <HugeiconsIcon

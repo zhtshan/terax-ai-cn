@@ -52,8 +52,10 @@ export const FileExplorer = memo(
     const outline = useSectionCollapse("outline", true);
     const timeline = useSectionCollapse("timeline", true);
 
+    // 显式面板 id 让布局持久化键跨会话稳定（自动 id 基于 useId，会随组件树变化失效）
     const { defaultLayout, onLayoutChanged } = useDefaultLayout({
       id: "explorer-sections",
+      panelIds: ["file-tree", "outline", "timeline"],
       storage: window.localStorage,
     });
 
@@ -72,6 +74,7 @@ export const FileExplorer = memo(
         onLayoutChanged={onLayoutChanged}
       >
         <ResizablePanel
+          id="file-tree"
           panelRef={fileTree.panelRef}
           minSize={15}
           collapsedSize={32}
@@ -89,6 +92,7 @@ export const FileExplorer = memo(
           <div className="mx-auto h-px w-full bg-border transition-colors group-data-[resizing]/handle:bg-primary" />
         </ResizableHandle>
         <ResizablePanel
+          id="outline"
           panelRef={outline.panelRef}
           defaultSize="15"
           minSize={8}
@@ -110,6 +114,7 @@ export const FileExplorer = memo(
           <div className="mx-auto h-px w-full bg-border transition-colors group-data-[resizing]/handle:bg-primary" />
         </ResizableHandle>
         <ResizablePanel
+          id="timeline"
           panelRef={timeline.panelRef}
           defaultSize="15"
           minSize={8}

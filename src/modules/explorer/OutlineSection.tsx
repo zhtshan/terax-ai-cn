@@ -5,6 +5,7 @@ import {
   ChevronRightIcon,
   CollapseIcon,
   ExpandIcon,
+  Structure01Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { Fragment, type ReactNode, useEffect, useMemo, useState } from "react";
@@ -175,6 +176,9 @@ export function OutlineSection({
         title={t("explorer.outline")}
         collapsed={collapsed}
         onToggle={onToggle}
+        icon={
+          <HugeiconsIcon icon={Structure01Icon} size={12} strokeWidth={2} />
+        }
         actions={
           parentKeys.size > 0 ? (
             <Button
