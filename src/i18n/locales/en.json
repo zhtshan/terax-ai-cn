@@ -573,6 +573,42 @@
       "Search": "Search",
       "View": "View",
       "AI": "AI"
+    },
+    "item": {
+      "settingsOpen": "Open settings",
+      "themePick": "Change theme...",
+      "shortcutsOpen": "Keyboard shortcuts",
+      "spacesOverview": "Spaces: Overview",
+      "spacesNew": "New Space",
+      "spacesSwitchTo": "Switch to {{name}}",
+      "tabNew": "New terminal",
+      "tabNewBlock": "New block terminal",
+      "tabNewPrivate": "New private terminal",
+      "tabNewEditor": "New editor tab",
+      "tabNewPreview": "New web preview",
+      "tabClose": "Close tab or pane",
+      "paneSplitRight": "Split pane right",
+      "paneSplitDown": "Split pane down",
+      "gitGraph": "Open git graph",
+      "gitSource": "Toggle source control",
+      "searchContent": "Find content in files",
+      "historyOpen": "Search command history",
+      "searchFocus": "Find in current tab",
+      "explorerFindFiles": "Search files by name",
+      "sidebarToggle": "Toggle file explorer",
+      "aiToggle": "Toggle AI agent",
+      "aiAskSelection": "Ask AI about selection"
+    },
+    "disabled": {
+      "noTerminalTab": "No terminal tab",
+      "paneLimit": "Pane limit",
+      "lastTab": "Last tab",
+      "currentSpace": "Current space",
+      "noSearchableView": "No searchable view"
+    },
+    "hint": {
+      "history": "Search command history",
+      "content": "Find text in files"
     }
   },
   "lsp": {

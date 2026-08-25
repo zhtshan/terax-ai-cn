@@ -12,8 +12,8 @@ import { fileIconUrl } from "@/modules/explorer/lib/iconResolver";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import {
   getBindingTokens,
-  SHORTCUTS,
   type KeyBinding,
+  SHORTCUTS,
   type ShortcutId,
 } from "@/modules/shortcuts";
 import { listBuiltinThemes, useTheme } from "@/modules/theme";
@@ -21,8 +21,8 @@ import {
   AlertCircleIcon,
   ArrowTurnBackwardIcon,
   CommandIcon,
-  Tick02Icon,
   TerminalIcon,
+  Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -34,7 +34,7 @@ import {
   useContentSearch,
 } from "./hooks/useContentSearch";
 import { fuzzyBest } from "./lib/fuzzy";
-import { MODE_HINTS, parseQuery } from "./lib/mode";
+import { getModeHints, parseQuery } from "./lib/mode";
 import { mruRank, mruSnapshot, recordUse } from "./lib/mru";
 import type { PaletteItem } from "./types";
 
@@ -268,7 +268,9 @@ export function CommandPalette({
                     ) : null}
                   </CommandItem>
                 ))}
-                {themes.length === 0 ? <StatusItem label={t("commandPalette.noThemes")} /> : null}
+                {themes.length === 0 ? (
+                  <StatusItem label={t("commandPalette.noThemes")} />
+                ) : null}
               </CommandGroup>
             ) : parsed.mode === "commands" ? (
               rankedCommands.length === 0 ? (
@@ -278,7 +280,10 @@ export function CommandPalette({
                   const rows = rankedCommands.filter((a) => a.group === group);
                   if (rows.length === 0) return null;
                   return (
-                    <CommandGroup key={group} heading={t(`commandPalette.group.${group}`, group)}>
+                    <CommandGroup
+                      key={group}
+                      heading={t(`commandPalette.group.${group}`, group)}
+                    >
                       {rows.map((item) => (
                         <ActionItem
                           key={item.id}
@@ -334,7 +339,9 @@ export function CommandPalette({
             ) : parsed.mode === "history" ? (
               <CommandGroup heading={t("commandPalette.commandHistory")}>
                 {!insertCommand ? (
-                  <StatusItem label={t("commandPalette.openTerminalForHistory")} />
+                  <StatusItem
+                    label={t("commandPalette.openTerminalForHistory")}
+                  />
                 ) : (
                   <AsyncBody
                     loading={history.loading}
@@ -366,7 +373,7 @@ export function CommandPalette({
               </CommandGroup>
             ) : (
               <CommandGroup heading={t("commandPalette.searchModes")}>
-                {MODE_HINTS.map((hint) => (
+                {getModeHints().map((hint) => (
                   <CommandItem
                     key={hint.sigil}
                     value={`hint:${hint.sigil}`}
@@ -398,7 +405,11 @@ function rankCommands(
   }
   const scored: { item: PaletteItem; s: number }[] = [];
   for (const item of items) {
-    const s = fuzzyBest(term, [item.title, item.group, ...(item.keywords ?? [])]);
+    const s = fuzzyBest(term, [
+      item.title,
+      item.group,
+      ...(item.keywords ?? []),
+    ]);
     if (s !== null) scored.push({ item, s });
   }
   scored.sort(
@@ -497,7 +508,9 @@ function StatusItem({
         />
       ) : null}
       <span
-        className={tone === "error" ? "text-destructive" : "text-muted-foreground"}
+        className={
+          tone === "error" ? "text-destructive" : "text-muted-foreground"
+        }
       >
         {label}
       </span>

@@ -568,6 +568,42 @@
       "Search": "搜索",
       "View": "视图",
       "AI": "AI"
+    },
+    "item": {
+      "settingsOpen": "打开设置",
+      "themePick": "更换主题...",
+      "shortcutsOpen": "键盘快捷键",
+      "spacesOverview": "空间：概览",
+      "spacesNew": "新建空间",
+      "spacesSwitchTo": "切换到 {{name}}",
+      "tabNew": "新建终端",
+      "tabNewBlock": "新建 Blocks 终端",
+      "tabNewPrivate": "新建私有终端",
+      "tabNewEditor": "新建编辑器标签页",
+      "tabNewPreview": "新建网页预览",
+      "tabClose": "关闭标签页或分屏",
+      "paneSplitRight": "向右分屏",
+      "paneSplitDown": "向下分屏",
+      "gitGraph": "打开 Git 图谱",
+      "gitSource": "切换源代码管理",
+      "searchContent": "在文件中查找内容",
+      "historyOpen": "搜索命令历史",
+      "searchFocus": "在当前标签页中查找",
+      "explorerFindFiles": "按名称搜索文件",
+      "sidebarToggle": "切换文件浏览器",
+      "aiToggle": "切换 AI 代理",
+      "aiAskSelection": "向 AI 询问选区"
+    },
+    "disabled": {
+      "noTerminalTab": "没有终端标签页",
+      "paneLimit": "分屏已达上限",
+      "lastTab": "最后一个标签页",
+      "currentSpace": "当前空间",
+      "noSearchableView": "当前视图不支持查找"
+    },
+    "hint": {
+      "history": "搜索命令历史",
+      "content": "在文件中查找文本"
     }
   },
   "lsp": {
