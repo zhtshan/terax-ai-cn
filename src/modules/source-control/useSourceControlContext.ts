@@ -1,7 +1,8 @@
-import { useCallback, useMemo } from "react";
 import { native } from "@/modules/ai/lib/native";
 import type { SidebarViewId } from "@/modules/sidebar";
 import type { Tab } from "@/modules/tabs";
+import { useBlockController } from "@/modules/terminal/lib/blockController";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useSourceControl } from "./useSourceControl";
 
 function dirname(path: string | null): string | null {
@@ -15,6 +16,7 @@ function dirname(path: string | null): string | null {
 type Params = {
   activeTab: Tab | undefined;
   tabs: Tab[];
+  activeLeafId: number | null;
   activeTerminalLeafCwd: string | null;
   explorerRoot: string | null;
   launchCwd: string | null;
@@ -36,6 +38,7 @@ type Params = {
 export function useSourceControlContext({
   activeTab,
   tabs,
+  activeLeafId,
   activeTerminalLeafCwd,
   explorerRoot,
   launchCwd,
@@ -77,6 +80,27 @@ export function useSourceControlContext({
     ? sourceControlContextPath
     : badgeContextPath;
   const sourceControl = useSourceControl(sourceControlPath, true);
+
+  // A terminal command finishing (e.g. `git checkout`) doesn't change cwd, so
+  // the contextPath-driven refresh in useSourceControl never fires for it.
+  // Re-check status on the prompt-returns transition to keep the branch
+  // indicator honest without polling.
+  const terminalLeafId = activeTab?.kind === "terminal" ? activeLeafId : null;
+  const blockController = useBlockController(terminalLeafId);
+  const blockMode = blockController?.blockMode ?? "prompt";
+  const prevBlockRef = useRef({ leafId: terminalLeafId, mode: blockMode });
+  const sourceControlRefresh = sourceControl.refresh;
+  useEffect(() => {
+    const prev = prevBlockRef.current;
+    if (
+      prev.leafId === terminalLeafId &&
+      prev.mode !== "prompt" &&
+      blockMode === "prompt"
+    ) {
+      void sourceControlRefresh({ remote: "never" });
+    }
+    prevBlockRef.current = { leafId: terminalLeafId, mode: blockMode };
+  }, [terminalLeafId, blockMode, sourceControlRefresh]);
 
   const toggleSourceControl = useCallback(() => {
     cycleSidebarView("source-control");

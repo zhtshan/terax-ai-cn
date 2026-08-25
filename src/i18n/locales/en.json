@@ -916,6 +916,7 @@
     "noBranches": "No branches found.",
     "workingTreeClean": "Working tree clean",
     "onBranch": "on {{branch}}",
+    "checkoutSuccess": "Current branch is {{branch}}",
     "changes": "Changes",
     "all": "All",
     "changedFiles": "Changed files",

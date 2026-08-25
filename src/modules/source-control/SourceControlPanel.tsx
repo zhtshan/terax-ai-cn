@@ -219,14 +219,17 @@ function BranchDropdown({
         setBranches([]);
         setOpen(false);
         onRefresh();
+        toast.success(t("sourceControl.checkoutSuccess", { branch }), {
+          position: "top-left",
+        });
       } catch (e) {
-        toast.error(String(e));
+        toast.error(String(e), { position: "top-left" });
       } finally {
         checkoutInFlight.current = false;
         setCheckingOut(false);
       }
     },
-    [repoRoot, onRefresh],
+    [repoRoot, onRefresh, t],
   );
 
   const localBranches = useMemo(

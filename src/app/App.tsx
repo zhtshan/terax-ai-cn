@@ -750,6 +750,7 @@ export default function App() {
     useSourceControlContext({
       activeTab,
       tabs,
+      activeLeafId,
       activeTerminalLeafCwd,
       explorerRoot,
       launchCwd,

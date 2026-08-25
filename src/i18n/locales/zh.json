@@ -911,6 +911,7 @@
     "noBranches": "未找到分支。",
     "workingTreeClean": "工作区干净",
     "onBranch": "位于 {{branch}}",
+    "checkoutSuccess": "当前分支是 {{branch}}",
     "changes": "更改",
     "all": "全部",
     "changedFiles": "已更改的文件",
