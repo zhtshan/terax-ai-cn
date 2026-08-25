@@ -377,6 +377,7 @@ export default function App() {
     activeTab,
     tabs,
     launchCwd ?? home,
+    activeSpaceId,
   );
 
   useEffect(() => {
