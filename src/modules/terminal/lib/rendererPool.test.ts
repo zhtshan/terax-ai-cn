@@ -24,8 +24,35 @@ const mockTermMethods = {
   dispose: vi.fn(),
 };
 
+type MockTextarea = {
+  addEventListener: ReturnType<typeof vi.fn>;
+  removeEventListener: ReturnType<typeof vi.fn>;
+  dispatch: (type: string, ev: Record<string, unknown>) => void;
+};
+
+function makeMockTextarea(): MockTextarea {
+  const listeners = new Map<string, ((ev: unknown) => void)[]>();
+  const ta: MockTextarea = {
+    addEventListener: vi.fn(
+      (type: string, fn: (ev: unknown) => void, _capture?: boolean) => {
+        const list = listeners.get(type) ?? [];
+        list.push(fn);
+        listeners.set(type, list);
+      },
+    ),
+    removeEventListener: vi.fn(),
+    dispatch: (type, ev) => {
+      for (const fn of listeners.get(type) ?? []) fn(ev);
+    },
+  };
+  return ta;
+}
+
+let lastTextarea: MockTextarea | null = null;
+
 function MockTerminal(_options: Record<string, unknown>) {
-  return { ...mockTermMethods };
+  lastTextarea = makeMockTextarea();
+  return { ...mockTermMethods, textarea: lastTextarea };
 }
 
 // Mock xterm package.
@@ -130,6 +157,32 @@ afterEach(async () => {
   } catch {}
 });
 
+function makeContainer(): HTMLDivElement {
+  return {
+    clientWidth: 1024,
+    clientHeight: 768,
+    appendChild: vi.fn(),
+    removeChild: vi.fn(),
+    getBoundingClientRect: vi.fn(() => ({ width: 1024, height: 768 })),
+  } as unknown as HTMLDivElement;
+}
+
+function acquireParams(leafId: number) {
+  return {
+    leafId,
+    container: makeContainer(),
+    snapshot: null,
+    altScreen: false,
+    drainRing: vi.fn(),
+    shellExited: false,
+    searchQuery: null,
+    cols: 80,
+    rows: 24,
+    registerOsc: vi.fn(() => []),
+    onSearchReady: vi.fn(),
+  };
+}
+
 describe("setExplorerRoot", () => {
   it("is exported as a function", async () => {
     const { setExplorerRoot } = await import("./rendererPool");
@@ -148,32 +201,6 @@ describe("setExplorerRoot", () => {
 });
 
 describe("createSlot file link registration", () => {
-  function makeContainer(): HTMLDivElement {
-    return {
-      clientWidth: 1024,
-      clientHeight: 768,
-      appendChild: vi.fn(),
-      removeChild: vi.fn(),
-      getBoundingClientRect: vi.fn(() => ({ width: 1024, height: 768 })),
-    } as unknown as HTMLDivElement;
-  }
-
-  function acquireParams(leafId: number) {
-    return {
-      leafId,
-      container: makeContainer(),
-      snapshot: null,
-      altScreen: false,
-      drainRing: vi.fn(),
-      shellExited: false,
-      searchQuery: null,
-      cols: 80,
-      rows: 24,
-      registerOsc: vi.fn(() => []),
-      onSearchReady: vi.fn(),
-    };
-  }
-
   it("registers FileLinkProvider even before the explorer root is known", async () => {
     const registerMock = vi.fn(() => ({ dispose: vi.fn() }));
     vi.doMock("./FileLinkProvider", () => ({
@@ -265,5 +292,123 @@ describe("createSlot file link registration", () => {
 
     setExplorerRoot("/workspace/root");
     expect(callOpts.getExplorerRoot()).toBe("/workspace/root");
+  });
+});
+
+describe("custom key event handler IME guard", () => {
+  function keyEvent(overrides: Partial<KeyboardEvent>): KeyboardEvent {
+    return {
+      type: "keydown",
+      isComposing: false,
+      keyCode: 0,
+      key: "",
+      code: "",
+      altKey: false,
+      ctrlKey: false,
+      metaKey: false,
+      shiftKey: false,
+      preventDefault: vi.fn(),
+      ...overrides,
+    } as unknown as KeyboardEvent;
+  }
+
+  async function lastHandler(): Promise<(e: KeyboardEvent) => boolean> {
+    const { configureRendererPool, acquireSlot } = await import("./rendererPool");
+    configureRendererPool({
+      resolveLeaf: vi.fn(),
+      evictLeaf: vi.fn(),
+      isLeafFocused: vi.fn(),
+      isLeafBlocks: vi.fn(),
+      isLeafBusy: vi.fn(),
+      isLeafVisible: vi.fn(),
+      storeSnapshot: vi.fn(),
+    } as never);
+    acquireSlot(acquireParams(9));
+    const attach = mockTermMethods.attachCustomKeyEventHandler;
+    const calls = attach.mock.calls as [(e: KeyboardEvent) => boolean][];
+    const handler = calls[calls.length - 1][0];
+    expect(typeof handler).toBe("function");
+    return handler;
+  }
+
+  // keyCode 229 without an active composition is WKWebView's IME punctuation
+  // path: blocking it skips xterm's CompositionHelper textarea fallback and
+  // swallows the keystroke until a second press.
+  it("lets keyCode 229 fall through to xterm's composition fallback", async () => {
+    const handler = await lastHandler();
+    expect(
+      handler(keyEvent({ keyCode: 229, key: "(", code: "Digit9" })),
+    ).toBe(true);
+  });
+
+  it("still suppresses keydowns during an active IME composition", async () => {
+    const handler = await lastHandler();
+    expect(
+      handler(keyEvent({ isComposing: true, keyCode: 229, key: "Process" })),
+    ).toBe(false);
+    expect(
+      handler(keyEvent({ isComposing: true, keyCode: 13, key: "Enter" })),
+    ).toBe(false);
+  });
+});
+
+describe("WebKit insertText re-emit (xterm #5374 workaround)", () => {
+  async function setup(): Promise<{ ta: MockTextarea; writeToPty: ReturnType<typeof vi.fn> }> {
+    const { configureRendererPool, acquireSlot } = await import("./rendererPool");
+    const writeToPty = vi.fn();
+    configureRendererPool({
+      resolveLeaf: vi.fn(() => ({ writeToPty })),
+      evictLeaf: vi.fn(),
+      isLeafFocused: vi.fn(),
+      isLeafBlocks: vi.fn(),
+      isLeafBusy: vi.fn(),
+      isLeafVisible: vi.fn(),
+      storeSnapshot: vi.fn(),
+    } as never);
+    acquireSlot(acquireParams(21));
+    expect(lastTextarea).not.toBeNull();
+    return { ta: lastTextarea as MockTextarea, writeToPty };
+  }
+
+  function insertTextEvent(data: string): Record<string, unknown> {
+    return { isComposing: false, inputType: "insertText", data };
+  }
+
+  // Shift held (keydown seen since keyup) + WebKit input-before-keydown:
+  // xterm's input handler skips (dedupe) and the 229 fallback diffs an
+  // already-populated textarea — the workaround must re-emit the character.
+  it("re-emits insertText when a modifier key is held down (Shift+? case)", async () => {
+    const { ta, writeToPty } = await setup();
+    ta.dispatch("keydown", { keyCode: 16, isComposing: false });
+    ta.dispatch("input", insertTextEvent("?"));
+    expect(writeToPty).toHaveBeenCalledTimes(1);
+    expect(writeToPty).toHaveBeenCalledWith("?");
+  });
+
+  // keydown(229) arrives first: xterm's composition fallback (setTimeout
+  // diff) is pending and will emit the character, so the workaround must
+  // not double-send.
+  it("does not re-emit while the 229 composition fallback is pending", async () => {
+    const { ta, writeToPty } = await setup();
+    ta.dispatch("keydown", { keyCode: 229, isComposing: false });
+    ta.dispatch("input", insertTextEvent("("));
+    expect(writeToPty).not.toHaveBeenCalled();
+  });
+
+  // No keydown since the last keyup: xterm's own input handler emits the
+  // character, so the workaround must stay out of the way.
+  it("does not re-emit when xterm's input handler will emit", async () => {
+    const { ta, writeToPty } = await setup();
+    ta.dispatch("keyup", { keyCode: 16, isComposing: false });
+    ta.dispatch("input", insertTextEvent("a"));
+    expect(writeToPty).not.toHaveBeenCalled();
+  });
+
+  it("ignores composition input so IME sessions stay untouched", async () => {
+    const { ta, writeToPty } = await setup();
+    ta.dispatch("keydown", { keyCode: 16, isComposing: false });
+    ta.dispatch("input", { isComposing: true, inputType: "insertCompositionText", data: "你" });
+    ta.dispatch("input", { isComposing: false, inputType: "insertCompositionText", data: "你" });
+    expect(writeToPty).not.toHaveBeenCalled();
   });
 });

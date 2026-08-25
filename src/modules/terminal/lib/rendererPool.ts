@@ -248,15 +248,60 @@ function createSlot(): Slot {
     lastUsedAt: 0,
   };
 
+  // WebKit-only IME keystroke loss (xtermjs/xterm.js#5374): a keydown seen
+  // since the last keyup (Shift held for "?") makes xterm's input handler
+  // drop the insertText event (its _keyDownSeen dedupe), while WebKit
+  // delivers that event BEFORE the keydown so the 229 composition fallback
+  // diffs an already-populated textarea and emits nothing — the character
+  // surfaces only on the next keypress. Mirror both internal guards and
+  // re-emit what the two xterm paths both miss.
+  const inputEl = term.textarea;
+  if (inputEl) {
+    let keyDownSinceKeyUp = false;
+    let fallbackPending = false;
+    inputEl.addEventListener(
+      "keydown",
+      (ev) => {
+        keyDownSinceKeyUp = true;
+        if (ev.keyCode === 229 && !ev.isComposing) {
+          fallbackPending = true;
+          setTimeout(() => {
+            fallbackPending = false;
+          }, 0);
+        }
+      },
+      true,
+    );
+    inputEl.addEventListener(
+      "keyup",
+      () => {
+        keyDownSinceKeyUp = false;
+      },
+      true,
+    );
+    inputEl.addEventListener("input", (ev) => {
+      const input = ev as InputEvent;
+      if (!input || input.isComposing) return;
+      if (input.inputType !== "insertText" || typeof input.data !== "string" || !input.data)
+        return;
+      // keydown-first ordering: the pending 229 fallback emits it.
+      if (fallbackPending) return;
+      // No modifier key held: xterm's own input handler emits it.
+      if (!keyDownSinceKeyUp) return;
+      const leafId = slot.currentLeafId;
+      if (leafId !== null) adapter?.resolveLeaf(leafId)?.writeToPty(input.data);
+    });
+  }
+
   term.attachCustomKeyEventHandler((event) => {
-    // During IME composition the browser is assembling a multi-keystroke
-    // character (Chinese pinyin → hanzi, Korean jamo → syllable, etc.).
-    // Raw keydown events — including the Enter that commits a candidate —
-    // must NOT be forwarded to the PTY; xterm will receive the final
-    // composed string through its own compositionend handler instead.
-    // keyCode 229 ("Process") is what Chromium reports for every key
-    // pressed inside an active IME session when isComposing is not yet set.
-    if (event.isComposing || event.keyCode === 229) return false;
+    // Suppress raw keydowns while an IME composition is active (Chinese
+    // pinyin → hanzi, incl. the Enter that commits a candidate): xterm
+    // delivers the composed string itself via compositionend. keyCode 229
+    // WITHOUT an active composition (WKWebView IME punctuation insertText)
+    // must fall through to xterm's CompositionHelper — returning false here
+    // skips its textarea-change fallback and swallows the keystroke
+    // (press-twice-to-type on macOS).
+    if (event.isComposing) return false;
 
     const leafId = slot.currentLeafId;
     if (leafId === null) return false;
