@@ -11,10 +11,13 @@ All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog
 - 编辑器 diff 视图并排对比：支持提交与工作区 diff 对比，打开后自动定位到第一处差异
 - 底部状态栏添加 diff 可视化标记
 - codegraph 索引入库，支持本地代码图检索
+- 时间线提交记录添加右键复制菜单
 
 ### Changed
 - Explorer 大纲/时间线分区折叠逻辑统一为通用带下限保护的布局函数（`shiftLayout`），各分区互不干扰
 - 大纲/时间线分区样式优化，折叠态持久化更稳定
+- i18n(命令面板): 命令标题、禁用原因、搜索提示改为多语言
+- 优化 claude 自动加载资源文件
 
 ### Fixed
 - 修复 reload 按钮无效问题
@@ -23,6 +26,7 @@ All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog
 - 修复 diff 合并视图 settle 动画帧清理泄漏
 - 修复 TimelineSection 注释引用未更新问题
 - 标签页状态管理优化（`useTabs`）
+- 修复 IME 输入符号需按两次才显示的问题
 
 ---
 
