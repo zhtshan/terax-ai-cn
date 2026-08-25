@@ -46,7 +46,7 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete "${GITHUB_REF_NAME}" --yes --repo "$GITHUB_REPOSITORY" 2>$null || true
+          gh release delete "${GITHUB_REF_NAME}" --yes --repo "$GITHUB_REPOSITORY" || true
 
       - uses: actions/setup-node@v7
         with:
