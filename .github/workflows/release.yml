@@ -59,6 +59,16 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Extract changelog for this version
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          awk -v ver="$VERSION" '
+            index($0, "## [" ver "]") == 1 {found=1; next}
+            found && /^---$/ {found=0; exit}
+            found && /^## / && index($0, "## [" ver "]") != 1 {found=0; exit}
+            found {print}
+          ' CHANGELOG.md > release-notes.md
+
       - id: tauri
         uses: tauri-apps/tauri-action@v1
         env:
@@ -69,7 +79,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Terax ${{ github.ref_name }}"
-          releaseBody: "See the assets to download and install. Auto-update is built in."
+          releaseBodyFile: release-notes.md
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
