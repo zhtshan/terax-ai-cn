@@ -41,12 +41,19 @@ jobs:
 
       - uses: pnpm/action-setup@v6
 
-      - name: Delete existing release (if any)
-        if: startsWith(github.ref, 'refs/tags/')
+      - name: Delete existing release (Unix)
+        if: startsWith(github.ref, 'refs/tags/') && runner.os != 'Windows'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          gh release delete "${GITHUB_REF_NAME}" --yes --repo "$GITHUB_REPOSITORY" 2>$null || true
+          gh release delete "${GITHUB_REF_NAME}" --yes --repo "$GITHUB_REPOSITORY" 2>/dev/null || true
+
+      - name: Delete existing release (Windows)
+        if: startsWith(github.ref, 'refs/tags/') && runner.os == 'Windows'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh release delete "${GITHUB_REF_NAME}" --yes --repo "$GITHUB_REPOSITORY" -ErrorAction SilentlyContinue
 
       - uses: actions/setup-node@v7
         with:
