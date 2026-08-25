@@ -1,3 +1,4 @@
+import i18next from "i18next";
 import type { PaletteMode } from "../types";
 
 export type ParsedQuery = {
@@ -21,7 +22,12 @@ export function parseQuery(raw: string): ParsedQuery {
   return { mode: "commands", term: raw.trim(), raw };
 }
 
-export const MODE_HINTS: ReadonlyArray<{ sigil: string; label: string }> = [
-  { sigil: ">", label: "Search command history" },
-  { sigil: "#", label: "Find text in files" },
-];
+export function getModeHints(): ReadonlyArray<{
+  sigil: string;
+  label: string;
+}> {
+  return [
+    { sigil: ">", label: i18next.t("commandPalette.hint.history") },
+    { sigil: "#", label: i18next.t("commandPalette.hint.content") },
+  ];
+}

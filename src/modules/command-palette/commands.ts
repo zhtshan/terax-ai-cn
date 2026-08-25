@@ -19,6 +19,7 @@ import {
   SparklesIcon,
   TerminalIcon,
 } from "@hugeicons/core-free-icons";
+import i18next from "i18next";
 import type { PaletteItem } from "./types";
 
 export const COMMAND_GROUPS = [
@@ -75,17 +76,20 @@ export function createCommandItems(
   const onlyOneTab = ctx.tabs.length < 2;
   const noWorkspaceRoot = !ctx.explorerRoot && !ctx.home;
   const splitDisabled = !activeTerminalTab
-    ? "No terminal tab"
+    ? i18next.t("commandPalette.disabled.noTerminalTab")
     : activePaneCount >= MAX_PANES_PER_TAB
-      ? "Pane limit"
+      ? i18next.t("commandPalette.disabled.paneLimit")
       : undefined;
   const closeDisabled =
-    onlyOneTab && activePaneCount < 2 ? "Last tab" : undefined;
+    onlyOneTab && activePaneCount < 2
+      ? i18next.t("commandPalette.disabled.lastTab")
+      : undefined;
+  const noWorkspaceRootReason = i18next.t("commandPalette.noWorkspaceRoot");
 
   return [
     {
       id: "settings.open",
-      title: "Open settings",
+      title: i18next.t("commandPalette.item.settingsOpen"),
       group: "General",
       keywords: ["preferences", "config"],
       icon: Settings01Icon,
@@ -94,7 +98,7 @@ export function createCommandItems(
     },
     {
       id: "theme.pick",
-      title: "Change theme...",
+      title: i18next.t("commandPalette.item.themePick"),
       group: "General",
       keywords: ["theme", "appearance", "color", "dark", "light"],
       icon: PaintBoardIcon,
@@ -102,7 +106,7 @@ export function createCommandItems(
     },
     {
       id: "shortcuts.open",
-      title: "Keyboard shortcuts",
+      title: i18next.t("commandPalette.item.shortcutsOpen"),
       group: "General",
       keywords: ["keys", "keybindings", "settings"],
       icon: KeyboardIcon,
@@ -110,15 +114,22 @@ export function createCommandItems(
     },
     {
       id: "spaces.overview",
-      title: "Spaces: Overview",
+      title: i18next.t("commandPalette.item.spacesOverview"),
       group: "Spaces",
-      keywords: ["spaces", "sessions", "overview", "organize", "manage", "move"],
+      keywords: [
+        "spaces",
+        "sessions",
+        "overview",
+        "organize",
+        "manage",
+        "move",
+      ],
       icon: DashboardSquare01Icon,
       run: ctx.openSpacesOverview,
     },
     {
       id: "spaces.new",
-      title: "New Space",
+      title: i18next.t("commandPalette.item.spacesNew"),
       group: "Spaces",
       keywords: ["space", "session", "workspace", "group", "create"],
       icon: DashboardSquare01Icon,
@@ -126,17 +137,19 @@ export function createCommandItems(
     },
     ...ctx.spaces.map((sp) => ({
       id: `spaces.switch.${sp.id}`,
-      title: `Switch to ${sp.name}`,
+      title: i18next.t("commandPalette.item.spacesSwitchTo", { name: sp.name }),
       group: "Spaces" as const,
       keywords: ["space", "switch", "session", sp.name],
       icon: DashboardSquare01Icon,
       disabledReason:
-        sp.id === ctx.activeSpaceId ? "Current space" : undefined,
+        sp.id === ctx.activeSpaceId
+          ? i18next.t("commandPalette.disabled.currentSpace")
+          : undefined,
       run: () => ctx.switchSpace(sp.id),
     })),
     {
       id: "tab.new",
-      title: "New terminal",
+      title: i18next.t("commandPalette.item.tabNew"),
       group: "Tabs",
       keywords: ["shell", "terminal", "new tab"],
       icon: TerminalIcon,
@@ -145,7 +158,7 @@ export function createCommandItems(
     },
     {
       id: "tab.newBlock",
-      title: "New block terminal",
+      title: i18next.t("commandPalette.item.tabNewBlock"),
       group: "Tabs",
       keywords: ["blocks", "warp", "command blocks", "terminal"],
       icon: DashboardSquare01Icon,
@@ -153,7 +166,7 @@ export function createCommandItems(
     },
     {
       id: "tab.newPrivate",
-      title: "New private terminal",
+      title: i18next.t("commandPalette.item.tabNewPrivate"),
       group: "Tabs",
       keywords: ["privacy", "private", "incognito", "hidden from ai"],
       icon: IncognitoIcon,
@@ -162,17 +175,17 @@ export function createCommandItems(
     },
     {
       id: "tab.newEditor",
-      title: "New editor tab",
+      title: i18next.t("commandPalette.item.tabNewEditor"),
       group: "Tabs",
       keywords: ["file", "editor", "create"],
       icon: FileEditIcon,
       shortcutId: "tab.newEditor",
-      disabledReason: noWorkspaceRoot ? "No workspace root" : undefined,
+      disabledReason: noWorkspaceRoot ? noWorkspaceRootReason : undefined,
       run: ctx.openNewEditor,
     },
     {
       id: "tab.newPreview",
-      title: "New web preview",
+      title: i18next.t("commandPalette.item.tabNewPreview"),
       group: "Tabs",
       keywords: ["browser", "web", "localhost", "preview"],
       icon: Globe02Icon,
@@ -181,7 +194,7 @@ export function createCommandItems(
     },
     {
       id: "tab.close",
-      title: "Close tab or pane",
+      title: i18next.t("commandPalette.item.tabClose"),
       group: "Tabs",
       keywords: ["close", "remove", "pane"],
       icon: Cancel01Icon,
@@ -191,7 +204,7 @@ export function createCommandItems(
     },
     {
       id: "pane.splitRight",
-      title: "Split pane right",
+      title: i18next.t("commandPalette.item.paneSplitRight"),
       group: "Panes",
       keywords: ["terminal", "pane", "split", "right", "column"],
       icon: LayoutTwoColumnIcon,
@@ -201,7 +214,7 @@ export function createCommandItems(
     },
     {
       id: "pane.splitDown",
-      title: "Split pane down",
+      title: i18next.t("commandPalette.item.paneSplitDown"),
       group: "Panes",
       keywords: ["terminal", "pane", "split", "down", "row"],
       icon: LayoutTwoRowIcon,
@@ -211,7 +224,7 @@ export function createCommandItems(
     },
     {
       id: "git.graph",
-      title: "Open git graph",
+      title: i18next.t("commandPalette.item.gitGraph"),
       group: "Git",
       keywords: ["git", "graph", "history", "log", "commits"],
       icon: SourceCodeIcon,
@@ -219,7 +232,7 @@ export function createCommandItems(
     },
     {
       id: "git.source",
-      title: "Toggle source control",
+      title: i18next.t("commandPalette.item.gitSource"),
       group: "Git",
       keywords: ["git", "source control", "changes", "staging", "diff"],
       icon: SourceCodeIcon,
@@ -228,7 +241,7 @@ export function createCommandItems(
     },
     {
       id: "search.content",
-      title: "Find content in files",
+      title: i18next.t("commandPalette.item.searchContent"),
       group: "Search",
       keywords: ["grep", "ripgrep", "text", "contents", "search in files"],
       icon: FileSearchIcon,
@@ -237,7 +250,7 @@ export function createCommandItems(
     },
     {
       id: "history.open",
-      title: "Search command history",
+      title: i18next.t("commandPalette.item.historyOpen"),
       group: "Search",
       keywords: ["history", "shell", "rerun", "previous commands"],
       icon: TerminalIcon,
@@ -246,27 +259,29 @@ export function createCommandItems(
     },
     {
       id: "search.focus",
-      title: "Find in current tab",
+      title: i18next.t("commandPalette.item.searchFocus"),
       group: "Search",
       keywords: ["find", "terminal", "editor", "current"],
       icon: Search01Icon,
       shortcutId: "search.focus",
-      disabledReason: ctx.searchTarget ? undefined : "No searchable view",
+      disabledReason: ctx.searchTarget
+        ? undefined
+        : i18next.t("commandPalette.disabled.noSearchableView"),
       run: ctx.focusSearch,
     },
     {
       id: "explorer.findFiles",
-      title: "Search files by name",
+      title: i18next.t("commandPalette.item.explorerFindFiles"),
       group: "Search",
       keywords: ["explorer", "workspace", "file", "open"],
       icon: Search01Icon,
       shortcutId: "explorer.findFiles",
-      disabledReason: ctx.explorerRoot ? undefined : "No workspace root",
+      disabledReason: ctx.explorerRoot ? undefined : noWorkspaceRootReason,
       run: ctx.focusExplorerSearch,
     },
     {
       id: "sidebar.toggle",
-      title: "Toggle file explorer",
+      title: i18next.t("commandPalette.item.sidebarToggle"),
       group: "View",
       keywords: ["sidebar", "files", "explorer"],
       icon: SidebarLeftIcon,
@@ -275,7 +290,7 @@ export function createCommandItems(
     },
     {
       id: "ai.toggle",
-      title: "Toggle AI agent",
+      title: i18next.t("commandPalette.item.aiToggle"),
       group: "AI",
       keywords: ["assistant", "chat", "agent"],
       icon: SparklesIcon,
@@ -284,7 +299,7 @@ export function createCommandItems(
     },
     {
       id: "ai.askSelection",
-      title: "Ask AI about selection",
+      title: i18next.t("commandPalette.item.aiAskSelection"),
       group: "AI",
       keywords: ["selection", "explain", "assistant", "chat"],
       icon: SparklesIcon,
