@@ -754,7 +754,9 @@
     "timelineLoading": "加载中…",
     "timelineLoadMore": "加载更早的提交",
     "timelineLoadMoreFailed": "加载失败，点击重试",
-    "timelineOutsideRepo": "当前文件不在 Git 仓库内"
+    "timelineOutsideRepo": "当前文件不在 Git 仓库内",
+    "copyCommitId": "复制提交 ID",
+    "copyCommitMessage": "复制提交消息"
   },
   "preview": {
     "enterUrl": "请输入 URL 或选择端口预设。",

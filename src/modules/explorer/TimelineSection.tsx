@@ -1,3 +1,9 @@
+import {
+  ContextMenu,
+  ContextMenuContent,
+  ContextMenuItem,
+  ContextMenuTrigger,
+} from "@/components/ui/context-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
 import { type GitLogEntry, native } from "@/modules/ai/lib/native";
@@ -6,6 +12,8 @@ import { Clock01Icon, GitBranchIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { copyToClipboard } from "./lib/contextActions";
+import { COMPACT_CONTENT, COMPACT_ITEM } from "./lib/menuItemClass";
 import { SectionHeader } from "./SectionHeader";
 
 const PAGE_SIZE = 30;
@@ -189,39 +197,57 @@ export function TimelineSection({
         <ul className="divide-y divide-border/60">
           {commits.map((c) => (
             <li key={c.sha}>
-              <button
-                type="button"
-                onClick={() =>
-                  onOpenCommitFile({
-                    repoRoot: resolvedRepoRoot,
-                    sha: c.sha,
-                    shortSha: c.shortSha,
-                    subject: c.subject,
-                    path: effectiveFilePath,
-                    originalPath: c.oldPath,
-                    compareTo: "working",
-                  })
-                }
-                className="flex w-full flex-col gap-0.5 px-2 py-1.5 text-left transition-colors hover:bg-accent"
-              >
-                <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-                  <HugeiconsIcon
-                    icon={GitBranchIcon}
-                    size={11}
-                    strokeWidth={2}
-                  />
-                  <span className="font-mono">{c.shortSha}</span>
-                  <span className="flex-1 truncate text-foreground/80">
-                    {c.subject}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between text-[10px] text-muted-foreground">
-                  <span className="truncate">{c.author}</span>
-                  <span className="shrink-0">
-                    {formatRelativeTime(c.timestampSecs)}
-                  </span>
-                </div>
-              </button>
+              <ContextMenu>
+                <ContextMenuTrigger asChild>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onOpenCommitFile({
+                        repoRoot: resolvedRepoRoot,
+                        sha: c.sha,
+                        shortSha: c.shortSha,
+                        subject: c.subject,
+                        path: effectiveFilePath,
+                        originalPath: c.oldPath,
+                        compareTo: "working",
+                      })
+                    }
+                    className="flex w-full flex-col gap-0.5 px-2 py-1.5 text-left transition-colors hover:bg-accent"
+                  >
+                    <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+                      <HugeiconsIcon
+                        icon={GitBranchIcon}
+                        size={11}
+                        strokeWidth={2}
+                      />
+                      <span className="font-mono">{c.shortSha}</span>
+                      <span className="flex-1 truncate text-foreground/80">
+                        {c.subject}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                      <span className="truncate">{c.author}</span>
+                      <span className="shrink-0">
+                        {formatRelativeTime(c.timestampSecs)}
+                      </span>
+                    </div>
+                  </button>
+                </ContextMenuTrigger>
+                <ContextMenuContent className={COMPACT_CONTENT}>
+                  <ContextMenuItem
+                    className={COMPACT_ITEM}
+                    onSelect={() => void copyToClipboard(c.sha)}
+                  >
+                    {t("explorer.copyCommitId")}
+                  </ContextMenuItem>
+                  <ContextMenuItem
+                    className={COMPACT_ITEM}
+                    onSelect={() => void copyToClipboard(c.subject)}
+                  >
+                    {t("explorer.copyCommitMessage")}
+                  </ContextMenuItem>
+                </ContextMenuContent>
+              </ContextMenu>
             </li>
           ))}
         </ul>

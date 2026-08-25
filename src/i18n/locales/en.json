@@ -759,7 +759,9 @@
     "timelineLoading": "Loading…",
     "timelineLoadMore": "Load earlier commits",
     "timelineLoadMoreFailed": "Failed to load — tap to retry",
-    "timelineOutsideRepo": "File is outside any Git repository"
+    "timelineOutsideRepo": "File is outside any Git repository",
+    "copyCommitId": "Copy Commit ID",
+    "copyCommitMessage": "Copy Commit Message"
   },
   "preview": {
     "enterUrl": "Enter a URL or pick a port preset.",
