@@ -9,6 +9,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { resolveImageUrl } from "@/modules/markdown";
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { UIMessage } from "ai";
@@ -22,7 +23,11 @@ import {
   useMemo,
   useState,
 } from "react";
-import { Streamdown } from "streamdown";
+import {
+  defaultUrlTransform,
+  Streamdown,
+  type UrlTransform,
+} from "streamdown";
 import { ChatStreamingProvider } from "./chat-code";
 import { MarkdownCode } from "./markdown-code";
 import { streamdownPlugins } from "./markdownPlugins";
@@ -324,6 +329,14 @@ export type MessageResponseProps = ComponentProps<typeof Streamdown> & {
 
 const streamdownComponents = { code: MarkdownCode };
 
+// Module-level constant: stable reference across renders.
+const transformMessageImageUrl: UrlTransform = (url, key, node) => {
+  if (node.tagName === "img" && key === "src") {
+    return resolveImageUrl(url, {});
+  }
+  return defaultUrlTransform(url, key, node);
+};
+
 export const MessageResponse = memo(
   ({ className, streaming = false, ...props }: MessageResponseProps) => (
     <ChatStreamingProvider value={streaming}>
@@ -334,6 +347,7 @@ export const MessageResponse = memo(
         )}
         components={streamdownComponents}
         plugins={streamdownPlugins}
+        urlTransform={transformMessageImageUrl}
         {...props}
       />
     </ChatStreamingProvider>

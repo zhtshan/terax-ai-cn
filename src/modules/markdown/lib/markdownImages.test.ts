@@ -5,7 +5,11 @@ vi.mock("@tauri-apps/api/core", () => ({
 }));
 
 import { convertFileSrc } from "@tauri-apps/api/core";
-import { resolveImageUrl, type ImageUrlContext } from "./markdownImages";
+import {
+  type ImageUrlContext,
+  markdownImageDirname,
+  resolveImageUrl,
+} from "./markdownImages";
 
 const mockConvert = vi.mocked(convertFileSrc);
 const localCtx: ImageUrlContext = {
@@ -15,6 +19,16 @@ const localCtx: ImageUrlContext = {
 
 beforeEach(() => {
   mockConvert.mockClear();
+});
+
+describe("markdownImageDirname", () => {
+  it("extracts the directory portion", () => {
+    expect(markdownImageDirname("/home/u/notes/a.md")).toBe("/home/u/notes");
+    expect(markdownImageDirname("C:\\Users\\u\\doc\\a.md")).toBe(
+      "C:/Users/u/doc",
+    );
+    expect(markdownImageDirname("a.md")).toBe("");
+  });
 });
 
 describe("resolveImageUrl remote schemes", () => {

@@ -22,6 +22,14 @@ function toAsset(path: string): string {
   return convertFileSrc(path.replace(/\\/g, "/"));
 }
 
+/** Directory part of a file path ("/a/b/c.md" -> "/a/b"); "" when bare or root. */
+export function markdownImageDirname(path: string): string {
+  const normalized = path.replace(/\\/g, "/");
+  const idx = normalized.lastIndexOf("/");
+  if (idx <= 0) return "";
+  return normalized.slice(0, idx);
+}
+
 /**
  * Decide what an <img src> inside markdown should load.
  * Returns undefined to drop the attribute (broken-image placeholder with alt).
