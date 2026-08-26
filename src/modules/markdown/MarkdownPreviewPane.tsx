@@ -1,4 +1,5 @@
 import { MarkdownCode } from "@/components/ai-elements/markdown-code";
+import { streamdownPlugins } from "@/components/ai-elements/markdownPlugins";
 import { cn } from "@/lib/utils";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { invoke } from "@tauri-apps/api/core";
@@ -90,6 +91,7 @@ export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
               components={components}
               mode="static"
               parseIncompleteMarkdown={false}
+              plugins={streamdownPlugins}
             >
               {status.content}
             </Streamdown>
