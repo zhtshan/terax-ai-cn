@@ -6,14 +6,14 @@ import { streamdownPlugins } from "./markdownPlugins";
 afterEach(cleanup);
 
 describe("streamdownPlugins", () => {
-  it("enables single dollar inline math per project requirement", async () => {
+  it("enables single dollar inline math per project requirement", () => {
     // createMathPlugin 默认 singleDollarTextMath=false，必须显式开启
     const remarkArgs = streamdownPlugins.math.remarkPlugin as unknown[];
     const opts = remarkArgs[1] as { singleDollarTextMath?: boolean };
     expect(opts.singleDollarTextMath).toBe(true);
   });
 
-  it("is a stable module-level singleton for streamdown memo", () => {
+  it("configures the katex math plugin", () => {
     expect(streamdownPlugins.math.name).toBe("katex");
     expect(streamdownPlugins.math.type).toBe("math");
   });

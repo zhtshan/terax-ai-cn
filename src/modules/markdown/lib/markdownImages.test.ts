@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("@tauri-apps/api/core", () => ({
   convertFileSrc: vi.fn((p: string) => `asset://test/${p}`),
@@ -9,6 +9,7 @@ import {
   type ImageUrlContext,
   markdownImageDirname,
   resolveImageUrl,
+  setKnownHome,
 } from "./markdownImages";
 
 const mockConvert = vi.mocked(convertFileSrc);
@@ -19,6 +20,10 @@ const localCtx: ImageUrlContext = {
 
 beforeEach(() => {
   mockConvert.mockClear();
+});
+
+afterEach(() => {
+  setKnownHome(null);
 });
 
 describe("markdownImageDirname", () => {
@@ -35,6 +40,12 @@ describe("resolveImageUrl remote schemes", () => {
   it("passes https through unchanged", () => {
     expect(resolveImageUrl("https://a.com/x.png", localCtx)).toBe(
       "https://a.com/x.png",
+    );
+  });
+
+  it("passes uppercase HTTPS through unchanged", () => {
+    expect(resolveImageUrl("HTTPS://A.COM/X.PNG", localCtx)).toBe(
+      "HTTPS://A.COM/X.PNG",
     );
   });
 
@@ -83,6 +94,11 @@ describe("resolveImageUrl local paths", () => {
     expect(mockConvert).toHaveBeenCalledWith("/abs/img.png");
   });
 
+  it("converts file:///C:/ URIs to a bare drive path", () => {
+    resolveImageUrl("file:///C:/Users/x/img.png", localCtx);
+    expect(mockConvert).toHaveBeenCalledWith("C:/Users/x/img.png");
+  });
+
   it("returns undefined for relative paths without dirname", () => {
     expect(resolveImageUrl("./img.png", {})).toBeUndefined();
   });
@@ -94,14 +110,35 @@ describe("resolveImageUrl edge cases", () => {
     expect(mockConvert).toHaveBeenCalledWith("C:/Users/u/doc/img/a.png");
   });
 
+  it("keeps the drive when .. climbs past the drive root", () => {
+    resolveImageUrl("../../x.png", { dirname: "C:/a" });
+    expect(mockConvert).toHaveBeenCalledWith("C:/x.png");
+  });
+
+  it("collapses .. to the POSIX root", () => {
+    resolveImageUrl("../../etc/x.png", { dirname: "/home/u" });
+    expect(mockConvert).toHaveBeenCalledWith("/etc/x.png");
+  });
+
   it("keeps .. traversal (asset scope is **, same as EditorPane)", () => {
     resolveImageUrl("../../etc/passwd.png", localCtx);
-    // 不抛错、仍产出 asset URL；越界收紧超出本 change 范围
-    expect(mockConvert).toHaveBeenCalled();
+    expect(mockConvert).toHaveBeenCalledWith("/home/etc/passwd.png");
   });
 
   it("returns undefined for empty or whitespace input", () => {
     expect(resolveImageUrl("", localCtx)).toBeUndefined();
     expect(resolveImageUrl("   ", localCtx)).toBeUndefined();
+  });
+});
+
+describe("resolveImageUrl module home cache", () => {
+  it("falls back to the cached home when ctx.home is absent", () => {
+    setKnownHome("/home/cached");
+    resolveImageUrl("~/x.png", { dirname: "/d" });
+    expect(mockConvert).toHaveBeenCalledWith("/home/cached/x.png");
+  });
+
+  it("returns undefined for ~/ when no home is cached", () => {
+    expect(resolveImageUrl("~/x.png", { dirname: "/d" })).toBeUndefined();
   });
 });

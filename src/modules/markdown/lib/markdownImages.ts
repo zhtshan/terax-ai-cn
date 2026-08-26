@@ -14,10 +14,6 @@ export function setKnownHome(home: string | null): void {
   knownHome = home;
 }
 
-export function getKnownHome(): string | null {
-  return knownHome;
-}
-
 function toAsset(path: string): string {
   return convertFileSrc(path.replace(/\\/g, "/"));
 }
@@ -41,10 +37,10 @@ export function resolveImageUrl(
   const trimmed = src.trim();
   if (!trimmed) return undefined;
 
-  if (trimmed.startsWith("data:")) return trimmed;
+  if (/^data:/i.test(trimmed)) return trimmed;
 
-  if (trimmed.startsWith("https://")) return trimmed;
-  if (trimmed.startsWith("http://")) return undefined;
+  if (/^https:\/\//i.test(trimmed)) return trimmed;
+  if (/^http:\/\//i.test(trimmed)) return undefined;
 
   const home = ctx.home ?? knownHome;
 
@@ -56,6 +52,8 @@ export function resolveImageUrl(
   if (/^file:\/\//i.test(trimmed)) {
     let p = trimmed.slice("file://".length);
     while (p.startsWith("/")) p = p.slice(1);
+    // file:///C:/... leaves a bare drive path; "/" prefix breaks Win32
+    if (/^[a-zA-Z]:[\\/]/.test(p)) return toAsset(p);
     return toAsset(`/${p}`);
   }
 
@@ -75,6 +73,8 @@ function joinPath(dir: string, rel: string): string {
   for (const part of parts) {
     if (!part || part === ".") continue;
     if (part === "..") {
+      // Drive root is a traversal floor like "/" on POSIX
+      if (out.length === 1 && /^[a-zA-Z]:$/.test(out[0])) continue;
       out.pop();
       continue;
     }
