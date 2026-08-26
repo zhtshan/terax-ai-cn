@@ -112,7 +112,12 @@ export function resolveMarkdownImageUrl(
 实现要点：
 
 - asset 协议转换复用 `convertFileSrc`（`@tauri-apps/api/core`，同步本地拼接，无 IPC）。
-- home 目录展开复用现有 home dir 获取方式（与项目其他模块一致）。
+- home 目录展开用 `homeDir()`（`@tauri-apps/api/path`，异步 Promise，
+  `useWorkspaceSwitcher.ts:3` 已有使用先例）。因是异步而 `urlTransform`
+  是同步回调，`~/` 分支在 transform 入口先同步检查：以 `~/` 开头且无
+  缓存 home 值时返回 undefined（该图不渲染），缓存命中则正常转换。
+  模块级缓存一次获取终身复用（与 `rendererPool.ts:83` 的 `_homeDir`
+  缓存模式一致）。
 - 路径分隔符统一 forward-slash（项目跨平台规范 `.split(/[\\/]/)`）。
 - `..` 越界不做沙箱收紧：`assetProtocol.scope` 已是 `**`，与 EditorPane
   图片预览同等权限。
