@@ -63,7 +63,7 @@
 
 ## 4. #1089 — Markdown 公式渲染 + 外链图片（中等工作量）
 
-**已完成**（2026-08-26）：dev@3827c96..25e0ee8，共 5 个提交——KaTeX 公式插件（3827c96）、图片 URL 解析纯函数（f183798）、home 缓存（1522e52）、预览与 AI 消息接入 urlTransform（a2370be）、CSP img-src 放行 https 外链图（25e0ee8）。人工冒烟清单待验证。
+**已完成**（2026-08-26）：dev@3827c96..3c8dd38，共 6 个提交——KaTeX 公式插件（3827c96）、图片 URL 解析纯函数（f183798）、home 缓存（1522e52）、预览与 AI 消息接入 urlTransform（a2370be）、CSP img-src 放行 https 外链图（25e0ee8）、最终审查修复 file:///C:/ 与 joinPath 盘符（3c8dd38）。GUI 冒烟已人工验证通过。
 
 **现象**：md 预览不支持 KaTeX/MathJax 公式；外链图片不显示（issue 报自 v0.5.9，外链图片现状需实测确认，公式确认缺失——全仓库无 katex/mathjax 依赖）。
 
