@@ -51,6 +51,7 @@ import {
   type SearchTarget,
 } from "@/modules/header";
 import { setLspNavigator } from "@/modules/lsp";
+import { setKnownHome } from "@/modules/markdown";
 import type { PreviewPaneHandle } from "@/modules/preview";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
@@ -386,6 +387,7 @@ export default function App() {
 
   useEffect(() => {
     setHomeDir(home);
+    setKnownHome(home);
   }, [home]);
 
   useWindowTitle(activeTab, explorerRoot);
