@@ -79,6 +79,24 @@ export function resolveComposerEnterAction(event: {
   return "submit";
 }
 
+export type PickerKeyAction = "pick" | "ignore";
+
+/**
+ * Decide whether a keydown should pick the active picker item (snippet,
+ * slash command, or workspace file). On macOS, Enter during IME composition
+ * must be ignored so the IME can commit the candidate first (#873); otherwise
+ * the picker auto-selects the first match and clobbers what the user is typing.
+ */
+export function resolvePickerKeyAction(
+  event: { key: string; isComposing?: boolean },
+  itemsLength: number,
+): PickerKeyAction {
+  if (event.key !== "Tab" && event.key !== "Enter") return "ignore";
+  if (event.isComposing) return "ignore";
+  if (itemsLength <= 0) return "ignore";
+  return "pick";
+}
+
 export function AiComposerInput() {
   const { t } = useTranslation();
   const c = useComposer();
@@ -254,12 +272,10 @@ export function AiComposerInput() {
                     setActiveIndex((i) => Math.max(0, i - 1));
                     return;
                   }
-                  if (e.key === "Tab" || e.key === "Enter") {
-                    if (items.length > 0) {
-                      e.preventDefault();
-                      pickActive();
-                      return;
-                    }
+                  if (resolvePickerKeyAction(e, items.length) === "pick") {
+                    e.preventDefault();
+                    pickActive();
+                    return;
                   }
                   if (e.key === "Escape") {
                     e.preventDefault();

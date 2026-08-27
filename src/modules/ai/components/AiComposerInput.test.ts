@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { resolveComposerEnterAction } from "./AiComposerInput";
+import {
+  resolveComposerEnterAction,
+  resolvePickerKeyAction,
+} from "./AiComposerInput";
 
 describe("resolveComposerEnterAction", () => {
   it("submits on plain Enter", () => {
@@ -40,4 +43,40 @@ describe("resolveComposerEnterAction", () => {
       expect(resolveComposerEnterAction(injectedNewline)).toBe("submit");
     },
   );
+});
+
+describe("resolvePickerKeyAction (#873 picker branch)", () => {
+  it("picks on Enter when items exist and IME is not composing", () => {
+    expect(resolvePickerKeyAction({ key: "Enter" }, 3)).toBe("pick");
+  });
+
+  it("picks on Tab when items exist and IME is not composing", () => {
+    expect(resolvePickerKeyAction({ key: "Tab" }, 3)).toBe("pick");
+  });
+
+  it("ignores Enter while IME composition is active", () => {
+    expect(resolvePickerKeyAction({ key: "Enter", isComposing: true }, 3)).toBe(
+      "ignore",
+    );
+  });
+
+  it("ignores Tab while IME composition is active", () => {
+    expect(resolvePickerKeyAction({ key: "Tab", isComposing: true }, 3)).toBe(
+      "ignore",
+    );
+  });
+
+  it("ignores Enter when there are no items to pick", () => {
+    expect(resolvePickerKeyAction({ key: "Enter" }, 0)).toBe("ignore");
+  });
+
+  it("ignores Tab when there are no items to pick", () => {
+    expect(resolvePickerKeyAction({ key: "Tab" }, 0)).toBe("ignore");
+  });
+
+  it("ignores unrelated keys (ArrowDown, Escape, letters)", () => {
+    for (const key of ["ArrowDown", "ArrowUp", "Escape", "a", " "]) {
+      expect(resolvePickerKeyAction({ key }, 3)).toBe("ignore");
+    }
+  });
 });
