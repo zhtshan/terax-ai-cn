@@ -291,6 +291,16 @@ function createSlot(): Slot {
       const leafId = slot.currentLeafId;
       if (leafId !== null) adapter?.resolveLeaf(leafId)?.writeToPty(input.data);
     });
+
+    // Drives the macOS opacity override in globals.css: the textarea stays
+    // opaque so the system input-source indicator can anchor to its caret,
+    // except while an IME composition owns it.
+    inputEl.addEventListener("compositionstart", () => {
+      inputEl.dataset.composing = "";
+    });
+    inputEl.addEventListener("compositionend", () => {
+      delete inputEl.dataset.composing;
+    });
   }
 
   term.attachCustomKeyEventHandler((event) => {

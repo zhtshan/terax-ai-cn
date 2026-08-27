@@ -7,10 +7,14 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import ReactDOM from "react-dom/client";
 import App from "./app/App";
 import { initLaunchDir } from "./lib/launchDir";
-import { USE_CUSTOM_WINDOW_CONTROLS } from "./lib/platform";
+import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "./lib/platform";
 
 if (USE_CUSTOM_WINDOW_CONTROLS) {
   document.documentElement.dataset.chrome = "borderless";
+}
+
+if (IS_MAC) {
+  document.documentElement.dataset.platform = "macos";
 }
 
 // Suppress the native WebView context menu app-wide. Areas with their own
