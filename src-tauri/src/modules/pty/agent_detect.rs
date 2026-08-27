@@ -55,8 +55,18 @@ impl Transition {
     }
 }
 
+pub struct AliasMap(pub Vec<(String, String)>);
+
+#[allow(clippy::derivable_impls)]
+impl Default for AliasMap {
+    fn default() -> Self {
+        Self(Vec::new())
+    }
+}
+
 pub struct AgentDetector {
-    agents: Vec<String>,
+    builtin: Vec<String>,
+    aliases: AliasMap,
     state: State,
     osc: Vec<u8>,
     armed: bool,
@@ -65,12 +75,16 @@ pub struct AgentDetector {
 
 impl AgentDetector {
     pub fn new() -> Self {
-        Self::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect())
+        Self::with_agents(
+            DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(),
+            AliasMap::default(),
+        )
     }
 
-    pub fn with_agents(agents: Vec<String>) -> Self {
+    pub fn with_agents(builtin: Vec<String>, aliases: AliasMap) -> Self {
         Self {
-            agents,
+            builtin,
+            aliases,
             state: State::Ground,
             osc: Vec::new(),
             armed: false,
@@ -168,7 +182,7 @@ impl AgentDetector {
                     let Ok(name) = std::str::from_utf8(&tail[..i]) else {
                         return;
                     };
-                    if !self.agents.iter().any(|a| a == name) {
+                    if !self.builtin.iter().any(|a| a == name) {
                         return;
                     }
                     (name, &tail[i + 1..])
@@ -248,10 +262,13 @@ impl AgentDetector {
                 continue;
             }
             let base = token.rsplit(['/', '\\']).next().unwrap_or(token);
-            if let Some(agent) = self.agents.iter().find(|a| {
+            if let Some(agent) = self.builtin.iter().find(|a| {
                 base.strip_prefix(a.as_str())
                     .is_some_and(|rest| rest.is_empty() || rest.starts_with('-'))
             }) {
+                return Some(agent.clone());
+            }
+            if let Some((_, agent)) = self.aliases.0.iter().find(|(c, _)| c == base) {
                 return Some(agent.clone());
             }
         }
@@ -282,36 +299,36 @@ mod tests {
 
     #[test]
     fn arms_on_agent_command() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(run(&mut d, &osc("133;C;claude -p hello")), vec![started("claude")]);
     }
 
     #[test]
     fn arms_on_pi_command() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(run(&mut d, &osc("133;C;pi")), vec![started("pi")]);
     }
 
     #[test]
     fn arms_on_pathed_and_wrapped_command() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(
             run(&mut d, &osc("133;C;/usr/local/bin/codex exec")),
             vec![started("codex")]
         );
-        let mut d2 = AgentDetector::new();
+        let mut d2 = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(run(&mut d2, &osc("133;C;npx claude")), vec![started("claude")]);
     }
 
     #[test]
     fn arms_on_dash_suffixed_alias() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(run(&mut d, &osc("133;C;claude-enigma")), vec![started("claude")]);
     }
 
     #[test]
     fn does_not_arm_on_other_commands() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert!(run(&mut d, &osc("133;C;vim src/main.rs")).is_empty());
         assert!(run(&mut d, &osc("133;C;cat claude.txt")).is_empty());
         assert!(run(&mut d, &osc("133;C;claudexyz")).is_empty());
@@ -319,7 +336,7 @@ mod tests {
 
     #[test]
     fn ignores_bell_and_plain_output() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         run(&mut d, &osc("133;C;claude"));
         assert!(run(&mut d, &[BEL]).is_empty());
         assert!(run(&mut d, b"thinking...\x07more").is_empty());
@@ -327,7 +344,7 @@ mod tests {
 
     #[test]
     fn terax_marker_drives_status() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         run(&mut d, &osc("133;C;claude"));
         assert_eq!(run(&mut d, &osc("777;notify;Terax;attention")), vec![Transition::Attention]);
         assert_eq!(run(&mut d, &osc("777;notify;Terax;working")), vec![Transition::Working]);
@@ -337,7 +354,7 @@ mod tests {
 
     #[test]
     fn terax_marker_auto_arms_without_preexec() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(
             run(&mut d, &osc("777;notify;Terax;attention")),
             vec![started("claude"), Transition::Attention]
@@ -347,9 +364,9 @@ mod tests {
     #[test]
     fn four_field_marker_self_arms_named_agent() {
         // Fresh arm already implies Working, so `working` emits only Started.
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(run(&mut d, &osc("777;notify;Terax;codex;working")), vec![started("codex")]);
-        let mut g = AgentDetector::new();
+        let mut g = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(
             run(&mut g, &osc("777;notify;Terax;gemini;finished")),
             vec![started("gemini"), Transition::Finished]
@@ -358,7 +375,7 @@ mod tests {
 
     #[test]
     fn pi_marker_self_arms_and_drives_status() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert_eq!(
             run(&mut d, &osc("777;notify;Terax;pi;working")),
             vec![started("pi")]
@@ -371,7 +388,7 @@ mod tests {
 
     #[test]
     fn four_field_marker_ignores_unknown_agent() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert!(run(&mut d, &osc("777;notify;Terax;evil;attention")).is_empty());
         // A known agent in the same chunk still works.
         assert_eq!(
@@ -382,7 +399,7 @@ mod tests {
 
     #[test]
     fn four_field_marker_drives_status_after_preexec() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         run(&mut d, &osc("133;C;gemini"));
         assert_eq!(run(&mut d, &osc("777;notify;Terax;gemini;attention")), vec![Transition::Attention]);
         assert_eq!(run(&mut d, &osc("777;notify;Terax;gemini;working")), vec![Transition::Working]);
@@ -391,7 +408,7 @@ mod tests {
 
     #[test]
     fn generic_osc777_and_osc9_attention_only_when_armed() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert!(run(&mut d, &osc("777;notify;Other;ready")).is_empty());
         run(&mut d, &osc("133;C;codex"));
         assert_eq!(run(&mut d, &osc("777;notify;Codex;ready")), vec![Transition::Attention]);
@@ -401,7 +418,7 @@ mod tests {
 
     #[test]
     fn exits_on_133d() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         run(&mut d, &osc("133;C;claude"));
         assert_eq!(run(&mut d, &osc("133;D;0")), vec![Transition::Exited]);
         assert!(run(&mut d, &osc("133;D;0")).is_empty());
@@ -409,7 +426,7 @@ mod tests {
 
     #[test]
     fn bel_terminator_inside_osc_is_not_attention() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         run(&mut d, &osc("133;C;claude"));
         let mut seq = vec![ESC, OSC_INTRO];
         seq.extend_from_slice(b"0;set title");
@@ -419,7 +436,7 @@ mod tests {
 
     #[test]
     fn started_split_across_chunks() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         assert!(run(&mut d, &[ESC, OSC_INTRO]).is_empty());
         assert!(run(&mut d, b"133;C;cla").is_empty());
         let mut out = run(&mut d, b"ude");
@@ -429,7 +446,7 @@ mod tests {
 
     #[test]
     fn finish_reports_exited_when_armed() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         run(&mut d, &osc("133;C;claude"));
         let mut out = Vec::new();
         d.finish(|t| out.push(t));
@@ -441,12 +458,82 @@ mod tests {
 
     #[test]
     fn oversized_osc_does_not_panic() {
-        let mut d = AgentDetector::new();
+        let mut d = AgentDetector::with_agents(DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(), AliasMap::default());
         run(&mut d, &osc("133;C;claude"));
         let mut seq = vec![ESC, OSC_INTRO];
         seq.extend(std::iter::repeat_n(b'x', OSC_MAX + 100));
         seq.extend_from_slice(&[ESC, ST_FINAL]);
         assert!(run(&mut d, &seq).is_empty());
         assert_eq!(run(&mut d, &osc("777;notify;Terax;attention")), vec![Transition::Attention]);
+    }
+
+    fn detector() -> AgentDetector {
+        AgentDetector::with_agents(
+            DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(),
+            AliasMap(vec![
+                ("ca".into(), "claude".into()),
+                ("cca".into(), "claude".into()),
+            ]),
+        )
+    }
+
+    #[test]
+    fn alias_command_resolves_to_builtin() {
+        let mut d = detector();
+        assert_eq!(run(&mut d, &osc("133;C;ca fix bug")), vec![started("claude")]);
+        let mut d2 = detector();
+        assert_eq!(run(&mut d2, &osc("133;C;cca -p")), vec![started("claude")]);
+    }
+
+    #[test]
+    fn builtin_wins_over_alias_conflict() {
+        let mut d = AgentDetector::with_agents(
+            vec!["claude".into()],
+            AliasMap(vec![("claude".into(), "codex".into())]),
+        );
+        assert_eq!(run(&mut d, &osc("133;C;claude")), vec![started("claude")]);
+    }
+
+    #[test]
+    fn alias_with_path_resolves_via_base() {
+        let mut d = detector();
+        assert_eq!(
+            run(&mut d, &osc("133;C;/opt/homebrew/bin/ca")),
+            vec![started("claude")]
+        );
+    }
+
+    #[test]
+    fn empty_alias_falls_back_to_builtin_only() {
+        let mut d = AgentDetector::with_agents(
+            DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(),
+            AliasMap::default(),
+        );
+        assert!(run(&mut d, &osc("133;C;ca")).is_empty());
+        let mut d2 = AgentDetector::with_agents(
+            DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(),
+            AliasMap::default(),
+        );
+        assert_eq!(run(&mut d2, &osc("133;C;claude")), vec![started("claude")]);
+    }
+
+    #[test]
+    fn alias_does_not_broaden_marker_whitelist() {
+        let mut d = detector();
+        assert!(run(&mut d, &osc("777;notify;Terax;ca;working")).is_empty());
+        let mut d2 = detector();
+        assert_eq!(
+            run(&mut d2, &osc("777;notify;Terax;claude;working")),
+            vec![started("claude")]
+        );
+    }
+
+    #[test]
+    fn alias_preexec_with_extra_args() {
+        let mut d = detector();
+        assert_eq!(
+            run(&mut d, &osc("133;C;ca --model opus -p hello")),
+            vec![started("claude")]
+        );
     }
 }
