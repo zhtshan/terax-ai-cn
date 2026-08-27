@@ -183,7 +183,13 @@
       "handleInvalid": "仅限小写字母、数字和连字符。",
       "handleInUse": "已被使用。",
       "terminalCommand": "终端命令名",
-      "terminalAgent": "终端 Agent"
+      "terminalAgent": "终端 Agent",
+      "terminalAliases": {
+        "title": "终端 Agent 别名",
+        "description": "把 shell 里给 Claude Code / Codex 等配的别名告诉 Terax，否则终端检测不到。",
+        "autoBadge": "来自 AI 代理",
+        "addAlias": "添加别名"
+      }
     },
     "about": {
       "title": "关于",

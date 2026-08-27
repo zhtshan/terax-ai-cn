@@ -183,7 +183,13 @@
       "handleInvalid": "Lowercase letters, digits, and dashes only.",
       "handleInUse": "Already in use.",
       "terminalCommand": "Terminal command",
-      "terminalAgent": "Terminal agent"
+      "terminalAgent": "Terminal agent",
+      "terminalAliases": {
+        "title": "Terminal agent aliases",
+        "description": "Tell Terax which shell commands map to each terminal agent, so it can detect them in the terminal.",
+        "autoBadge": "from agent",
+        "addAlias": "Add alias"
+      }
     },
     "about": {
       "title": "About",
