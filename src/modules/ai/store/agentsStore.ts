@@ -1,4 +1,5 @@
 import { emit, listen } from "@tauri-apps/api/event";
+import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import {
   BUILTIN_AGENTS,
@@ -8,6 +9,11 @@ import {
   saveCustomAgents,
   type Agent,
 } from "../lib/agents";
+import {
+  deriveFromAgents,
+  loadAliases,
+  saveAliases,
+} from "../lib/agentAliases";
 
 const CHANGED_EVENT = "terax://ai-agents-changed";
 
@@ -29,6 +35,20 @@ function broadcast(): void {
   void emit(CHANGED_EVENT);
 }
 
+async function syncAliasMap(): Promise<void> {
+  const state = useAgentsStore.getState();
+  const manual = await loadAliases();
+  const auto = deriveFromAgents(state.customAgents);
+  const merged = [
+    ...auto,
+    ...manual.filter((m) => !auto.some((a) => a.command === m.command)),
+  ];
+  await saveAliases(merged);
+  await invoke("update_agent_aliases", {
+    payload: merged.map((r) => ({ command: r.command, agent: r.agent })),
+  });
+}
+
 export const useAgentsStore = create<AgentsState>((set, get) => ({
   hydrated: false,
   customAgents: [],
@@ -44,6 +64,8 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
       const fresh = await loadAgents();
       set({ customAgents: fresh.custom, activeId: fresh.activeId });
     });
+
+    void syncAliasMap();
   },
   setActiveId: (id) => {
     set({ activeId: id });
@@ -57,6 +79,7 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
       idx === -1 ? [...list, agent] : list.map((a) => (a.id === agent.id ? agent : a));
     set({ customAgents: next });
     void saveCustomAgents(next).then(broadcast);
+    void syncAliasMap();
   },
   remove: (id) => {
     const list = get().customAgents.filter((a) => a.id !== id);
@@ -68,6 +91,7 @@ export const useAgentsStore = create<AgentsState>((set, get) => ({
       void saveActiveAgentId(active);
     }
     void saveCustomAgents(list).then(broadcast);
+    void syncAliasMap();
   },
 }));
 
