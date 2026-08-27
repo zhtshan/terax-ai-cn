@@ -99,6 +99,7 @@ import {
   setHomeDir,
   useTerminalFileDrop,
   writeToSession,
+  getIsLeafBusy,
 } from "@/modules/terminal";
 import { ThemeProvider, useThemeFileEditing } from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
@@ -650,6 +651,7 @@ export default function App() {
   const sendCd = useCallback(
     (path: string) => {
       if (activeLeafId === null) return;
+      if (getIsLeafBusy(activeLeafId)) return;
       const term = terminalRefs.current.get(activeLeafId);
       if (!term) return;
       term.write(`cd ${quoteShellArg(path)}\r`);

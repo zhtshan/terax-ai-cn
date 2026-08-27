@@ -296,6 +296,10 @@ function leafBusy(s: Session): boolean {
   return s.commandRunning || (s.pty !== null && isAgentActivePty(s.pty.id));
 }
 
+export function getIsLeafBusy(leafId: number): boolean {
+  return !!sessions.get(leafId) && leafBusy(sessions.get(leafId)!);
+}
+
 const HIDDEN_RELEASE_DELAY_MS = 300;
 
 // A parked hidden leaf went idle: give the post-command prompt a moment to
