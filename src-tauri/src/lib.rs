@@ -1,6 +1,6 @@
 pub mod modules;
 
-use modules::{agent, fs, git, history, lsp, net, pty, secrets, shell, workspace};
+use modules::{agent, agent_alias_state, fs, git, history, lsp, net, pty, secrets, shell, workspace};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
@@ -226,6 +226,7 @@ pub fn run() {
         .manage(history::HistoryState::default())
         .manage(lsp::LspState::default())
         .manage(fs::grep::ContentSearchState::default())
+        .manage(agent_alias_state::AliasState::default())
         .manage({
             let registry = workspace::WorkspaceRegistry::default();
             workspace::bootstrap_registry(&registry);
@@ -237,6 +238,7 @@ pub fn run() {
         .manage(LaunchDir(Mutex::new(cli_dir)))
         .manage(LaunchFiles(Mutex::new(launch.files)))
         .invoke_handler(tauri::generate_handler![
+            agent_alias_state::update_agent_aliases,
             pty::pty_open,
             pty::pty_write,
             pty::pty_resize,

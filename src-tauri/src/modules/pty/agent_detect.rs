@@ -5,7 +5,7 @@ const ST_FINAL: u8 = b'\\';
 
 const OSC_MAX: usize = 2048;
 
-const DEFAULT_AGENTS: &[&str] = &["claude", "codex", "gemini", "pi"];
+pub(crate) const DEFAULT_AGENTS: &[&str] = &["claude", "codex", "gemini", "pi"];
 
 // OSC 777 marker our agent hooks emit. Legacy 3-field `notify;Terax;<event>`
 // (Claude) or 4-field `notify;Terax;<agent>;<event>` (Codex/Gemini/Pi).
@@ -55,14 +55,8 @@ impl Transition {
     }
 }
 
+#[derive(Clone, Default)]
 pub struct AliasMap(pub Vec<(String, String)>);
-
-#[allow(clippy::derivable_impls)]
-impl Default for AliasMap {
-    fn default() -> Self {
-        Self(Vec::new())
-    }
-}
 
 pub struct AgentDetector {
     builtin: Vec<String>,
@@ -74,13 +68,6 @@ pub struct AgentDetector {
 }
 
 impl AgentDetector {
-    pub fn new() -> Self {
-        Self::with_agents(
-            DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(),
-            AliasMap::default(),
-        )
-    }
-
     pub fn with_agents(builtin: Vec<String>, aliases: AliasMap) -> Self {
         Self {
             builtin,
