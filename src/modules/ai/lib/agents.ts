@@ -8,6 +8,22 @@ export type AgentIconId =
   | "designer"
   | "spark";
 
+export type TerminalBuiltin = "claude" | "codex" | "gemini" | "pi";
+
+export const TERMINAL_BUILTINS: readonly TerminalBuiltin[] = [
+  "claude",
+  "codex",
+  "gemini",
+  "pi",
+];
+
+export const TERMINAL_BUILTIN_LABELS: Record<TerminalBuiltin, string> = {
+  claude: "Claude Code",
+  codex: "Codex CLI",
+  gemini: "Gemini CLI",
+  pi: "Pi CLI",
+};
+
 export type Agent = {
   id: string;
   name: string;
@@ -15,6 +31,8 @@ export type Agent = {
   instructions: string;
   icon: AgentIconId;
   builtIn: boolean;
+  terminalCommand: string;
+  terminalAgent: TerminalBuiltin;
 };
 
 export const BUILTIN_AGENTS: readonly Agent[] = [
@@ -24,6 +42,8 @@ export const BUILTIN_AGENTS: readonly Agent[] = [
     description: "General-purpose coding assistant. Writes, edits, and runs.",
     icon: "coder",
     builtIn: true,
+    terminalCommand: "claude",
+    terminalAgent: "claude",
     instructions: `You are an expert software engineer pair-programming inside the user's terminal.
 - Read files before editing them. Match existing patterns and naming.
 - Prefer the smallest correct change. Don't refactor adjacent code unprompted.
@@ -36,6 +56,8 @@ export const BUILTIN_AGENTS: readonly Agent[] = [
     description: "Design and tradeoffs. Plans before code.",
     icon: "architect",
     builtIn: true,
+    terminalCommand: "claude",
+    terminalAgent: "claude",
     instructions: `You are a senior software architect.
 - Before proposing code, restate the problem in one sentence and surface 2–3 viable approaches with real tradeoffs.
 - Recommend one with reasoning. Call out risks: scalability, coupling, data consistency, migration, blast radius.
@@ -48,6 +70,8 @@ export const BUILTIN_AGENTS: readonly Agent[] = [
     description: "Reviews diffs for correctness, perf, security.",
     icon: "reviewer",
     builtIn: true,
+    terminalCommand: "claude",
+    terminalAgent: "claude",
     instructions: `You are a meticulous code reviewer.
 - Focus on what tools cannot catch: logic errors, edge cases, race conditions, layer violations, perf cliffs (N+1, unneeded re-renders), security (injection, auth, secrets), data integrity.
 - Skip formatting / naming / inferred-type nits — linters handle those.
@@ -60,6 +84,8 @@ export const BUILTIN_AGENTS: readonly Agent[] = [
     description: "Threat-models changes and flags vulns.",
     icon: "security",
     builtIn: true,
+    terminalCommand: "claude",
+    terminalAgent: "claude",
     instructions: `You are an application-security engineer.
 - Threat-model the change: what attacker, what asset, what trust boundary is crossed.
 - Look specifically for: input validation at boundaries, authn/authz bypass, secret exposure, SSRF, path traversal, SQLi/XSS/CSRF, deserialization, dependency CVEs, insecure defaults.
@@ -72,6 +98,8 @@ export const BUILTIN_AGENTS: readonly Agent[] = [
     description: "UI/UX critique and refinement.",
     icon: "designer",
     builtIn: true,
+    terminalCommand: "claude",
+    terminalAgent: "claude",
     instructions: `You are a senior product designer with a strong taste for restrained, modern UI.
 - Critique on: hierarchy, spacing, density, contrast, motion, affordance, empty/error states.
 - Propose concrete changes, with Tailwind/CSS values when helpful. Keep consistent with the surrounding design system.
@@ -99,7 +127,10 @@ export async function loadAgents(): Promise<LoadedAgents> {
     if (k === KEY_CUSTOM) custom = v as Agent[];
     else if (k === KEY_ACTIVE) activeId = v as string;
   }
-  return { custom: custom ?? [], activeId: activeId ?? BUILTIN_AGENTS[0].id };
+  return {
+    custom: (custom ?? []).map(withTerminalDefaults),
+    activeId: activeId ?? BUILTIN_AGENTS[0].id,
+  };
 }
 
 export async function saveCustomAgents(custom: Agent[]): Promise<void> {
@@ -114,6 +145,16 @@ export async function saveActiveAgentId(id: string): Promise<void> {
 
 export function newAgentId(): string {
   return `a-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
+}
+
+function withTerminalDefaults(a: Agent): Agent {
+  return {
+    ...a,
+    terminalCommand: a.terminalCommand?.trim() || a.name,
+    terminalAgent: TERMINAL_BUILTINS.includes(a.terminalAgent)
+      ? a.terminalAgent
+      : "claude",
+  };
 }
 
 export function findAgent(

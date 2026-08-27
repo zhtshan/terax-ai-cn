@@ -95,6 +95,8 @@ export function AgentsSection() {
                 instructions: "",
                 icon: "spark",
                 builtIn: false,
+                terminalCommand: t("settings.agents.newAgent"),
+                terminalAgent: "claude",
               })
             }
           >
@@ -415,7 +417,14 @@ function AgentEditorDialog({
           <Button
             size="sm"
             disabled={!canSave}
-            onClick={() => onSave({ ...draft, builtIn: false })}
+            onClick={() =>
+              onSave({
+                ...draft,
+                builtIn: false,
+                terminalCommand: draft.terminalCommand || draft.name,
+                terminalAgent: draft.terminalAgent || "claude",
+              })
+            }
           >
             {t("common.save")}
           </Button>
