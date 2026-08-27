@@ -2,8 +2,7 @@ import { ensureMonoFontsLoaded } from "@/lib/fonts";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { invoke } from "@tauri-apps/api/core";
 import type { SearchAddon } from "@xterm/addon-search";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";import {
   BlockDecorations,
   type BlockMatch,
   type VisibleBlocks,
@@ -813,6 +812,104 @@ export function disposeSession(leafId: number): void {
       w.resolve();
     }
   }
+}
+
+// Matches the constant the Rust drop thread emits in src-tauri/src/modules/pty/mod.rs.
+const PTY_DROPPED_EVENT = "terax:pty-dropped";
+
+type PendingDrop = {
+  resolvers: Set<() => void>;
+  // Node setTimeout returns NodeJS.Timeout, browser returns number — accept both.
+  timer: ReturnType<typeof setTimeout>;
+};
+
+const pendingDrops = new Map<number, PendingDrop>();
+let ptyDropListenerBound = false;
+
+async function ensurePtyDropListener(): Promise<void> {
+  if (ptyDropListenerBound || typeof window === "undefined") return;
+  ptyDropListenerBound = true;
+  const { listen } = await import("@tauri-apps/api/event");
+  await listen<number>(PTY_DROPPED_EVENT, (e) => {
+    const entry = pendingDrops.get(e.payload);
+    if (!entry) return;
+    clearTimeout(entry.timer);
+    pendingDrops.delete(e.payload);
+    for (const r of entry.resolvers) r();
+  });
+}
+
+// Awaits the `terax:pty-dropped` event for `id`, or resolves after `timeoutMs`.
+// The lock in pty/session.rs serializes open/close, but ClosePseudoConsole on
+// Windows can still block on a reader thread that hasn't drained yet (#1156).
+// Frontend awaits this before opening a replacement pty in clearWorkspaceState.
+function waitForPtyDropped(id: number, timeoutMs: number): Promise<void> {
+  return new Promise((resolve) => {
+    const existing = pendingDrops.get(id);
+    if (existing) {
+      existing.resolvers.add(resolve);
+      return;
+    }
+    const resolvers = new Set<() => void>([resolve]);
+    const timer = setTimeout(() => {
+      // Only delete if our timer is still the live one — a fresh registration
+      // between schedule and fire will have replaced `entry.timer`.
+      const cur = pendingDrops.get(id);
+      if (cur?.timer === timer) pendingDrops.delete(id);
+      for (const r of (cur?.resolvers ?? resolvers)) r();
+    }, timeoutMs);
+    pendingDrops.set(id, { resolvers, timer });
+  });
+}
+
+// Disposes each leafId and waits for the underlying PTY to finish dropping
+// (or for the timeout to elapse) so a subsequent pty_open can't race the
+// old reader thread. See issue #1156.
+export async function disposeSessionsAndWait(
+  leafIds: readonly number[],
+  timeoutMs = 200,
+): Promise<void> {
+  await ensurePtyDropListener();
+  const ptyIds: number[] = [];
+  for (const leafId of leafIds) {
+    const s = sessions.get(leafId);
+    if (s?.pty) ptyIds.push(s.pty.id);
+    disposeSession(leafId);
+  }
+  if (ptyIds.length === 0) return;
+  await Promise.all(ptyIds.map((id) => waitForPtyDropped(id, timeoutMs)));
+}
+
+// Test-only escape hatch: let unit tests fire `terax:pty-dropped` against
+// registered waiters without a real Tauri runtime. Returns true if a waiter
+// was resolved.
+export function _testFirePtyDropped(id: number): boolean {
+  const entry = pendingDrops.get(id);
+  if (!entry) return false;
+  clearTimeout(entry.timer);
+  pendingDrops.delete(id);
+  for (const r of entry.resolvers) r();
+  return true;
+}
+
+// Test-only: peek at registered waiters so tests can assert without firing.
+export function _testHasPtyDropWaiter(id: number): boolean {
+  return pendingDrops.has(id);
+}
+
+// Test-only: directly register a waiter without going through a real session,
+// so the wait/timeout/fan-out logic can be exercised without a Tauri runtime.
+export function _testWaitForPtyDropped(
+  id: number,
+  timeoutMs: number,
+): Promise<void> {
+  return waitForPtyDropped(id, timeoutMs);
+}
+
+export function _testResetPtyDropState(): void {
+  for (const entry of pendingDrops.values()) clearTimeout(entry.timer);
+  pendingDrops.clear();
+  ptyDropListenerBound = false;
 }
 
 type Options = {

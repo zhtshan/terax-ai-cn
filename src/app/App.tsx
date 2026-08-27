@@ -88,6 +88,7 @@ import {
 import { DEFAULT_SPACE_ID } from "@/modules/tabs/lib/useTabs";
 import {
   clearFocusedTerminal,
+  disposeSessionsAndWait,
   disposeSession,
   findLeafCwd,
   hasLeaf,
@@ -223,8 +224,11 @@ export default function App() {
   // split/unsplit re-mount components but the leaf is still live.
   const liveLeavesRef = useRef<Set<number>>(new Set());
 
-  const clearWorkspaceState = useCallback(() => {
-    for (const id of liveLeavesRef.current) disposeSession(id);
+  const clearWorkspaceState = useCallback(async () => {
+    const ids = Array.from(liveLeavesRef.current);
+    // Wait for each pty_close's drop_session to fully finish (or 200ms
+    // timeout) so the ConPTY lifecycle lock alone isn't enough — #1156.
+    await disposeSessionsAndWait(ids);
     searchAddons.current.clear();
     terminalRefs.current.clear();
     editorRefs.current.clear();

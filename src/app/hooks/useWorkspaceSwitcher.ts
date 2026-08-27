@@ -20,8 +20,10 @@ type Params = {
   workspaceEnv: WorkspaceEnv;
   setWorkspaceEnv: (env: WorkspaceEnv) => void;
   resetWorkspace: (home?: string) => void;
-  /** Dispose live sessions and clear App-owned pane/handle ref maps. */
-  clearWorkspaceState: () => void;
+  /** Dispose live sessions and clear App-owned pane/handle ref maps. Async:
+   *  waits for the ConPTY drop_session threads (bounded by ~200ms) so a
+   *  subsequent pty_open can't race the old reader thread (#1156). */
+  clearWorkspaceState: () => Promise<void>;
 };
 
 /**
@@ -96,7 +98,11 @@ export function useWorkspaceSwitcher({
         return false;
       }
 
-      clearWorkspaceState();
+      // clearWorkspaceState is async: it waits for the ConPTY drop_session
+      // threads to finish (bounded by disposeSessionsAndWait's 200ms timeout)
+      // so the new pty_open in resetWorkspace can't race the old reader
+      // thread on Windows #1156.
+      await clearWorkspaceState();
       setWorkspaceEnv(env.kind === "local" ? LOCAL_WORKSPACE : env);
       await authorizeHome(nextHome);
       resetWorkspace(nextHome);
