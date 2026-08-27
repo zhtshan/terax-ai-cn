@@ -13,7 +13,7 @@ export const teraxDefault: Theme = {
     },
     dark: {
       terminal: {
-        selection: "rgba(255,255,255,0.12)",
+        selection: "rgba(255,255,255,0.18)",
       },
     },
   },
