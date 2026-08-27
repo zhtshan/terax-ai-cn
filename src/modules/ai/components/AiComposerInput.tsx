@@ -59,6 +59,26 @@ function detectFileTrigger(value: string, caret: number): FileTrigger | null {
   return null;
 }
 
+export type ComposerEnterAction = "submit" | "ignore";
+
+/**
+ * Known limitation (#845 前半, unverified on real Windows hardware): Windows
+ * clipboard history (Win+V) and some voice-to-text tools insert multiline
+ * text as trusted `Enter` keydown events per line break instead of a single
+ * paste, which is indistinguishable here from a deliberate user Enter-to-send.
+ * No fix applied yet — see docs/2026-08-27-pending-issues-plan.md §7.
+ */
+export function resolveComposerEnterAction(event: {
+  key: string;
+  shiftKey: boolean;
+  isComposing?: boolean;
+}): ComposerEnterAction {
+  if (event.key !== "Enter") return "ignore";
+  if (event.shiftKey) return "ignore";
+  if (event.isComposing) return "ignore";
+  return "submit";
+}
+
 export function AiComposerInput() {
   const { t } = useTranslation();
   const c = useComposer();
@@ -254,14 +274,7 @@ export function AiComposerInput() {
                     return;
                   }
                 }
-                // Guard against IME composition: Enter while composing should
-                // commit the candidate, not submit the message. Covers macOS
-                // (#873), Windows voice-to-text (#845), and Linux fcitx5.
-                if (
-                  e.key === "Enter" &&
-                  !e.shiftKey &&
-                  !(e as unknown as { isComposing?: boolean }).isComposing
-                ) {
+                if (resolveComposerEnterAction(e) === "submit") {
                   e.preventDefault();
                   c.submit();
                 }
