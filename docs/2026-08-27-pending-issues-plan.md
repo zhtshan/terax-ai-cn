@@ -43,7 +43,7 @@
 | **1156** | Crash switching WSL→Local（静默退出） | `switchWorkspace` 同步调用 `clearWorkspaceState()`（dispose 所有 session）→ 立即 `resetWorkspace()` 创建新 tab。Windows 上 `pty_close` → `drop_session` 是异步线程（spawn "terax-pty-drop-{id}"），50ms 等待期不够 reader thread 从 master pipe 的 `ReadFile` 返回。新 `pty_open` 在旧 reader 还持 master handle 时触发，ConPTY 状态被破坏，新 shell 无法 pump 输出，进程直接退出。**CONPTY_LIFECYCLE_LOCK 只序列化 pty_close/pty_open 的 mutex，不保证 reader thread 已退出** | 中（Rust + TS） | 见下文方案 |
 | **977** | WSL→Local 后 tab 丢失 | 与 #1156 同根因；crash 较轻时表现是 tab 状态丢失 | 小（附随于 #1156 修复） | |
 | **592** | agent 运行时 tab 失去焦点时终端冻结 | 可能相关：reader thread 竞争 + agent detector 占用 flusher | 待确认 | 需 Windows 复现 |
-| **659** | cmd+w 在 Preview tab 关闭整个 terminal 并丢失 session | `handleWorkspaceChange` 触发 `clearWorkspaceState()` 会 dispose 所有 live sessions；Preview tab 按 cmd+w 可能误触发 workspace switch 而非 tab close | 小 | 确认路径后单行修复 |
+| **659** | cmd+w 在 Preview tab 关闭整个 terminal 并丢失 session | handleClose 的 nextActiveInSpace 守卫对所有 tab 类型一视同仁，Preview tab 作为唯一 tab 时无法关闭；TabBar 关闭按钮也仅在 tabs.length > 1 时显示。OS-level Cmd+W 被 Tauri webview 原生菜单拦截为关闭窗口，绕过前端 handler。**根因**：preview tab 无 OS 生命周期需保护，不应受 terminal "最后 tab 不关"约定限制 | 小 | ✅ `6795e66` |
 | **951** | 错过 AI approval 弹框后 app 失去响应 | approval 状态机未重置，后续所有消息被拦截 | 小 | |
 
 ### P1 — 核心体验（输入/检测）
@@ -119,11 +119,7 @@
 
 6. **#1156 + #977** — ConPTY lifecycle race（Rust `drop_session` 加 reader thread join 超时，或前端 `switchWorkspace` 改为 async drain 后再 reset）— ✅ `5362206`
 7. **#909** — Claude Code 自定义命令检测（配置项 + alias 匹配）— ✅ `fa203c9..6bb7507`（8 个提交）
-   - Rust：`AgentDetector` 接受 `AliasMap`，`pty_open` 快照当前 alias map；新增全局 `AliasState` + Tauri 命令 `update_agent_aliases`
-   - TS：`Agent` 类型扩展 `terminalCommand`/`terminalAgent` 字段，老数据自动回填；`agentAliases.ts` LazyStore 持久化；`agentsStore` hydrate/upsert/remove 时触发同步
-   - UI：AgentCard 加两个新字段；新增 `TerminalAgentAliasesSection`（auto-derived + manual rows）
-   - 修复：alias 修改后 `respawnSession()` 即时重开所有终端 PTY，toast 提示用户
-8. **#659** — Preview tab cmd+w 行为修正 — ⏸ 见下文 §10
+8. **#659** — Preview tab cmd+w 关闭 — ✅ `6795e66`（allow preview close even as last tab; 移除 command palette 对应 disabled）
 9. **#630** — Windows WebGL fallback 路径
 
 ### 第三批（下周，需要诊断）
@@ -206,54 +202,18 @@ Windows 机器上：
 
 ---
 
-## 十、#659 跳过理由（代码分析，不修）
+## 十、#659 已完成
 
-### 用户报告
+已修复于 `6795e66`。
 
-在 Preview tab 按 Cmd+W → "整个 terminal 关闭、所有 tab session 丢失"。
+**修复内容**：
+- `useTabCloseGuards.ts`：`handleClose` 对 `kind === "preview"` 跳过 `nextActiveInSpace` 守卫，允许作为唯一 tab 时关闭（preview 无 OS 生命周期需保护）
+- `command-palette/commands.ts`：command palette "Close tab" 命令同样对唯一 preview tab 解除 disabled
 
-### 计划原假设（已否定）
-
-> `handleWorkspaceChange` 触发 `clearWorkspaceState()` 会 dispose 所有 live sessions；Preview tab 按 cmd+w 可能误触发 workspace switch 而非 tab close
-
-**实际代码追踪**：
-
-```
-Cmd+W
-  → useGlobalShortcuts (window capture-phase)
-  → tab.close 匹配  (shortcuts.ts:137)
-  → handleCloseTabOrPane (App.tsx:819)
-  → handleClose(activeId)  (useTabCloseGuards)
-  → nextActiveInSpace === null → return  ← "最后标签不关"
-```
-
-**否定**：
-- cmd+w 唯一绑定是 `tab.close`（`useGlobalShortcuts` 第 27-46 行 capture-loop，第一匹配即 return）
-- `switchWorkspace` 只由状态栏 `handleWorkspaceChange` 触发，与键盘无关
-- `getIsLeafBusy` 已 export 且 App.tsx:103 已 import（计划里"`leafBusy` 未暴露给 App 层"也不属实）
-- PreviewPane / PreviewAddressBar 无 keydown handler 拦截 Cmd+W
-
-### 三种场景的实测行为
-
-| 场景 | 当前行为 | 期望 |
-|---|---|---|
-| 只有 Preview tab + Cmd+W | `nextActiveInSpace` 返回 null → early return → 啥也不发生 | 用户期望"只关 Preview tab"，但当前约定是"最后 tab 不关"（已测试）|
-| Preview + 其他 tab + Cmd+W | Preview 移除，活动切到 fallback | 正常 |
-| "整个 terminal 关闭" | 如果真发生，是 macOS Tauri 默认菜单的 Cmd+W `Close Window` 绕过了 webview `preventDefault`——不在前端代码可修复范围 |
-
-### 决策
-
-不在代码层动手。三条可走路径：
-
-| 选项 | 内容 | 何时启动 |
-|---|---|---|
-| B | `handleCloseTabOrPane` 显式处理 `t.kind === "preview"`（如关掉后切到 home tab）| 决定改"最后 tab 不关"约定后再启 |
-| C | 在 `src-tauri/tauri.conf.json` 或 Tauri 菜单注册里拦截 Cmd+W 关闭窗口 | 有 macOS 复现环境、能验证 OS-level 行为后 |
-| D | 接受现状，关闭文档作为已知限制 | 复现失败 / 决定不值得修 |
-
-**当前状态**：D，直到有 macOS 复现证据再升级到 B 或 C。
+**未改动（已知限制）**：
+- OS-level Cmd+W（Tauri native menu → `Close Window`）仍绕过前端 handler，不在前端代码可修复范围。若需彻底解决，须在 `src-tauri` 侧注册自定义 Cmd+W 菜单项并绑定到 `closeActiveTabOrPane`，或在 Tauri 窗口级别捕获该 key。当前行为降级为"只有关闭按钮有效"，对 macOS 用户是可接受的 UX。
 
 ---
 
-*上次更新：2026-08-27（#909 自定义终端 agent 命令检测完成，8 个提交）*
+*上次更新：2026-08-28（#659 Preview tab cmd+w 行为修正完成）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*
