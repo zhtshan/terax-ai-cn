@@ -254,7 +254,14 @@ export function AiComposerInput() {
                     return;
                   }
                 }
-                if (e.key === "Enter" && !e.shiftKey) {
+                // Guard against IME composition: Enter while composing should
+                // commit the candidate, not submit the message. Covers macOS
+                // (#873), Windows voice-to-text (#845), and Linux fcitx5.
+                if (
+                  e.key === "Enter" &&
+                  !e.shiftKey &&
+                  !(e as unknown as { isComposing?: boolean }).isComposing
+                ) {
                   e.preventDefault();
                   c.submit();
                 }
