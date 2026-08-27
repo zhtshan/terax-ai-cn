@@ -181,7 +181,9 @@
       "customInstructionsPlaceholder": "如：始终用简洁的要点回复。优先使用 pnpm 而非 npm。我的机器是 M 系列 Mac。",
       "required": "必填。",
       "handleInvalid": "仅限小写字母、数字和连字符。",
-      "handleInUse": "已被使用。"
+      "handleInUse": "已被使用。",
+      "terminalCommand": "终端命令名",
+      "terminalAgent": "终端 Agent"
     },
     "about": {
       "title": "关于",

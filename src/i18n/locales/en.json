@@ -181,7 +181,9 @@
       "customInstructionsPlaceholder": "e.g. Always reply in concise bullet points. Prefer pnpm over npm. My machine is an M-series Mac.",
       "required": "Required.",
       "handleInvalid": "Lowercase letters, digits, and dashes only.",
-      "handleInUse": "Already in use."
+      "handleInUse": "Already in use.",
+      "terminalCommand": "Terminal command",
+      "terminalAgent": "Terminal agent"
     },
     "about": {
       "title": "About",

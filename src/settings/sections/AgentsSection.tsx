@@ -14,6 +14,9 @@ import {
   type Agent,
   type AgentIconId,
   BUILTIN_AGENTS,
+  TERMINAL_BUILTINS,
+  TERMINAL_BUILTIN_LABELS,
+  type TerminalBuiltin,
 } from "@/modules/ai/lib/agents";
 import {
   isValidHandle,
@@ -408,6 +411,38 @@ function AgentEditorDialog({
               placeholder={t("settings.agents.instructionsPlaceholder")}
               className="min-h-40 resize-y text-[12px] leading-relaxed"
             />
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <Label>{t("settings.agents.terminalCommand")}</Label>
+              <Input
+                value={draft.terminalCommand}
+                onChange={(e) =>
+                  setDraft({ ...draft, terminalCommand: e.target.value })
+                }
+                placeholder={draft.name}
+                className="h-8 font-mono text-[12px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label>{t("settings.agents.terminalAgent")}</Label>
+              <select
+                value={draft.terminalAgent}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    terminalAgent: e.target.value as TerminalBuiltin,
+                  })
+                }
+                className="h-8 rounded-md border border-input bg-background px-2 text-[12px]"
+              >
+                {TERMINAL_BUILTINS.map((b) => (
+                  <option key={b} value={b}>
+                    {TERMINAL_BUILTIN_LABELS[b]}
+                  </option>
+                ))}
+              </select>
+            </div>
           </div>
         </div>
         <DialogFooter>
