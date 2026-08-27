@@ -14,6 +14,10 @@ export {
   writeToSession,
 } from "./lib/useTerminalSession";
 export {
+  AGENT_SIGNAL_EVENT,
+  type AgentPhase,
+  ensureAgentActivityListener,
+  isAgentActivePty,
   type AgentTabStatus,
   tabAgentStatus,
   useAgentActivityStore,

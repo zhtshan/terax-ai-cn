@@ -1,6 +1,8 @@
 import { listen } from "@tauri-apps/api/event";
 import { create } from "zustand";
 
+export const AGENT_SIGNAL_EVENT = "terax:agent-signal";
+
 export type AgentPhase = "working" | "attention" | "finished" | "idle";
 
 type AgentSignal = { id: number; kind: string; agent?: string | null };
@@ -53,6 +55,19 @@ function clearFinishedTimer(id: number): void {
 let onExited: ((ptyId: number) => void) | null = null;
 let bound = false;
 
+// Hook point so `AgentsSection` can re-arm the PTY when the alias map
+// changes. Pulled out to a module-level var so the listen closure doesn't
+// close over a mutable reference.
+let __onAliasReload: ((ptyId: number) => Promise<void>) | null = null;
+
+// Internal test-only handoff: callers wire this before the Rust-side detector
+// emits any `started` signal. Exposed as `__` so lint doesn't flag it, and
+// unit tests can patch it without touching the production path.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+export function _testSetAliasReloadHandler(fn: any): void {
+  __onAliasReload = fn;
+}
+
 /** Maps a raw detector signal to the phase it drives, `"exited"` to drop the
  * pty, or `null` to ignore. Pure so the mapping stays unit-testable. */
 export function phaseForSignal(
@@ -81,7 +96,7 @@ export function ensureAgentActivityListener(
   onExited = exited;
   if (bound || typeof window === "undefined") return;
   bound = true;
-  void listen<AgentSignal>("terax:agent-signal", (e) => {
+  void listen<AgentSignal>(AGENT_SIGNAL_EVENT, (e) => {
     const { id, agent } = e.payload;
     const action = phaseForSignal(e.payload.kind);
     if (action === null) return;
@@ -104,6 +119,12 @@ export function ensureAgentActivityListener(
           if (s.phases[id] === "finished") s.setPhase(id, "idle");
         }, FINISHED_TTL_MS),
       );
+    }
+    // Alias map just changed in Rust (the same `update_agent_aliases` call
+    // that fires when settings are saved). Re-arm the current PTY so the
+    // detector picks up the new command names without a full page reload.
+    if (action === "working") {
+      void __onAliasReload?.(id);
     }
   });
 }

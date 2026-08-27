@@ -722,11 +722,30 @@ function detachSession(leafId: number): void {
 }
 
 export async function respawnSession(
-  leafId: number,
+  leafId?: number,
   cwd?: string,
 ): Promise<void> {
-  const s = sessions.get(leafId);
-  if (!s || s.disposed) return;
+  if (leafId !== undefined) {
+    const s = sessions.get(leafId);
+    if (!s || s.disposed) return;
+    await _respawnOne(s, cwd);
+    return;
+  }
+  // No leafId: respawn every live session. Used by settings to re-arm all
+  // terminals after the alias map changes, so the Rust detector picks up
+  // new command names without a page reload.
+  await Promise.all(
+    Array.from(sessions.keys()).map((id) => _respawnOne(sessions.get(id)!, cwd)),
+  );
+}
+
+async function _respawnOne(s: Session, cwd?: string): Promise<void> {
+  if (s.disposed) return;
+  // leafId isn't stored on the session; enumerate sessions and match by ref.
+  const leafId = [...sessions.entries()]
+    .find(([, ss]) => ss === s)
+    ?.[0] ?? -1;
+  if (leafId === -1) return;
   s.pty?.close();
   s.pty = null;
   s.snapshot = null;

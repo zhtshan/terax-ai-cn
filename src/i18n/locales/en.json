@@ -188,7 +188,8 @@
         "title": "Terminal agent aliases",
         "description": "Tell Terax which shell commands map to each terminal agent, so it can detect them in the terminal.",
         "autoBadge": "from agent",
-        "addAlias": "Add alias"
+        "addAlias": "Add alias",
+        "reloaded": "Aliases saved — terminal re-armed with new command names."
       }
     },
     "about": {

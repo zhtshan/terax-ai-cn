@@ -39,6 +39,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Trans, useTranslation } from "react-i18next";
 import { SectionHeader } from "../components/SectionHeader";
 import {
@@ -47,7 +48,7 @@ import {
   loadAliases,
   saveAliases,
 } from "@/modules/ai/lib/agentAliases";
-
+import { respawnSession } from "@/modules/terminal";
 const ICON_OPTIONS: AgentIconId[] = [
   "coder",
   "architect",
@@ -644,7 +645,12 @@ export function TerminalAgentAliasesSection() {
     setRows(next);
     void saveAliases(
       next.filter((r) => r.source === "manual" && r.command.trim().length > 0),
-    );
+    ).then(() => {
+      // Re-arm all terminal PTYs so the Rust-side AgentDetector picks up
+      // the new alias map without requiring a page reload.
+      void respawnSession().catch(() => undefined);
+      toast.success(t("settings.agents.terminalAliases.reloaded"));
+    });
   };
 
   const addRow = () =>

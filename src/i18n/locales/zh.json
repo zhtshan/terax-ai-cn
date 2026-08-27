@@ -188,7 +188,8 @@
         "title": "终端 Agent 别名",
         "description": "把 shell 里给 Claude Code / Codex 等配的别名告诉 Terax，否则终端检测不到。",
         "autoBadge": "来自 AI 代理",
-        "addAlias": "添加别名"
+        "addAlias": "添加别名",
+        "reloaded": "别名已保存，终端已重新加载新命令名。"
       }
     },
     "about": {
