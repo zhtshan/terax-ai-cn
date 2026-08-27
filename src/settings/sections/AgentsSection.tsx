@@ -676,7 +676,7 @@ export function TerminalAgentAliasesSection() {
       />
       <div className="mt-3 flex flex-col gap-2">
         {rows.map((row, idx) => (
-          <div key={`${row.command}-${idx}`} className="flex items-center gap-2">
+          <div key={`alias-row-${idx}`} className="flex items-center gap-2">
             <Input
               value={row.command}
               placeholder="例如 ca"
