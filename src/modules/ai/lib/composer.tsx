@@ -11,6 +11,7 @@ import { expandSnippetTokens, type Snippet } from "../lib/snippets";
 import { tryRunSlashCommand, type SlashCommandMeta } from "./slashCommands";
 import { getChat, useChatStore } from "../store/chatStore";
 import { useSnippetsStore } from "../store/snippetsStore";
+import { collectPendingApprovalIds } from "./pendingApprovals";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 
 export type FileAttachment = {
@@ -316,6 +317,15 @@ export function AiComposerProvider({ children }: ProviderProps) {
     void (async () => {
       const { getOrCreateChat } = await import("../store/chatRuntime");
       const chat = getOrCreateChat(sessionId);
+      // Fix #951: when the user submits a new turn without responding to a
+      // pending approval, auto-deny any still-pending approvals first so the
+      // AI SDK doesn't reject the new sendMessage call as a collision with an
+      // unresolved approval. The denied tool calls surface as normal turns
+      // and the chat recovers. Without this, missing the approval modal
+      // permanently breaks the session.
+      for (const id of collectPendingApprovalIds(chat.messages)) {
+        chat.addToolApprovalResponse({ id, approved: false });
+      }
       void chat.sendMessage({ role: "user", parts } as Parameters<
         typeof chat.sendMessage
       >[0]);
