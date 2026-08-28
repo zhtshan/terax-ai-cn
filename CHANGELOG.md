@@ -2,6 +2,33 @@
 
 All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
+## [0.8.8] - 2026-08-28
+
+### Added
+- 终端自定义 agent 命令别名：设置中新增「终端 Agent 别名」区块，可为内置 agent 配置自定义终端命令名，PTY 侧自动识别归一化为内置类型，修改后即时重开所有终端生效（#909）
+- Markdown 公式渲染（KaTeX，支持 `$...$` 与 `$$...$$`）与图片加载增强：本地路径解析、CSP 放行 https 外链图片、预览与 AI 消息统一接入（#1089）
+
+### Changed
+- 抽取 `resolveComposerEnterAction` 纯函数并加测试，固化 Composer 回车发送逻辑
+- dev 模式下放开原生右键菜单以支持 DevTools
+
+### Fixed
+- 终端选中背景色多轮调优：深浅色模式下与编辑器选中色对齐，规避 xterm 强制覆盖 alpha 导致的不明显问题
+- macOS IME 组合输入相关问题：全屏下不显示输入法指示器、composing 时 Enter 误提交消息、picker Tab/Enter 误选（#873 #845）
+- Preview tab 支持 `cmd+w` 关闭（#659）
+- 终端链接匹配支持 grep/compiler 风格的 `path:line:` 后缀
+- 终端 breadcrumb 切换目录（sendCd）加 leafBusy 守卫，修复竞态（#1028）
+- 新 tab 自动滚动失效问题，改用 scrollLeft 直算替换 scrollIntoView
+- Source Control 面板：自定义端点模型生成 commit message 报 "Custom endpoint not found"
+- 切换 workspace/space 后侧栏与 Timeline 状态未及时清理/跟随的问题
+- 启动 cwd 快照校验存在性，被删除后正确回退到 home 目录（#816）
+- pty drop_session 完成后正确 emit 事件，修复 ConPTY 竞态（#1156 #977）
+- 提交新消息前自动 deny 未处理的 tool approval，避免遗留审批阻塞（#951）
+- 终端 Agent 别名设置项输入框每次只能输一个字符的问题
+- Markdown 图片 `file:///C:/` URI 与 joinPath 路径穿越丢失盘符问题
+
+---
+
 ## [0.8.7] - 2026-08-24
 
 ### Added

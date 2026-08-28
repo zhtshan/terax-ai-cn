@@ -5040,7 +5040,7 @@ dependencies = [
 
 [[package]]
 name = "terax"
-version = "0.8.7"
+version = "0.8.8"
 dependencies = [
  "bytes",
  "dirs 6.0.0",
