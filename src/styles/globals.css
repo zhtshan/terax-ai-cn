@@ -5,6 +5,8 @@
 @import "./code-highlight.css";
 
 @source "../../node_modules/streamdown/dist/index.js";
+@source "../../node_modules/@streamdown/math/dist/*.js";
+@import "katex/dist/katex.min.css";
 
 @custom-variant dark (&:is(.dark *));
 
@@ -161,6 +163,15 @@
   --terminal-ansi-bright-white: #fafafa;
 }
 
+/*
+ * :root.dark (not .dark) so this outranks the plain :root block above —
+ * that block redeclares --terminal-selection later in the file, and with
+ * equal specificity source order would win, silently undoing this override.
+ */
+:root.dark {
+  --terminal-selection: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
 :root {
   --app-zoom: 1;
   --editor-font-size: 13px;
@@ -225,6 +236,33 @@ html[data-chrome="borderless"] #settings-root {
 .xterm:focus,
 .xterm.focus {
   outline: none !important;
+}
+
+/*
+ * macOS input-source indicator. WebKit reports no caret rect for a focused
+ * opacity:0 element, so the system indicator has nothing to anchor to and
+ * never appears; in fullscreen the menu bar carries no input source either,
+ * leaving zero feedback when switching input methods. Keep xterm's helper
+ * textarea fully opaque and hide it by painting nothing instead.
+ */
+[data-platform="macos"] .xterm .xterm-helper-textarea {
+  opacity: 1;
+  background: transparent;
+  color: transparent;
+  caret-color: transparent;
+  outline: none;
+}
+[data-platform="macos"] .xterm .xterm-helper-textarea::selection {
+  background: transparent;
+  color: transparent;
+}
+/*
+ * xterm stretches the textarea over its own .composition-view while an IME
+ * composition is live, so an opaque one would leak WebKit's composition
+ * underline on top of it.
+ */
+[data-platform="macos"] .xterm .xterm-helper-textarea[data-composing] {
+  opacity: 0;
 }
 
 .cm-editor,

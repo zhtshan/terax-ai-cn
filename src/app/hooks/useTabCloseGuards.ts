@@ -27,10 +27,11 @@ export function useTabCloseGuards({ tabs, disposeTab, closePane }: Params) {
 
   const handleClose = useCallback(
     async (id: number) => {
-      // Last tab in its space can't be closed (closeTab refuses). Skip the
-      // dialog entirely so confirming it doesn't appear to silently fail.
-      if (nextActiveInSpace(tabs, id) === null) return;
+      // Preview tabs have no OS-level lifecycle to protect; allow closing even
+      // when they are the only tab in their space (issue #659). Terminal tabs
+      // still enforce the "last tab of a space" invariant via nextActiveInSpace.
       const t = tabs.find((x) => x.id === id);
+      if (t?.kind !== "preview" && nextActiveInSpace(tabs, id) === null) return;
       if (t?.kind === "editor" && t.dirty) {
         setPendingCloseTab(id);
         return;

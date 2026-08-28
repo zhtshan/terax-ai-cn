@@ -14,6 +14,9 @@ import {
   type Agent,
   type AgentIconId,
   BUILTIN_AGENTS,
+  TERMINAL_BUILTINS,
+  TERMINAL_BUILTIN_LABELS,
+  type TerminalBuiltin,
 } from "@/modules/ai/lib/agents";
 import {
   isValidHandle,
@@ -36,9 +39,16 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useEffect, useRef, useState } from "react";
+import { toast } from "sonner";
 import { Trans, useTranslation } from "react-i18next";
 import { SectionHeader } from "../components/SectionHeader";
-
+import {
+  type AliasRow,
+  deriveFromAgents,
+  loadAliases,
+  saveAliases,
+} from "@/modules/ai/lib/agentAliases";
+import { respawnSession } from "@/modules/terminal";
 const ICON_OPTIONS: AgentIconId[] = [
   "coder",
   "architect",
@@ -95,6 +105,8 @@ export function AgentsSection() {
                 instructions: "",
                 icon: "spark",
                 builtIn: false,
+                terminalCommand: t("settings.agents.newAgent"),
+                terminalAgent: "claude",
               })
             }
           >
@@ -226,6 +238,7 @@ export function AgentsSection() {
           setEditingSnippet(null);
         }}
       />
+      <TerminalAgentAliasesSection />
     </div>
   );
 }
@@ -407,6 +420,38 @@ function AgentEditorDialog({
               className="min-h-40 resize-y text-[12px] leading-relaxed"
             />
           </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div className="flex flex-col gap-1">
+              <Label>{t("settings.agents.terminalCommand")}</Label>
+              <Input
+                value={draft.terminalCommand}
+                onChange={(e) =>
+                  setDraft({ ...draft, terminalCommand: e.target.value })
+                }
+                placeholder={draft.name}
+                className="h-8 font-mono text-[12px]"
+              />
+            </div>
+            <div className="flex flex-col gap-1">
+              <Label>{t("settings.agents.terminalAgent")}</Label>
+              <select
+                value={draft.terminalAgent}
+                onChange={(e) =>
+                  setDraft({
+                    ...draft,
+                    terminalAgent: e.target.value as TerminalBuiltin,
+                  })
+                }
+                className="h-8 rounded-md border border-input bg-background px-2 text-[12px]"
+              >
+                {TERMINAL_BUILTINS.map((b) => (
+                  <option key={b} value={b}>
+                    {TERMINAL_BUILTIN_LABELS[b]}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
         <DialogFooter>
           <Button variant="ghost" size="sm" onClick={onClose}>
@@ -415,7 +460,14 @@ function AgentEditorDialog({
           <Button
             size="sm"
             disabled={!canSave}
-            onClick={() => onSave({ ...draft, builtIn: false })}
+            onClick={() =>
+              onSave({
+                ...draft,
+                builtIn: false,
+                terminalCommand: draft.terminalCommand || draft.name,
+                terminalAgent: draft.terminalAgent || "claude",
+              })
+            }
           >
             {t("common.save")}
           </Button>
@@ -570,5 +622,115 @@ function Label({ children }: { children: React.ReactNode }) {
     <span className="text-[11px] font-medium tracking-tight text-muted-foreground">
       {children}
     </span>
+  );
+}
+
+export function TerminalAgentAliasesSection() {
+  const { t } = useTranslation();
+  const customAgents = useAgentsStore((s) => s.customAgents);
+  const [rows, setRows] = useState<AliasRow[]>([]);
+
+  useEffect(() => {
+    void (async () => {
+      const manual = await loadAliases();
+      const auto = deriveFromAgents(customAgents);
+      setRows([
+        ...auto,
+        ...manual.filter((m) => !auto.some((a) => a.command === m.command)),
+      ]);
+    })();
+  }, [customAgents]);
+
+  const persist = (next: AliasRow[]) => {
+    setRows(next);
+    void saveAliases(
+      next.filter((r) => r.source === "manual" && r.command.trim().length > 0),
+    ).then(() => {
+      // Re-arm all terminal PTYs so the Rust-side AgentDetector picks up
+      // the new alias map without requiring a page reload.
+      void respawnSession().catch(() => undefined);
+      toast.success(t("settings.agents.terminalAliases.reloaded"));
+    });
+  };
+
+  const addRow = () =>
+    persist([
+      ...rows,
+      { command: "", agent: "claude", source: "manual" },
+    ]);
+
+  const updateRow = (idx: number, patch: Partial<AliasRow>) => {
+    const next = rows.map((r, i) =>
+      i === idx ? { ...r, ...patch } : r,
+    );
+    persist(next);
+  };
+
+  const removeRow = (idx: number) => persist(rows.filter((_, i) => i !== idx));
+
+  return (
+    <div className="mt-8">
+      <SectionHeader
+        title={t("settings.agents.terminalAliases.title")}
+        description={t("settings.agents.terminalAliases.description")}
+      />
+      <div className="mt-3 flex flex-col gap-2">
+        {rows.map((row, idx) => (
+          <div key={`alias-row-${idx}`} className="flex items-center gap-2">
+            <Input
+              value={row.command}
+              placeholder="例如 ca"
+              onChange={(e) => updateRow(idx, { command: e.target.value })}
+              disabled={row.source === "auto"}
+              className="h-8 flex-1 font-mono text-[12px]"
+            />
+            <select
+              value={row.agent}
+              onChange={(e) =>
+                updateRow(idx, {
+                  agent: e.target.value as TerminalBuiltin,
+                })
+              }
+              disabled={row.source === "auto"}
+              className="h-8 rounded-md border border-input bg-background px-2 text-[12px]"
+            >
+              {TERMINAL_BUILTINS.map((b) => (
+                <option key={b} value={b}>
+                  {TERMINAL_BUILTIN_LABELS[b]}
+                </option>
+              ))}
+            </select>
+            {row.source === "manual" ? (
+              <Button
+                variant="ghost"
+                size="icon"
+                className="size-7 text-muted-foreground hover:text-destructive"
+                onClick={() => removeRow(idx)}
+                title={t("common.delete")}
+              >
+                <HugeiconsIcon
+                  icon={Delete02Icon}
+                  size={12}
+                  strokeWidth={1.75}
+                />
+              </Button>
+            ) : (
+              <span className="text-[10.5px] text-muted-foreground">
+                {t("settings.agents.terminalAliases.autoBadge")}
+              </span>
+            )}
+          </div>
+        ))}
+        <Button
+          variant="outline"
+          size="sm"
+          className="h-7 gap-1.5 px-2 text-[11px]"
+          onClick={addRow}
+        >
+          <HugeiconsIcon icon={Add01Icon} size={11} strokeWidth={1.75} />
+          {t("settings.agents.terminalAliases.addAlias")}
+        </Button>
+      </div>
+    </div>
   );
 }

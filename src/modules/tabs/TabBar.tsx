@@ -57,6 +57,7 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { labelFor } from "./lib/tabLabel";
+import { nextScrollLeftForTab } from "./lib/tabScroll";
 import type { EditorTab, Tab } from "./lib/useTabs";
 
 type Props = {
@@ -217,13 +218,27 @@ export function TabBar({
     return () => el.removeEventListener("wheel", onWheel);
   }, []);
 
-  // Keep the active tab visible after selection / open.
+  // Keep the active tab visible after selection / open. scrollIntoView is
+  // unreliable in WKWebView for a just-mounted, mid-enter-animation element
+  // (and would also scroll unrelated ancestors), so drive this strip's own
+  // scrollLeft directly. rAF first: the new tab's layout must exist to measure.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
-    const active = el.querySelector<HTMLElement>(`[data-tab-id="${activeId}"]`);
-    active?.scrollIntoView({ block: "nearest", inline: "nearest" });
-  }, [activeId]);
+    const raf = requestAnimationFrame(() => {
+      const active = el.querySelector<HTMLElement>(
+        `[data-tab-id="${activeId}"]`,
+      );
+      if (!active) return;
+      el.scrollLeft = nextScrollLeftForTab(
+        el.scrollLeft,
+        el.clientWidth,
+        active.offsetLeft,
+        active.offsetLeft + active.offsetWidth,
+      );
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [activeId, tabs]);
 
   return (
     <div

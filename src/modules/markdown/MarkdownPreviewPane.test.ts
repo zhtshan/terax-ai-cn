@@ -17,3 +17,15 @@ describe("MarkdownPreviewPane Streamdown configuration", () => {
     expect(streamdownJsx).toMatch(/parseIncompleteMarkdown=\{false\}/);
   });
 });
+
+describe("MarkdownPreviewPane image handling", () => {
+  it("wires urlTransform for images and passes math plugins", () => {
+    expect(streamdownJsx).toMatch(/plugins=\{streamdownPlugins\}/);
+    expect(streamdownJsx).toMatch(/urlTransform=\{transformImageUrl\}/);
+  });
+
+  it("derives dirname from the md file path via markdownImageDirname", () => {
+    expect(src).toMatch(/markdownImageDirname\(/);
+    expect(src).toMatch(/useMemo\(\(\) => markdownImageDirname\(path\)/);
+  });
+});

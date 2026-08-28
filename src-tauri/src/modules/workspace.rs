@@ -183,16 +183,27 @@ pub fn launch_cwd_snapshot() -> Option<PathBuf> {
 }
 
 fn resolve_launch_dir() -> PathBuf {
-    if let Some(cwd) = launch_cwd_snapshot() {
-        return cwd;
-    }
-    if let Some(cwd) = std::env::current_dir()
-        .ok()
-        .filter(|p| is_usable_launch_dir(p))
-    {
+    let cwd = choose_launch_dir(
+        launch_cwd_snapshot().as_deref(),
+        std::env::current_dir().ok(),
+    );
+    if let Some(cwd) = cwd {
         return cwd;
     }
     dirs::home_dir().unwrap_or_else(|| PathBuf::from("/"))
+}
+
+/// Validate the LAUNCH_CWD snapshot and fall through to `env_cwd` if the
+/// snapshot's directory is no longer usable (e.g. the user right-clicked
+/// "Open in Terax" on a folder and then deleted it — #816). Pure so the
+/// deleted-snapshot path can be unit-tested without mutating the OnceLock.
+fn choose_launch_dir(snapshot: Option<&Path>, env_cwd: Option<PathBuf>) -> Option<PathBuf> {
+    if let Some(cwd) = snapshot {
+        if is_usable_launch_dir(cwd) {
+            return Some(cwd.to_path_buf());
+        }
+    }
+    env_cwd.filter(|p| is_usable_launch_dir(p))
 }
 
 fn is_usable_launch_dir(path: &Path) -> bool {
@@ -909,6 +920,36 @@ mod auth_tests {
         let env = tempdir("envfb");
         let resolved = resolve_launch_cwd(Some("/no/such/terax/dir"), Some(env.clone()));
         assert_eq!(resolved, Some(env));
+    }
+
+    #[test]
+    fn choose_launch_dir_uses_snapshot_when_alive() {
+        let snap = tempdir("snapshot-alive");
+        let env = tempdir("snapshot-alive-env");
+        let resolved = choose_launch_dir(Some(&snap), Some(env.clone()));
+        assert_eq!(resolved.as_deref(), Some(snap.as_path()));
+    }
+
+    #[test]
+    fn choose_launch_dir_falls_back_when_snapshot_was_deleted() {
+        // Fix #816: a snapshot that pointed at a now-deleted directory
+        // (user right-clicked "Open in Terax" then deleted the folder)
+        // must fall through to env_cwd, not return the dead path.
+        let snap = tempdir("snapshot-deleted");
+        std::fs::remove_dir(&snap).expect("delete snapshot");
+        let env = tempdir("snapshot-deleted-env");
+        let resolved = choose_launch_dir(Some(&snap), Some(env.clone()));
+        assert_eq!(resolved.as_deref(), Some(env.as_path()));
+    }
+
+    #[test]
+    fn choose_launch_dir_returns_none_when_both_unusable() {
+        let snap = tempdir("snapshot-both-bad");
+        std::fs::remove_dir(&snap).expect("delete snapshot");
+        let env = tempdir("snapshot-both-bad-env");
+        std::fs::remove_dir(&env).expect("delete env");
+        let resolved = choose_launch_dir(Some(&snap), Some(env));
+        assert_eq!(resolved, None);
     }
 }
 

@@ -1,10 +1,12 @@
 import { MarkdownCode } from "@/components/ai-elements/markdown-code";
+import { streamdownPlugins } from "@/components/ai-elements/markdownPlugins";
 import { cn } from "@/lib/utils";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { invoke } from "@tauri-apps/api/core";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Streamdown } from "streamdown";
+import { defaultUrlTransform, Streamdown, type UrlTransform } from "streamdown";
+import { markdownImageDirname, resolveImageUrl } from "./lib/markdownImages";
 import { MarkdownViewToggle } from "./MarkdownViewToggle";
 
 type ReadResult =
@@ -30,6 +32,18 @@ const components = { code: MarkdownCode };
 export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
   const { t } = useTranslation();
   const [status, setStatus] = useState<Status>({ kind: "loading" });
+
+  const dirname = useMemo(() => markdownImageDirname(path), [path]);
+
+  const transformImageUrl: UrlTransform = useCallback(
+    (url, key, node) => {
+      if (node.tagName === "img" && key === "src") {
+        return resolveImageUrl(url, { dirname });
+      }
+      return defaultUrlTransform(url, key, node);
+    },
+    [dirname],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -67,7 +81,9 @@ export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
       <div className="flex-1 overflow-auto">
         <div className="px-8 py-6">
           {status.kind === "loading" && (
-            <p className="text-[12px] text-muted-foreground">{t("common.loading")}</p>
+            <p className="text-[12px] text-muted-foreground">
+              {t("common.loading")}
+            </p>
           )}
           {status.kind === "error" && (
             <p className="text-[12px] text-destructive">
@@ -81,7 +97,10 @@ export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
           )}
           {status.kind === "toolarge" && (
             <p className="text-[12px] text-muted-foreground">
-              {t("markdown.tooLarge", { size: status.size, limit: status.limit })}
+              {t("markdown.tooLarge", {
+                size: status.size,
+                limit: status.limit,
+              })}
             </p>
           )}
           {status.kind === "ready" && (
@@ -90,6 +109,8 @@ export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
               components={components}
               mode="static"
               parseIncompleteMarkdown={false}
+              plugins={streamdownPlugins}
+              urlTransform={transformImageUrl}
             >
               {status.content}
             </Streamdown>

@@ -23,6 +23,24 @@ describe("matchFileLinks", () => {
     expect(result[0]!.col).toBeUndefined();
   });
 
+  it("matches grep-style path:line: content output", () => {
+    const result = matchFileLinks(
+      "src/modules/tabs/lib/useTabs.ts:954:    for (const lid of toDispose) disposeSession(lid);",
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe("src/modules/tabs/lib/useTabs.ts");
+    expect(result[0]!.line).toBe(954);
+    expect(result[0]!.col).toBeUndefined();
+  });
+
+  it("matches compiler-style path:line:col: message output", () => {
+    const result = matchFileLinks("src/main.rs:10:5: error[E0308]");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe("src/main.rs");
+    expect(result[0]!.line).toBe(10);
+    expect(result[0]!.col).toBe(5);
+  });
+
   it("matches a plain path without line or col", () => {
     const result = matchFileLinks("src/lib/utils.ts");
     expect(result).toHaveLength(1);

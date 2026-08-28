@@ -51,6 +51,7 @@ import {
   type SearchTarget,
 } from "@/modules/header";
 import { setLspNavigator } from "@/modules/lsp";
+import { setKnownHome } from "@/modules/markdown";
 import type { PreviewPaneHandle } from "@/modules/preview";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
@@ -87,6 +88,7 @@ import {
 import { DEFAULT_SPACE_ID } from "@/modules/tabs/lib/useTabs";
 import {
   clearFocusedTerminal,
+  disposeSessionsAndWait,
   disposeSession,
   findLeafCwd,
   hasLeaf,
@@ -98,6 +100,7 @@ import {
   setHomeDir,
   useTerminalFileDrop,
   writeToSession,
+  getIsLeafBusy,
 } from "@/modules/terminal";
 import { ThemeProvider, useThemeFileEditing } from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
@@ -221,8 +224,11 @@ export default function App() {
   // split/unsplit re-mount components but the leaf is still live.
   const liveLeavesRef = useRef<Set<number>>(new Set());
 
-  const clearWorkspaceState = useCallback(() => {
-    for (const id of liveLeavesRef.current) disposeSession(id);
+  const clearWorkspaceState = useCallback(async () => {
+    const ids = Array.from(liveLeavesRef.current);
+    // Wait for each pty_close's drop_session to fully finish (or 200ms
+    // timeout) so the ConPTY lifecycle lock alone isn't enough — #1156.
+    await disposeSessionsAndWait(ids);
     searchAddons.current.clear();
     terminalRefs.current.clear();
     editorRefs.current.clear();
@@ -377,6 +383,7 @@ export default function App() {
     activeTab,
     tabs,
     launchCwd ?? home,
+    activeSpaceId,
   );
 
   useEffect(() => {
@@ -385,6 +392,7 @@ export default function App() {
 
   useEffect(() => {
     setHomeDir(home);
+    setKnownHome(home);
   }, [home]);
 
   useWindowTitle(activeTab, explorerRoot);
@@ -647,6 +655,7 @@ export default function App() {
   const sendCd = useCallback(
     (path: string) => {
       if (activeLeafId === null) return;
+      if (getIsLeafBusy(activeLeafId)) return;
       const term = terminalRefs.current.get(activeLeafId);
       if (!term) return;
       term.write(`cd ${quoteShellArg(path)}\r`);

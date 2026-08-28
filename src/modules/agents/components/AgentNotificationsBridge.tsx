@@ -1,5 +1,6 @@
 import type { Tab } from "@/modules/tabs";
 import { hasLeaf, leafIdForPty } from "@/modules/terminal";
+import { AGENT_SIGNAL_EVENT } from "@/modules/terminal/lib/agentActivity";
 import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -115,7 +116,7 @@ export function AgentNotificationsBridge({
   useEffect(() => {
     let alive = true;
     let unlisten: (() => void) | undefined;
-    listen<AgentSignal>("terax:agent-signal", (e) =>
+    listen<AgentSignal>(AGENT_SIGNAL_EVENT, (e) =>
       handleSignal(e.payload, ctxRef.current, tRef.current),
     )
       .then((u) => {

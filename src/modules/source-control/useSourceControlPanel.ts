@@ -1,16 +1,18 @@
 import {
-  native,
-  type GitChangedFile,
-  type GitDiscardEntry,
-  type GitRepoInfo,
-  type GitStatusSnapshot,
-} from "@/modules/ai/lib/native";
-import { useChatStore } from "@/modules/ai/store/chatStore";
-import {
   modelSupportsTemperature,
   providerNeedsKey,
   resolveModel,
 } from "@/modules/ai/config";
+import type { LocalProviderConfig } from "@/modules/ai/lib/agent";
+import type { CustomEndpointKeys } from "@/modules/ai/lib/keyring";
+import {
+  type GitChangedFile,
+  type GitDiscardEntry,
+  type GitRepoInfo,
+  type GitStatusSnapshot,
+  native,
+} from "@/modules/ai/lib/native";
+import { useChatStore } from "@/modules/ai/store/chatStore";
 import {
   invalidateDiff,
   invalidateRepoDiffs,
@@ -69,6 +71,39 @@ export type PendingDiscard = {
   count: number;
   label: string;
 };
+
+type CommitModelPrefs = Pick<
+  import("@/modules/settings/store").Preferences,
+  | "lmstudioBaseURL"
+  | "lmstudioModelId"
+  | "mlxBaseURL"
+  | "mlxModelId"
+  | "ollamaBaseURL"
+  | "ollamaModelId"
+  | "openaiCompatibleBaseURL"
+  | "openaiCompatibleModelId"
+  | "openrouterModelId"
+  | "customEndpoints"
+>;
+
+export function commitMessageModelConfig(
+  prefs: CommitModelPrefs,
+  epKeys: CustomEndpointKeys,
+): LocalProviderConfig {
+  return {
+    lmstudioBaseURL: prefs.lmstudioBaseURL,
+    lmstudioModelId: prefs.lmstudioModelId,
+    mlxBaseURL: prefs.mlxBaseURL,
+    mlxModelId: prefs.mlxModelId,
+    ollamaBaseURL: prefs.ollamaBaseURL,
+    ollamaModelId: prefs.ollamaModelId,
+    openaiCompatibleBaseURL: prefs.openaiCompatibleBaseURL,
+    openaiCompatibleModelId: prefs.openaiCompatibleModelId,
+    openrouterModelId: prefs.openrouterModelId,
+    customEndpoints: prefs.customEndpoints,
+    customEndpointKeys: epKeys,
+  };
+}
 
 type SourceControlPanelState = {
   panelState: PanelState;
@@ -262,7 +297,8 @@ function optimisticStage(
     if (!paths.has(file.path)) return file;
     if (file.staged && !file.unstaged) return file;
     changed = true;
-    const wt = file.worktreeStatus !== " " ? file.worktreeStatus : file.indexStatus;
+    const wt =
+      file.worktreeStatus !== " " ? file.worktreeStatus : file.indexStatus;
     return {
       ...file,
       indexStatus: wt,
@@ -292,7 +328,8 @@ function optimisticUnstage(
       continue;
     }
     changed = true;
-    const idx = file.indexStatus !== " " ? file.indexStatus : file.worktreeStatus;
+    const idx =
+      file.indexStatus !== " " ? file.indexStatus : file.worktreeStatus;
     if (idx === "R" && file.originalPath) {
       next.push({
         path: file.originalPath,
@@ -551,7 +588,11 @@ export function useSourceControlPanel(
   useEffect(() => () => cancelReconcile(), [cancelReconcile]);
 
   const openSelection = useCallback(
-    (sel: DiffSelection, repoRoot: string, file: GitChangedFile | undefined) => {
+    (
+      sel: DiffSelection,
+      repoRoot: string,
+      file: GitChangedFile | undefined,
+    ) => {
       onOpenDiff?.({
         path: sel.path,
         repoRoot,
@@ -649,7 +690,10 @@ export function useSourceControlPanel(
   const selectEntry = useCallback(
     async (entry: SourceControlEntry) => {
       if (!repo) return;
-      const nextSelection: DiffSelection = { path: entry.path, mode: entry.mode };
+      const nextSelection: DiffSelection = {
+        path: entry.path,
+        mode: entry.mode,
+      };
       if (sameSelection(selected, nextSelection)) {
         setActionError(null);
         setActionMessage(null);
@@ -869,29 +913,25 @@ export function useSourceControlPanel(
     setActionMessage(null);
     setActionError(null);
     try {
-      const [{ buildConfiguredLanguageModel }, { generateText }, diff] =
-        await Promise.all([
-          import("@/modules/ai/lib/agent"),
-          import("ai"),
-          native.gitDiff(repo.repoRoot, null, true),
-        ]);
+      const [
+        { buildConfiguredLanguageModel },
+        { generateText },
+        { getAllCustomEndpointKeys },
+        diff,
+      ] = await Promise.all([
+        import("@/modules/ai/lib/agent"),
+        import("ai"),
+        import("@/modules/ai/lib/keyring"),
+        native.gitDiff(repo.repoRoot, null, true),
+      ]);
       const { text: diffText, truncated } = truncateDiff(diff.diffText);
       const chatState = useChatStore.getState();
       const prefs = usePreferencesStore.getState();
+      const epKeys = await getAllCustomEndpointKeys(prefs.customEndpoints);
       const model = await buildConfiguredLanguageModel(
         selectedModelId,
         chatState.apiKeys,
-        {
-          lmstudioBaseURL: prefs.lmstudioBaseURL,
-          lmstudioModelId,
-          mlxBaseURL: prefs.mlxBaseURL,
-          mlxModelId,
-          ollamaBaseURL: prefs.ollamaBaseURL,
-          ollamaModelId,
-          openaiCompatibleBaseURL,
-          openaiCompatibleModelId,
-          openrouterModelId,
-        },
+        commitMessageModelConfig(prefs, epKeys),
       );
       const result = await generateText({
         model,

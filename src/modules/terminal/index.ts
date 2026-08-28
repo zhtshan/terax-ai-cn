@@ -3,6 +3,8 @@ export { TerminalStack } from "./TerminalStack";
 export {
   clearFocusedTerminal,
   disposeSession,
+  disposeSessionsAndWait,
+  getIsLeafBusy,
   leafHasForegroundProcess,
   leafIdForPty,
   navigateFocusedBlocks,
@@ -12,6 +14,10 @@ export {
   writeToSession,
 } from "./lib/useTerminalSession";
 export {
+  AGENT_SIGNAL_EVENT,
+  type AgentPhase,
+  ensureAgentActivityListener,
+  isAgentActivePty,
   type AgentTabStatus,
   tabAgentStatus,
   useAgentActivityStore,

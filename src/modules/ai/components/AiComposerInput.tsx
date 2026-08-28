@@ -59,6 +59,44 @@ function detectFileTrigger(value: string, caret: number): FileTrigger | null {
   return null;
 }
 
+export type ComposerEnterAction = "submit" | "ignore";
+
+/**
+ * Known limitation (#845 前半, unverified on real Windows hardware): Windows
+ * clipboard history (Win+V) and some voice-to-text tools insert multiline
+ * text as trusted `Enter` keydown events per line break instead of a single
+ * paste, which is indistinguishable here from a deliberate user Enter-to-send.
+ * No fix applied yet — see docs/2026-08-27-pending-issues-plan.md §7.
+ */
+export function resolveComposerEnterAction(event: {
+  key: string;
+  shiftKey: boolean;
+  isComposing?: boolean;
+}): ComposerEnterAction {
+  if (event.key !== "Enter") return "ignore";
+  if (event.shiftKey) return "ignore";
+  if (event.isComposing) return "ignore";
+  return "submit";
+}
+
+export type PickerKeyAction = "pick" | "ignore";
+
+/**
+ * Decide whether a keydown should pick the active picker item (snippet,
+ * slash command, or workspace file). On macOS, Enter during IME composition
+ * must be ignored so the IME can commit the candidate first (#873); otherwise
+ * the picker auto-selects the first match and clobbers what the user is typing.
+ */
+export function resolvePickerKeyAction(
+  event: { key: string; isComposing?: boolean },
+  itemsLength: number,
+): PickerKeyAction {
+  if (event.key !== "Tab" && event.key !== "Enter") return "ignore";
+  if (event.isComposing) return "ignore";
+  if (itemsLength <= 0) return "ignore";
+  return "pick";
+}
+
 export function AiComposerInput() {
   const { t } = useTranslation();
   const c = useComposer();
@@ -234,12 +272,10 @@ export function AiComposerInput() {
                     setActiveIndex((i) => Math.max(0, i - 1));
                     return;
                   }
-                  if (e.key === "Tab" || e.key === "Enter") {
-                    if (items.length > 0) {
-                      e.preventDefault();
-                      pickActive();
-                      return;
-                    }
+                  if (resolvePickerKeyAction(e, items.length) === "pick") {
+                    e.preventDefault();
+                    pickActive();
+                    return;
                   }
                   if (e.key === "Escape") {
                     e.preventDefault();
@@ -254,7 +290,7 @@ export function AiComposerInput() {
                     return;
                   }
                 }
-                if (e.key === "Enter" && !e.shiftKey) {
+                if (resolveComposerEnterAction(e) === "submit") {
                   e.preventDefault();
                   c.submit();
                 }

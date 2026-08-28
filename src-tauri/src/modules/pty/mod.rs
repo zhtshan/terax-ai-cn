@@ -11,7 +11,16 @@ use std::thread;
 
 use portable_pty::PtySize;
 use tauri::ipc::{Channel, Response};
+use tauri::Emitter;
 
+pub use agent_detect::AliasMap;
+
+// Emitted by the detached drop_session thread once ClosePseudoConsole (and the
+// reader/waiter teardown) finishes. Frontend awaits this before opening a
+// replacement pty so the ConPTY lifecycle lock alone isn't enough — #1156.
+pub(super) const PTY_DROPPED_EVENT: &str = "terax:pty-dropped";
+
+use crate::modules::agent_alias_state::{self, AliasState};
 use crate::modules::workspace::{user_spawn_cwd_or_home, WorkspaceEnv, WorkspaceRegistry};
 use session::Session;
 
@@ -42,6 +51,7 @@ impl PtyState {
 pub async fn pty_open(
     app: tauri::AppHandle,
     state: tauri::State<'_, PtyState>,
+    alias_state: tauri::State<'_, AliasState>,
     registry: tauri::State<'_, WorkspaceRegistry>,
     cols: u16,
     rows: u16,
@@ -56,8 +66,12 @@ pub async fn pty_open(
     let blocks = blocks.unwrap_or(false);
     let cwd = user_spawn_cwd_or_home(&registry, cwd.as_deref(), &workspace);
     let id = state.next_id.fetch_add(1, Ordering::Relaxed);
+    // Snapshot the alias map at spawn time; the reader thread will own this
+    // value. Live updates after spawn don't reach existing ptys by design —
+    // alias is a session-level config.
+    let aliases = agent_alias_state::current(&alias_state);
     let session = tauri::async_runtime::spawn_blocking(move || {
-        session::spawn(id, app, cols, rows, cwd, workspace, blocks, shell, on_data, on_exit)
+        session::spawn(id, app, cols, rows, cwd, workspace, blocks, shell, on_data, on_exit, aliases)
             .map(|(s, _)| s)
     })
     .await
@@ -168,7 +182,11 @@ pub fn pty_resize(
 }
 
 #[tauri::command]
-pub fn pty_close(state: tauri::State<PtyState>, id: u32) -> Result<(), String> {
+pub fn pty_close(
+    app: tauri::AppHandle,
+    state: tauri::State<PtyState>,
+    id: u32,
+) -> Result<(), String> {
     let session = state.sessions.write().unwrap().remove(&id);
     if let Some(s) = session {
         if let Err(e) = s.killer.lock().unwrap().kill() {
@@ -188,6 +206,7 @@ pub fn pty_close(state: tauri::State<PtyState>, id: u32) -> Result<(), String> {
                     "pty session id={id} dropped in {}ms",
                     t0.elapsed().as_millis()
                 );
+                let _ = app.emit(PTY_DROPPED_EVENT, id);
             })
             .expect("spawn pty drop thread");
     } else {
@@ -280,7 +299,10 @@ fn shell_has_children(shell_pid: u32) -> bool {
 // A fresh webview load orphans the previous frontend's sessions in this still
 // running process; reap them on boot before any new tab spawns.
 #[tauri::command]
-pub fn pty_close_all(state: tauri::State<PtyState>) -> Result<usize, String> {
+pub fn pty_close_all(
+    app: tauri::AppHandle,
+    state: tauri::State<PtyState>,
+) -> Result<usize, String> {
     let drained: Vec<(u32, Arc<Session>)> = {
         let mut sessions = state.sessions.write().unwrap();
         sessions.drain().collect()
@@ -290,9 +312,13 @@ pub fn pty_close_all(state: tauri::State<PtyState>) -> Result<usize, String> {
         if let Err(e) = s.killer.lock().unwrap().kill() {
             log::debug!("pty_close_all: kill id={id} returned {e}");
         }
+        let app_for_drop = app.clone();
         thread::Builder::new()
             .name(format!("terax-pty-drop-{id}"))
-            .spawn(move || session::drop_session(s))
+            .spawn(move || {
+                session::drop_session(s);
+                let _ = app_for_drop.emit(PTY_DROPPED_EVENT, id);
+            })
             .expect("spawn pty drop thread");
     }
     if count > 0 {

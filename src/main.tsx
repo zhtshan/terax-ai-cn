@@ -7,19 +7,27 @@ import { getCurrentWindow } from "@tauri-apps/api/window";
 import ReactDOM from "react-dom/client";
 import App from "./app/App";
 import { initLaunchDir } from "./lib/launchDir";
-import { USE_CUSTOM_WINDOW_CONTROLS } from "./lib/platform";
+import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "./lib/platform";
 
 if (USE_CUSTOM_WINDOW_CONTROLS) {
   document.documentElement.dataset.chrome = "borderless";
 }
 
-// Suppress the native WebView context menu app-wide. Areas with their own
-// menus (explorer rows, tab bar) stop propagation already; everywhere else a
-// right-click used to open the native menu, whose "Reload" reloads the whole
-// webview and re-runs pty_close_all below — killing live terminal sessions.
-document.addEventListener("contextmenu", (e) => {
-  e.preventDefault();
-});
+if (IS_MAC) {
+  document.documentElement.dataset.platform = "macos";
+}
+
+// Suppress the native WebView context menu app-wide in production. Areas with
+// their own menus (explorer rows, tab bar) stop propagation already; everywhere
+// else a right-click used to open the native menu, whose "Reload" reloads the
+// whole webview and re-runs pty_close_all below — killing live terminal sessions.
+// In dev mode we allow the native menu so developers can open DevTools via
+// right-click -> Inspect Element.
+if (!import.meta.env.DEV) {
+  document.addEventListener("contextmenu", (e) => {
+    e.preventDefault();
+  });
+}
 
 // Render-instrumentation overlay, opt-in: `VITE_REACT_SCAN=true pnpm dev`.
 // Dev-only dynamic import so it never reaches the production bundle.

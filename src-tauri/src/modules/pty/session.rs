@@ -8,7 +8,7 @@ use portable_pty::{native_pty_system, ChildKiller, MasterPty, PtySize};
 use tauri::ipc::{Channel, Response};
 use tauri::{AppHandle, Emitter, Manager};
 
-use super::agent_detect::AgentDetector;
+use super::agent_detect::{AgentDetector, AliasMap, DEFAULT_AGENTS};
 use super::da_filter::DaFilter;
 use super::shell_init;
 use crate::modules::workspace::WorkspaceEnv;
@@ -110,6 +110,7 @@ pub fn spawn(
     shell: Option<String>,
     on_data: Channel<Response>,
     on_exit: Channel<i32>,
+    aliases: AliasMap,
 ) -> Result<(Arc<Session>, PtySize), String> {
     #[cfg(windows)]
     let _spawn_guard = CONPTY_LIFECYCLE_LOCK.lock().unwrap();
@@ -182,7 +183,10 @@ pub fn spawn(
             let mut buf = [0u8; READ_BUF];
             let mut filtered: Vec<u8> = Vec::with_capacity(READ_BUF);
             let mut da_filter = DaFilter::new();
-            let mut agent_detect = AgentDetector::new();
+            let mut agent_detect = AgentDetector::with_agents(
+                DEFAULT_AGENTS.iter().map(|s| s.to_string()).collect(),
+                aliases,
+            );
             let mut dropped_bytes: u64 = 0;
             loop {
                 match reader.read(&mut buf) {

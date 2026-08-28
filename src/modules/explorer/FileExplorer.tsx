@@ -12,7 +12,6 @@ import {
   useCallback,
   useImperativeHandle,
   useRef,
-  useState,
   type RefObject,
 } from "react";
 import {
@@ -24,6 +23,7 @@ import { FileTreeSection, type FileTreeSectionHandle } from "./FileTreeSection";
 import { useSectionCollapse } from "./lib/useSectionCollapse";
 import { OutlineSection } from "./OutlineSection";
 import { TimelineSection } from "./TimelineSection";
+import { useTimelinePath } from "./lib/useTimelinePath";
 
 export type FileExplorerHandle = {
   focus: () => void;
@@ -111,7 +111,7 @@ export const FileExplorer = memo(
     const outline = useSectionCollapse("outline", true);
     const timeline = useSectionCollapse("timeline", true);
     const groupRef = useGroupRef();
-    const [timelineFilePath, setTimelineFilePath] = useState<string | null>(null);
+    const [timelineFilePath, setTimelineFilePath] = useTimelinePath();
 
     // Restores each panel's pre-collapse size on re-expand, instead of always
     // snapping back to a fixed default.

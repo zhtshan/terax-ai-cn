@@ -80,8 +80,11 @@ export function createCommandItems(
     : activePaneCount >= MAX_PANES_PER_TAB
       ? i18next.t("commandPalette.disabled.paneLimit")
       : undefined;
+  const activePreviewTab = activeTab?.kind === "preview" ? activeTab : null;
   const closeDisabled =
-    onlyOneTab && activePaneCount < 2
+    onlyOneTab &&
+    activePaneCount < 2 &&
+    activePreviewTab === null
       ? i18next.t("commandPalette.disabled.lastTab")
       : undefined;
   const noWorkspaceRootReason = i18next.t("commandPalette.noWorkspaceRoot");
