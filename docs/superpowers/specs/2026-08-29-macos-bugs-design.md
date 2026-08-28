@@ -34,18 +34,28 @@ CJK 字符乱码、字形重叠、同一行内正误混杂（报告于 macOS 26 
 
 ### 方案
 两层兜底：
-1. **#1168 的启动探测**作为第一层——如果真因是 WebGL 不可用，已被覆盖
-2. **React Error Boundary + 全局 JS 错误日志**作为第二层——捕获所有渲染错误和 unhandled promise rejection，写到 `~/Library/Application Support/terax/errors.log`（JSON 行格式），下次 app 启动时 toast 提示用户"上次启动遇到错误，已记录日志"。不阻塞正常启动
+1. **#1168 的启动探测**作为第一层——如果真因是 WebGL 不可用，已被覆盖；探测失败时 toast 提示"已自动关闭 WebGL 渲染，终端改用 DOM 渲染"
+2. **React Error Boundary** 作为第二层——包 App 内组件树（Router + 所有页面），catch 渲染错误后显示"Terax 遇到了问题，已记录到内部日志。请截图提交 issue"占位符。不重启、不改 UI 结构，仅阻止整页空白
+
+错误不会写额外文件；已有的 Tauri log plugin 会把 Rust 侧 error 写到 `app_local_data_dir` 下的日志文件，用户截图提交 issue 时可附日志。前端不新增 fs 读取命令（避免引入新权限弹窗）。
 
 ### 改动点
-1. `src/App.tsx`：用 `<ErrorBoundary>` 包整个 `App` 内部组件树，catch 渲染错误后显示"Terax 遇到了问题，已记录到日志"占位符，app 仍可响应
-2. `src/main.tsx`：`window.addEventListener('error')` + `unhandledrejection` 写 JSON 行日志到 `errors.log`；启动时读最后一条时间戳，若距上次运行不到 5 分钟则 toast 提示
-3. `src-tauri/src/lib.rs` 或 `src/main.tsx`：加一个 Tauri command `get_app_error_log_path` 返回日志路径（用于 toast 里的"打开日志"按钮）
+1. `src/App.tsx`：import 一个 `ErrorBoundary` 组件（新建 `src/components/ErrorBoundary.tsx`），用它包整个 `<Router>` 内的内容。catch 渲染 `CrashFallback` 组件
+2. `src/components/ErrorBoundary.tsx`：新建，实现 React 18 Error Boundary（`componentDidCatch` + `getDerivedStateFromError`）；fallback UI 显示中文错误提示 + "重启"按钮（`window.location.reload()`）
+3. `src/modules/settings/store.ts`：`detectWebglRenderer()` 失败时 toast（通过 Tauri notification plugin，已有）提示用户
+4. `src/main.tsx`：`window.addEventListener('error')` 和 `unhandledrejection` 打 `console.error`（已在 dev 可见）+ `log::error!`（通过 Tauri invoke 转发到 Rust 日志，见下方）
+
+**不**：
+- 不写独立 JSON 日志文件（避免权限弹窗）
+- 不重启 app（Error Boundary fallback 有重启按钮，用户主动点）
+- 不改 log plugin 配置（默认已写到 log dir）
 
 ### 测试策略
-- 集成：故意抛出一个 React error → 断言 Error Boundary 渲染 fallback 而不是整页空白
-- 集成：模拟 unhandled rejection → 断言日志文件被写入且内容符合 JSON schema
-- 手动：关闭 WebGL 开关（触发 #1168 路径）→ 确认终端正常渲染
+- 单元测试：mock offscreen canvas 返回 null context → 断言 `webglRendererUnusable` 被置位、slot `attachWebgl` 无调用
+- 手动验收：关闭 WebGL 开关再打开，确认所有 terminal slot 走 DOM 渲染路径
+- 集成（#933）：故意在 `CrashFallback` 上方的组件抛渲染错误 → 断言 Error Boundary 捕获、显示 fallback、app 不整页空白
+- 集成（#933）：模拟 unhandled rejection 在 root level → 断言 `console.error` 被调用、Tauri log 插件记录到 log dir
+- 手动：macOS 13 Intel 环境（如有）开 app → 确认终端渲染正常 + 无白屏
 
 ---
 
