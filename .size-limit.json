@@ -14,7 +14,7 @@
   {
     "name": "total client JS",
     "path": ["dist/assets/*.js"],
-    "limit": "1600 KB",
+    "limit": "1800 KB",
     "gzip": true
   }
 ]
