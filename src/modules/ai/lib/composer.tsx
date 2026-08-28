@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import { toast } from "sonner";
 import {
   createContext,
   useContext,
@@ -311,21 +312,23 @@ export function AiComposerProvider({ children }: ProviderProps) {
     }
 
     if (!sessionId) return;
+    // Fix #514: with an approval still pending, sending a new turn races the
+    // approval response (deny-in-flight lands on the wrong message and kills
+    // the session), so block the submit instead of auto-denying.
+    if (collectPendingApprovalIds(getChat(sessionId)?.messages ?? []).length > 0) {
+      toast.warning("Pending approval", {
+        id: `approval-pending:${sessionId}`,
+        description:
+          "Approve or deny the pending tool call before sending a new message.",
+      });
+      return;
+    }
     const store = useChatStore.getState();
     store.patchAgentMeta({ hitStepCap: false, compactionNotice: null });
     if (!store.mini.open) store.openMini();
     void (async () => {
       const { getOrCreateChat } = await import("../store/chatRuntime");
       const chat = getOrCreateChat(sessionId);
-      // Fix #951: when the user submits a new turn without responding to a
-      // pending approval, auto-deny any still-pending approvals first so the
-      // AI SDK doesn't reject the new sendMessage call as a collision with an
-      // unresolved approval. The denied tool calls surface as normal turns
-      // and the chat recovers. Without this, missing the approval modal
-      // permanently breaks the session.
-      for (const id of collectPendingApprovalIds(chat.messages)) {
-        chat.addToolApprovalResponse({ id, approved: false });
-      }
       void chat.sendMessage({ role: "user", parts } as Parameters<
         typeof chat.sendMessage
       >[0]);
