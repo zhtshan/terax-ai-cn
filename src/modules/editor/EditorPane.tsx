@@ -488,8 +488,6 @@ export const EditorPane = memo(
       });
     }, [doc]);
 
-    const docRef = useRef(doc);
-    docRef.current = doc;
     // 外部内容采纳：doc 状态更新（初始加载/reload 发布）后，以视图实际内容
     // 为准检测差异并整体替换。不依赖 value prop 字符串变化（#988）。
     useEffect(() => {
