@@ -55,7 +55,7 @@
 | **909** | Windows 上 Claude Code 不被检测 | 默认检测 `claude` 命令；用户用别名 `cc` 启动时无效。需支持自定义命令名配置 | 小 |
 | **909** | 同上（中文版扩展） | 支持任意用户配置的 alias（如 `ca`、`cca`），且内置 AI agent 都可通过 Settings > Agents 设置 `terminalCommand`/`terminalAgent`，自动派生到 alias map | 小 |
 | **1132** | Win11 codeblocks 不嵌入 | Windows WebView2 markdown 渲染差异，可能 CSP 或 HTML 转义路径不同 | 待诊断 |
-| **630** | Windows WebGL off 导致无法输入 | WebGL 初始化失败时 fallback 路径未正确建立 textarea focus | 小 |
+| **630** | Windows WebGL off 导致无法输入 | 根因（代码已核实，非 focus 问题）：`WebglRenderer` 构造函数在 shader 初始化（`GlyphRenderer`/`RectangleRenderer` 的 `throwIfFalsy`）失败前就已把 canvas append 进 `screenElement`，而 xterm `loadAddon` 无回滚；我们的 catch 只 warn，残留的死 canvas 覆盖在 DOM 渲染层之上，打字有 echo 但被遮死，用户报"无法输入"。设置关 WebGL 后 `attachWebgl` 在偏好门提前 return、不再创建 canvas，故恢复。**修复**：catch 中 diff 移除新增 canvas（`releaseCanvasContext` + remove）+ dispose 半初始化 addon + `refresh` 重绘；`webglInitFailed` 闩锁阻止每次绑定的重试风暴（`applyWebglPreference(true)` 显式清零） | 小 | ✅ 本周完成 |
 
 ### P2 — 稳定性 / 路径
 
@@ -120,7 +120,7 @@
 6. **#1156 + #977** — ConPTY lifecycle race（Rust `drop_session` 加 reader thread join 超时，或前端 `switchWorkspace` 改为 async drain 后再 reset）— ✅ `5362206`
 7. **#909** — Claude Code 自定义命令检测（配置项 + alias 匹配）— ✅ `fa203c9..6bb7507`（8 个提交）
 8. **#659** — Preview tab cmd+w 关闭 — ✅ `6795e66`（allow preview close even as last tab; 移除 command palette 对应 disabled）
-9. **#630** — Windows WebGL fallback 路径
+9. **#630** — Windows WebGL fallback 路径 — ✅ 本周完成（`attachWebgl` 失败路径清理残留 canvas + `webglInitFailed` 闩锁；根因修正为失败 canvas 遮挡渲染，非 focus 问题）
 
 ### 第三批（下周，需要诊断）
 
@@ -215,5 +215,5 @@ Windows 机器上：
 
 ---
 
-*上次更新：2026-08-28（#659 Preview tab cmd+w 行为修正完成）*
+*上次更新：2026-08-28（#659 Preview tab cmd+w、#630 WebGL 失败 fallback 清理完成；本周第一、二批全部处理完毕，#845 前半待 Windows 复现）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*

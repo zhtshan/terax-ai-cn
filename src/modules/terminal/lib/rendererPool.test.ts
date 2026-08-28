@@ -1,5 +1,21 @@
 /// <reference types="vitest/globals" />
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+
+// Shared state for the @xterm/addon-webgl mock. Existing tests leave these
+// untouched: element stays null so attachWebgl early-returns, preserving the
+// historical no-op behavior.
+const webglMock = vi.hoisted(() => ({
+  // idle: plain constructor; ok: succeed; fail-leaked-canvas: mimic the real
+  // WebglRenderer ctor ordering (WebglRenderer.ts) where the canvas is
+  // appended to screenElement before shader setup throws.
+  mode: "idle" as "idle" | "ok" | "fail-leaked-canvas",
+  constructCount: 0,
+  canvases: [] as { remove: ReturnType<typeof vi.fn> }[],
+  element: null as null | {
+    canvases: { remove: ReturnType<typeof vi.fn> }[];
+    querySelectorAll: (sel: string) => unknown[];
+  },
+}));
 
 // Build a minimal mock Terminal instance that satisfies the rendererPool consumer.
 const mockTermMethods = {
@@ -52,7 +68,11 @@ let lastTextarea: MockTextarea | null = null;
 
 function MockTerminal(_options: Record<string, unknown>) {
   lastTextarea = makeMockTextarea();
-  return { ...mockTermMethods, textarea: lastTextarea };
+  return {
+    ...mockTermMethods,
+    textarea: lastTextarea,
+    element: webglMock.element ?? undefined,
+  };
 }
 
 // Mock xterm package.
@@ -82,7 +102,21 @@ vi.mock("@xterm/addon-web-links", () => ({
   WebLinksAddon: function WebLinksAddon(this: Record<string, unknown>) {},
 }));
 vi.mock("@xterm/addon-webgl", () => ({
-  WebglAddon: function WebglAddon(this: Record<string, unknown>) {},
+  WebglAddon: function WebglAddon(this: Record<string, unknown>) {
+    webglMock.constructCount += 1;
+    this.dispose = vi.fn();
+    this.onContextLoss = vi.fn();
+    if (webglMock.mode === "fail-leaked-canvas") {
+      const canvas = {
+        getContext: vi.fn(() => null),
+        remove: vi.fn(),
+        width: 10,
+        height: 10,
+      };
+      webglMock.canvases.push(canvas);
+      throw new Error("simulated webgl init failure after canvas append");
+    }
+  },
 }));
 
 // Mock styles/tokens to avoid document dependency in theme building.
@@ -410,5 +444,89 @@ describe("WebKit insertText re-emit (xterm #5374 workaround)", () => {
     ta.dispatch("input", { isComposing: true, inputType: "insertCompositionText", data: "你" });
     ta.dispatch("input", { isComposing: false, inputType: "insertCompositionText", data: "你" });
     expect(writeToPty).not.toHaveBeenCalled();
+  });
+});
+
+describe("attachWebgl failure fallback", () => {
+  // scheduleUnhide re-arms work via mocked rAF (setTimeout 0); flush so
+  // pending frame callbacks settle before counting constructions.
+  async function flushFrames(times = 4): Promise<void> {
+    for (let i = 0; i < times; i++) {
+      await new Promise((r) => setTimeout(r, 0));
+    }
+  }
+
+  async function setupPool() {
+    const mod = await import("./rendererPool");
+    mod.configureRendererPool({
+      resolveLeaf: vi.fn(),
+      evictLeaf: vi.fn(),
+      isLeafFocused: vi.fn(() => false),
+      isLeafBlocks: vi.fn(),
+      isLeafBusy: vi.fn(),
+      isLeafVisible: vi.fn(),
+      storeSnapshot: vi.fn(),
+    } as never);
+    return mod;
+  }
+
+  beforeEach(() => {
+    webglMock.mode = "idle";
+    webglMock.constructCount = 0;
+    webglMock.canvases.length = 0;
+    webglMock.element = {
+      canvases: webglMock.canvases,
+      querySelectorAll: (sel: string) =>
+        sel === "canvas" ? [...webglMock.canvases] : [],
+    };
+  });
+
+  afterEach(() => {
+    webglMock.mode = "idle";
+    webglMock.element = null;
+  });
+
+  // A failed attach (shader/link failure after the canvas entered
+  // screenElement) must not leave the GL canvas overlaying the DOM renderer:
+  // that dead canvas is what blanks the screen and reads as "cannot type".
+  it("removes canvases a failed webgl attach leaks into the term element", async () => {
+    webglMock.mode = "fail-leaked-canvas";
+    const { acquireSlot, refreshLeafSlot } = await setupPool();
+    acquireSlot(acquireParams(7));
+    refreshLeafSlot(7);
+    await flushFrames();
+    expect(webglMock.canvases.length).toBeGreaterThan(0);
+    for (const canvas of webglMock.canvases) {
+      expect(canvas.remove).toHaveBeenCalled();
+    }
+  });
+
+  // Driver-level GL failures are deterministic; re-attempting on every bind
+  // just churns contexts (and, pre-cleanup, leaked canvases).
+  it("does not re-attempt webgl attach after a synchronous failure", async () => {
+    webglMock.mode = "fail-leaked-canvas";
+    const { acquireSlot, refreshLeafSlot } = await setupPool();
+    acquireSlot(acquireParams(9));
+    refreshLeafSlot(9);
+    await flushFrames();
+    const settled = webglMock.constructCount;
+    expect(settled).toBeGreaterThan(0);
+    refreshLeafSlot(9);
+    await flushFrames();
+    expect(webglMock.constructCount).toBe(settled);
+  });
+
+  it("keeps the addon tracked and attached when webgl loads successfully", async () => {
+    webglMock.mode = "ok";
+    const { acquireSlot, refreshLeafSlot, poolSlotStats } = await setupPool();
+    acquireSlot(acquireParams(3));
+    refreshLeafSlot(3);
+    await flushFrames();
+    expect(webglMock.constructCount).toBeGreaterThan(0);
+    expect(poolSlotStats()[0]?.webgl).toBe(true);
+    const attached = webglMock.constructCount;
+    refreshLeafSlot(3);
+    await flushFrames();
+    expect(webglMock.constructCount).toBe(attached);
   });
 });

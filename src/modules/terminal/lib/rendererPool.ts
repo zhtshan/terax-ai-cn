@@ -50,6 +50,9 @@ export type Slot = {
   readonly host: HTMLDivElement;
   webglAddon: WebglAddon | null;
   webglCanvases: HTMLCanvasElement[];
+  // Set when a synchronous webgl init failed (driver-level, deterministic);
+  // cleared by an explicit preference re-enable, not by retries.
+  webglInitFailed: boolean;
   currentLeafId: number | null;
   // Leaf whose buffer this slot still holds intact after release; serialized
   // only if another leaf steals the slot.
@@ -230,6 +233,7 @@ function createSlot(): Slot {
     host,
     webglAddon: null,
     webglCanvases: [],
+    webglInitFailed: false,
     currentLeafId: null,
     retainedLeafId: null,
     parked: false,
@@ -843,14 +847,15 @@ const SLOT_REAP_GRACE_MS = 45_000;
 const IDLE_SLOTS_KEEP_WARM = 1;
 
 function attachWebgl(slot: Slot): void {
-  if (slot.webglAddon || !slot.term.element) return;
+  if (slot.webglAddon || slot.webglInitFailed || !slot.term.element) return;
   if (!usePreferencesStore.getState().terminalWebglEnabled) return;
   const elem = slot.term.element;
   const before = new Set<HTMLCanvasElement>(
     elem.querySelectorAll<HTMLCanvasElement>("canvas"),
   );
+  let webgl: WebglAddon | null = null;
   try {
-    const webgl = new WebglAddon();
+    webgl = new WebglAddon();
     webgl.onContextLoss(() => {
       const cur = slot.webglAddon;
       if (cur === webgl) {
@@ -858,7 +863,7 @@ function attachWebgl(slot: Slot): void {
         slot.webglCanvases = [];
       }
       try {
-        webgl.dispose();
+        webgl?.dispose();
       } catch {}
       // Recovery: WebKit may transiently lose contexts on sleep/wake or GPU
       // reset; without re-attach the slot would silently fall back to DOM
@@ -883,6 +888,25 @@ function attachWebgl(slot: Slot): void {
     slot.webglCanvases = added;
   } catch (e) {
     console.warn("[terax-webgl] unavailable:", e);
+    slot.webglInitFailed = true;
+    // WebglRenderer appends its canvas to screenElement before shader setup
+    // can throw, and xterm's loadAddon has no rollback: the orphaned canvas
+    // then overlays the DOM renderer and blanks the terminal (upstream
+    // #630). Dispose the partial addon and strip every canvas this attempt
+    // added so the DOM fallback stays visible.
+    try {
+      webgl?.dispose();
+    } catch {}
+    for (const c of elem.querySelectorAll<HTMLCanvasElement>("canvas")) {
+      if (before.has(c)) continue;
+      releaseCanvasContext(c);
+      try {
+        c.remove();
+      } catch {}
+    }
+    try {
+      slot.term.refresh(0, slot.term.rows - 1);
+    } catch {}
   }
 }
 
@@ -941,6 +965,8 @@ function releaseCanvasContext(canvas: HTMLCanvasElement): void {
 export function applyWebglPreference(enabled: boolean): void {
   for (const slot of slots) {
     if (enabled) {
+      // A toggle is an explicit retry of any earlier init failure.
+      slot.webglInitFailed = false;
       if (slot.currentLeafId !== null && !slot.parked && !slot.webglAddon) {
         attachWebgl(slot);
         if (slot.webglAddon) {
