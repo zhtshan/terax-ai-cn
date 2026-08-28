@@ -195,6 +195,7 @@ function termOptions() {
     scrollback: prefs.terminalScrollback,
     allowProposedApi: true,
     minimumContrastRatio: bgActive(prefs) ? MCR_BG_ACTIVE : MCR_BG_INACTIVE,
+    rescaleOverlappingGlyphs: true,
   };
 }
 

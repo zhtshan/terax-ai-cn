@@ -65,8 +65,10 @@ function makeMockTextarea(): MockTextarea {
 }
 
 let lastTextarea: MockTextarea | null = null;
+let lastOptions: Record<string, unknown> | null = null;
 
-function MockTerminal(_options: Record<string, unknown>) {
+function MockTerminal(options: Record<string, unknown>) {
+  lastOptions = options;
   lastTextarea = makeMockTextarea();
   return {
     ...mockTermMethods,
@@ -528,5 +530,21 @@ describe("attachWebgl failure fallback", () => {
     refreshLeafSlot(3);
     await flushFrames();
     expect(webglMock.constructCount).toBe(attached);
+  });
+
+  // #1168: CJK glyph overlap in the WebGL renderer. xterm 5.5+ ships an
+  // opt-in rescale; enabling it here is the upstream-sanctioned mitigation.
+  describe("termOptions", () => {
+    beforeEach(() => {
+      lastOptions = null;
+    });
+
+    it("enables rescaleOverlappingGlyphs", async () => {
+      const { acquireSlot, refreshLeafSlot } = await setupPool();
+      acquireSlot(acquireParams(21));
+      refreshLeafSlot(21);
+      await flushFrames();
+      expect(lastOptions?.rescaleOverlappingGlyphs).toBe(true);
+    });
   });
 });
