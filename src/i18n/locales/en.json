@@ -399,7 +399,9 @@
       "linesReview": "{{lines}} line(s) · review in the diff tab",
       "replaceAll": " · replace all",
       "diffReview": "−{{removed}} / +{{added}} line(s) · review in the diff tab",
-      "editsReview": "{{edits}} edit(s) · review in the diff tab"
+      "editsReview": "{{edits}} edit(s) · review in the diff tab",
+      "pendingTitle": "Pending approval",
+      "pendingDesc": "Respond to the pending tool call (approve or deny) before sending a new message."
     },
     "tools": {
       "read": "Read",

@@ -399,7 +399,9 @@
       "linesReview": "{{lines}} 行 · 在差异标签页中查看",
       "replaceAll": " · 全部替换",
       "diffReview": "−{{removed}} / +{{added}} 行 · 在差异标签页中查看",
-      "editsReview": "{{edits}} 处编辑 · 在差异标签页中查看"
+      "editsReview": "{{edits}} 处编辑 · 在差异标签页中查看",
+      "pendingTitle": "有待处理的审批",
+      "pendingDesc": "请先批准或拒绝待处理的工具调用，再发送新消息。"
     },
     "tools": {
       "read": "读取",

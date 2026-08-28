@@ -1,4 +1,5 @@
 import { invoke } from "@tauri-apps/api/core";
+import i18next from "i18next";
 import { toast } from "sonner";
 import {
   createContext,
@@ -316,10 +317,9 @@ export function AiComposerProvider({ children }: ProviderProps) {
     // approval response (deny-in-flight lands on the wrong message and kills
     // the session), so block the submit instead of auto-denying.
     if (collectPendingApprovalIds(getChat(sessionId)?.messages ?? []).length > 0) {
-      toast.warning("Pending approval", {
+      toast.warning(i18next.t("ai.toolApproval.pendingTitle"), {
         id: `approval-pending:${sessionId}`,
-        description:
-          "Approve or deny the pending tool call before sending a new message.",
+        description: i18next.t("ai.toolApproval.pendingDesc"),
       });
       return;
     }
