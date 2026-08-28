@@ -163,6 +163,15 @@
   --terminal-ansi-bright-white: #fafafa;
 }
 
+/*
+ * :root.dark (not .dark) so this outranks the plain :root block above —
+ * that block redeclares --terminal-selection later in the file, and with
+ * equal specificity source order would win, silently undoing this override.
+ */
+:root.dark {
+  --terminal-selection: color-mix(in srgb, var(--foreground) 18%, transparent);
+}
+
 :root {
   --app-zoom: 1;
   --editor-font-size: 13px;
