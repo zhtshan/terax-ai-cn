@@ -18,18 +18,14 @@ import {
 import { Switch } from "@/components/ui/switch";
 import { cn } from "@/lib/utils";
 import {
-  getBindingTokens,
-  SHORTCUTS,
-} from "@/modules/shortcuts/shortcuts";
-import {
   type CustomEndpoint,
   compatModelIdForEndpoint,
   DEFAULT_MODEL_ID,
-  endpointIdFromCompatModel,
   getAutocompleteEligibleModels,
   getCompatModelInfo,
   getProvider,
   isCompatModelId,
+  isOrphanCompatModel,
   MODELS,
   PROVIDERS,
   type ProviderId,
@@ -49,7 +45,6 @@ import {
   setCustomEndpointKey,
   setKey,
 } from "@/modules/ai/lib/keyring";
-import { useChatStore } from "@/modules/ai/store/chatStore";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import {
   type AutocompleteTrigger,
@@ -76,6 +71,7 @@ import {
   setSttProvider,
   setWhispercppBaseURL,
 } from "@/modules/settings/store";
+import { getBindingTokens, SHORTCUTS } from "@/modules/shortcuts/shortcuts";
 import {
   Add01Icon,
   ArrowDown01Icon,
@@ -230,31 +226,42 @@ export function ModelsSection() {
       return next;
     });
 
-    // Drop the now-dead model id from favorites/recents before touching the
-    // selection, so the recents push from a selection reset can't race it.
-    // Matches both the legacy `compat-<id>` and the slug `compat-<id>#<slug>`.
-    const isDeadModel = (m: string) =>
-      isCompatModelId(m) && endpointIdFromCompatModel(m) === id;
-    const { favoriteModelIds, recentModelIds } = usePreferencesStore.getState();
-    const nextFavorites = favoriteModelIds.filter((m) => !isDeadModel(m));
+    // Purge persisted references to the deleted endpoint's compat ids (legacy
+    // and slug forms); the dangling chat selection self-heals via chatStore.
+    const remaining = customEndpoints.filter((e) => e.id !== id);
+    const {
+      favoriteModelIds,
+      recentModelIds,
+      defaultModelId,
+      autocompleteProvider,
+      autocompleteModelId,
+    } = usePreferencesStore.getState();
+    const nextFavorites = favoriteModelIds.filter(
+      (m) => !isOrphanCompatModel(m, remaining),
+    );
     if (nextFavorites.length !== favoriteModelIds.length) {
       await setFavoriteModelIds(nextFavorites);
     }
-    const nextRecents = recentModelIds.filter((m) => !isDeadModel(m));
+    const nextRecents = recentModelIds.filter(
+      (m) => !isOrphanCompatModel(m, remaining),
+    );
     if (nextRecents.length !== recentModelIds.length) {
       await setRecentModelIds(nextRecents);
     }
 
-    // If the deleted endpoint was the active model, the selection would dangle
-    // and the next send throws "Custom endpoint not found". Fall back to another
-    // endpoint when one remains, else the default model.
-    const remaining = customEndpoints.filter((e) => e.id !== id);
-    const { selectedModelId, setSelectedModelId } = useChatStore.getState();
-    if (isDeadModel(selectedModelId)) {
-      setSelectedModelId(
+    if (isOrphanCompatModel(defaultModelId, remaining)) {
+      await setDefaultModel(
         remaining[0]
           ? compatModelIdForEndpoint(remaining[0].id)
           : DEFAULT_MODEL_ID,
+      );
+    }
+    if (
+      autocompleteProvider === "openai-compatible" &&
+      isOrphanCompatModel(autocompleteModelId, remaining)
+    ) {
+      await setAutocompleteModelId(
+        remaining[0] ? compatModelIdForEndpoint(remaining[0].id) : "",
       );
     }
 
@@ -317,7 +324,11 @@ export function ModelsSection() {
   };
 
   if (!keys) {
-    return <div className="text-[12px] text-muted-foreground">{t("common.loading")}</div>;
+    return (
+      <div className="text-[12px] text-muted-foreground">
+        {t("common.loading")}
+      </div>
+    );
   }
 
   const configuredIds = new Set(
@@ -844,9 +855,13 @@ function AutocompleteRow({
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="auto">{t("settings.models.automatic")}</SelectItem>
+              <SelectItem value="auto">
+                {t("settings.models.automatic")}
+              </SelectItem>
               <SelectItem value="manual">
-                {t("settings.models.manual", { shortcut: aiCompleteShortcut || t("settings.models.shortcut") })}
+                {t("settings.models.manual", {
+                  shortcut: aiCompleteShortcut || t("settings.models.shortcut"),
+                })}
               </SelectItem>
             </SelectContent>
           </Select>
@@ -854,7 +869,9 @@ function AutocompleteRow({
       ) : null}
       {enabled && !hasKey ? (
         <p className="pl-19 text-[10.5px] text-muted-foreground">
-          {t("settings.models.notConnectedHint", { provider: getProvider(provider).label })}
+          {t("settings.models.notConnectedHint", {
+            provider: getProvider(provider).label,
+          })}
         </p>
       ) : null}
     </>
@@ -1341,7 +1358,9 @@ function StatusLine({
   if (status === "idle") return null;
   if (status === "testing") {
     return (
-      <span className="text-[10.5px] text-muted-foreground">{t("common.testing")}</span>
+      <span className="text-[10.5px] text-muted-foreground">
+        {t("common.testing")}
+      </span>
     );
   }
   if (status === "ok") {
@@ -1374,7 +1393,9 @@ function VoiceBlock() {
     <div className="flex flex-col gap-3 rounded-lg border border-border/60 bg-card/60 px-3 py-2.5">
       <div className="flex items-center gap-2">
         <HugeiconsIcon icon={Mic01Icon} size={15} strokeWidth={1.5} />
-        <span className="text-[12.5px] font-medium">{t("settings.models.voiceInput")}</span>
+        <span className="text-[12.5px] font-medium">
+          {t("settings.models.voiceInput")}
+        </span>
       </div>
 
       <FieldRow label={t("settings.models.provider")}>
@@ -1411,12 +1432,9 @@ function VoiceBlock() {
       </FieldRow>
 
       <p className="text-[10.5px] leading-relaxed text-muted-foreground">
-        {sttProvider === "openai" &&
-          t("settings.models.sttOpenaiDesc")}
-        {sttProvider === "groq" &&
-          t("settings.models.sttGroqDesc")}
-        {sttProvider === "whispercpp" &&
-          t("settings.models.sttWhispercppDesc")}
+        {sttProvider === "openai" && t("settings.models.sttOpenaiDesc")}
+        {sttProvider === "groq" && t("settings.models.sttGroqDesc")}
+        {sttProvider === "whispercpp" && t("settings.models.sttWhispercppDesc")}
       </p>
 
       {sttProvider === "groq" && (

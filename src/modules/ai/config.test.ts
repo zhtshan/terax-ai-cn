@@ -1,18 +1,21 @@
 import { describe, expect, it } from "vitest";
 import {
+  type CustomEndpoint,
   compatModelIdForEndpoint,
+  DEFAULT_MODEL_ID,
   endpointIdFromCompatModel,
   getModelContextLimit,
   isCompatModelId,
+  isOrphanCompatModel,
+  MODEL_PRICING,
   migrateLegacyCompatEndpoint,
   modelKeepsReasoning,
   modelSlugFromCompatModel,
   modelSupportsTemperature,
   modelUsesReasoningTokens,
-  MODEL_PRICING,
+  orphanCompatFallback,
   resolveModel,
   splitEndpointModels,
-  type CustomEndpoint,
 } from "./config";
 
 const endpoint: CustomEndpoint = {
@@ -62,6 +65,48 @@ describe("compat model id helpers", () => {
   });
 });
 
+describe("isOrphanCompatModel", () => {
+  it("flags legacy and slug compat ids whose endpoint no longer exists", () => {
+    expect(isOrphanCompatModel("compat-gone", [endpoint])).toBe(true);
+    expect(isOrphanCompatModel("compat-gone#model-a", [endpoint])).toBe(true);
+  });
+
+  it("accepts compat ids whose endpoint still exists", () => {
+    expect(
+      isOrphanCompatModel(compatModelIdForEndpoint(endpoint.id), [endpoint]),
+    ).toBe(false);
+    expect(
+      isOrphanCompatModel(
+        compatModelIdForEndpoint(endpoint.id, "llama-3.3-70b"),
+        [endpoint],
+      ),
+    ).toBe(false);
+  });
+
+  it("accepts non-compat model ids", () => {
+    expect(isOrphanCompatModel("gpt-5.4-mini", [endpoint])).toBe(false);
+  });
+});
+
+describe("orphanCompatFallback", () => {
+  it("falls back to the first surviving endpoint for an orphan id", () => {
+    expect(orphanCompatFallback("compat-gone", [endpoint])).toBe(
+      compatModelIdForEndpoint(endpoint.id),
+    );
+  });
+
+  it("falls back to the default model when no endpoints remain", () => {
+    expect(orphanCompatFallback("compat-gone", [])).toBe(DEFAULT_MODEL_ID);
+  });
+
+  it("keeps selections that are not orphaned", () => {
+    expect(
+      orphanCompatFallback(compatModelIdForEndpoint(endpoint.id), [endpoint]),
+    ).toBe(null);
+    expect(orphanCompatFallback("gpt-5.4-mini", [endpoint])).toBe(null);
+  });
+});
+
 describe("splitEndpointModels", () => {
   it("returns empty for blank input", () => {
     expect(splitEndpointModels("")).toEqual([]);
@@ -105,7 +150,9 @@ describe("getCompatModelInfo slug labels", () => {
   });
 
   it("keeps the single-model label for a legacy selection", () => {
-    const info = resolveModel(compatModelIdForEndpoint(endpoint.id), [endpoint]);
+    const info = resolveModel(compatModelIdForEndpoint(endpoint.id), [
+      endpoint,
+    ]);
     expect(info.label).toBe(endpoint.modelId);
   });
 
@@ -180,14 +227,19 @@ describe("current model pricing", () => {
     ["claude-fable-5", 10, 50, 1],
     ["claude-sonnet-5", 3, 15, 0.3],
     ["grok-4.5", 2, 6, 0.5],
-  ] as const)("uses the published token pricing for %s", (modelId, input, output, cacheRead) => {
-    expect(MODEL_PRICING[modelId]).toEqual({ input, output, cacheRead });
-  });
+  ] as const)(
+    "uses the published token pricing for %s",
+    (modelId, input, output, cacheRead) => {
+      expect(MODEL_PRICING[modelId]).toEqual({ input, output, cacheRead });
+    },
+  );
 });
 
 describe("modelKeepsReasoning", () => {
   it("keeps reasoning for compat endpoints (freeform provider)", () => {
-    const info = resolveModel(compatModelIdForEndpoint(endpoint.id), [endpoint]);
+    const info = resolveModel(compatModelIdForEndpoint(endpoint.id), [
+      endpoint,
+    ]);
     expect(modelKeepsReasoning(info)).toBe(true);
   });
 
@@ -227,9 +279,12 @@ describe("model sampling capabilities", () => {
     ["anthropic", "claude-sonnet-5"],
     ["xai", "grok-4.5"],
     ["groq", "openai/gpt-oss-20b"],
-  ] as const)("allocates a reasoning output budget for %s/%s", (provider, modelId) => {
-    expect(modelUsesReasoningTokens(provider, modelId)).toBe(true);
-  });
+  ] as const)(
+    "allocates a reasoning output budget for %s/%s",
+    (provider, modelId) => {
+      expect(modelUsesReasoningTokens(provider, modelId)).toBe(true);
+    },
+  );
 });
 
 describe("migrateLegacyCompatEndpoint", () => {

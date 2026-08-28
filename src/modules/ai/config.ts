@@ -109,7 +109,8 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     label: "MLX",
     keyringAccount: "",
     keyPrefix: null,
-    consoleUrl: "https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md",
+    consoleUrl:
+      "https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md",
   },
   {
     id: "ollama",
@@ -170,6 +171,28 @@ export function splitEndpointModels(raw: string): string[] {
     out.push(slug);
   }
   return out;
+}
+
+/** True when `modelId` is a compat id whose endpoint has been deleted. */
+export function isOrphanCompatModel(
+  modelId: string,
+  endpoints: readonly CustomEndpoint[],
+): boolean {
+  if (!isCompatModelId(modelId)) return false;
+  const eid = endpointIdFromCompatModel(modelId);
+  return !endpoints.some((e) => e.id === eid);
+}
+
+/** Replacement selection for an orphaned compat id: first surviving endpoint,
+ *  else the default model. Null when `modelId` is not orphaned. */
+export function orphanCompatFallback(
+  modelId: string,
+  endpoints: readonly CustomEndpoint[],
+): string | null {
+  if (!isOrphanCompatModel(modelId, endpoints)) return null;
+  return endpoints[0]
+    ? compatModelIdForEndpoint(endpoints[0].id)
+    : DEFAULT_MODEL_ID;
 }
 
 /** One-shot migration of the legacy single OpenAI-compatible config into the
