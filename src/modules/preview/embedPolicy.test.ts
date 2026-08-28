@@ -38,6 +38,20 @@ describe("embedBlockedByHeaders (#807)", () => {
     ).toBe(false);
   });
 
+  it("passes through X-Frame-Options ALLOWALL (invalid per spec, browsers ignore it)", () => {
+    expect(embedBlockedByHeaders({ "x-frame-options": "ALLOWALL" })).toBe(
+      false,
+    );
+  });
+
+  it("blocks an explicit frame-ancestors list without wildcard", () => {
+    expect(
+      embedBlockedByHeaders({
+        "content-security-policy": "frame-ancestors 'self' https://example.com",
+      }),
+    ).toBe(true);
+  });
+
   it("allows when neither header is present", () => {
     expect(embedBlockedByHeaders({ "content-type": "text/html" })).toBe(false);
   });
