@@ -731,6 +731,22 @@ export async function setTerminalWebglEnabled(value: boolean): Promise<void> {
   await writePref(KEY_TERMINAL_WEBGL_ENABLED, value);
 }
 
+// Boot-time probe for #933: old WebKit can silently fail WebGL context
+// creation, leaving the terminal blank. Result is runtime-only state and is
+// never persisted.
+export function detectWebglRenderer(): boolean {
+  try {
+    const canvas = document.createElement("canvas");
+    const gl = canvas.getContext("webgl2");
+    if (!gl) return false;
+    const lose = gl.getExtension("WEBGL_lose_context");
+    if (lose) lose.loseContext();
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export async function setTerminalCursorBlink(value: boolean): Promise<void> {
   await writePref(KEY_TERMINAL_CURSOR_BLINK, value);
 }
