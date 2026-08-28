@@ -223,10 +223,10 @@ Windows 机器上：
 | Task 8 审查 | EditorPane 自动补全（`EditorPane.tsx:427`）仍发送端点原始 `modelId` 整串，与 #1107 同类（存量，非本次引入），可按 agent.ts 同法拆分 | 建议后续修 |
 | Task 9 审查 | `net.rs` `header_map_to_strings` 用 HashMap 同名 header 仅保留最后一个，站点发两个 CSP 头时探测可能只看其一（理论绕过，既有） | 知悉 |
 | Task 7 审查 | `AiChat.tsx` ContinueRow（hitStepCap 继续按钮）绕过 #514 提交守卫，共存条件狭窄（如过期持久化状态），失败模式为 SDK 拒绝报错而非卡死 | 建议后续补守卫 |
-| Task 9 审查 | `embedPolicy.test.ts` 缺 ALLOWALL 透传与 `frame-ancestors 'self'` 显式列表两个用例 | 小补 |
-| 终审 | `composer.tsx` #514 提交守卫无自动化组件测试（该 bug 已两次静默修复失败，建议补"pending 时不发送/toast 出现/草稿保留"三断言） | 建议尽快补 |
-| 终审 | Source Control 的 fs 触发刷新绕过 2000ms TTL 与 1500ms 最小间隔节流，且 400ms 防抖为纯 trailing-reset（持续 churn 无限推迟）；建议复用 1500ms 最小间隔 + max-wait 上限 | 性能抛光 |
-| 终审 | `EditorPane.tsx` `docRef` 死代码（只写不读），两行删除 | 顺手清理 |
+| Task 9 审查 | `embedPolicy.test.ts` 缺 ALLOWALL 透传与 `frame-ancestors 'self'` 显式列表两个用例 | ✅ `deedea8` |
+| 终审 | `composer.tsx` #514 提交守卫无自动化组件测试（该 bug 已两次静默修复失败） | ✅ `deedea8`（3 个组件测试：pending 不发送/toast/草稿保留，不 mock 守卫本体） |
+| 终审 | Source Control 的 fs 触发刷新绕过节流，且 400ms 防抖为纯 trailing-reset | ✅ `871af47`（复用 1500ms 最小间隔 + max-wait 上限；遗留：与 block-return 直接刷新路径未共享节流状态） |
+| 终审 | `EditorPane.tsx` `docRef` 死代码（只写不读） | ✅ `e4a0097` |
 
 ---
 
