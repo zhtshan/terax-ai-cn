@@ -1,5 +1,6 @@
 import { Alert02Icon, Globe02Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
+import { invoke } from "@tauri-apps/api/core";
 import {
   forwardRef,
   useEffect,
@@ -8,6 +9,7 @@ import {
   useState,
 } from "react";
 import { useTranslation } from "react-i18next";
+import { embedBlockedByHeaders, isLocalUrl } from "./embedPolicy";
 import {
   PreviewAddressBar,
   type PreviewAddressBarHandle,
@@ -37,7 +39,33 @@ export const PreviewPane = forwardRef<PreviewPaneHandle, Props>(
     // contentWindow.location.reload() throws on cross-origin frames).
     const [nonce, setNonce] = useState(0);
     const [loaded, setLoaded] = useState(visible);
+    const [probeBlocked, setProbeBlocked] = useState(false);
     const addressRef = useRef<PreviewAddressBarHandle>(null);
+
+    useEffect(() => {
+      setProbeBlocked(false);
+      if (!url || !isLocalUrl(url)) return;
+      let cancelled = false;
+      void invoke<{ status: number; headers: Record<string, string> }>(
+        "ai_http_request",
+        // allow_private_network: Rust 端默认拒绝 loopback 地址，本地探测必须显式放行。
+        {
+          method: "HEAD",
+          url,
+          headers: null,
+          body: null,
+          allowPrivateNetwork: true,
+        },
+      )
+        .then((res) => {
+          if (!cancelled)
+            setProbeBlocked(embedBlockedByHeaders(res.headers ?? {}));
+        })
+        .catch(() => {});
+      return () => {
+        cancelled = true;
+      };
+    }, [url]);
 
     useEffect(() => {
       if (visible) {
@@ -61,7 +89,7 @@ export const PreviewPane = forwardRef<PreviewPaneHandle, Props>(
       [url],
     );
 
-    const showXfoHint = url ? !isLocalUrl(url) : false;
+    const showXfoHint = url ? !isLocalUrl(url) || probeBlocked : false;
 
     return (
       <div
@@ -180,20 +208,4 @@ function EmptyState() {
       </div>
     </div>
   );
-}
-
-function isLocalUrl(url: string): boolean {
-  try {
-    const u = new URL(url);
-    const h = u.hostname;
-    return (
-      h === "localhost" ||
-      h === "127.0.0.1" ||
-      h === "0.0.0.0" ||
-      h === "[::1]" ||
-      h.endsWith(".localhost")
-    );
-  } catch {
-    return false;
-  }
 }
