@@ -1,7 +1,9 @@
 import { native } from "@/modules/ai/lib/native";
+import { listenFsChanged } from "@/modules/explorer/lib/watch";
 import type { SidebarViewId } from "@/modules/sidebar";
 import type { Tab } from "@/modules/tabs";
 import { useBlockController } from "@/modules/terminal/lib/blockController";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useSourceControl } from "./useSourceControl";
 
@@ -101,6 +103,29 @@ export function useSourceControlContext({
     }
     prevBlockRef.current = { leafId: terminalLeafId, mode: blockMode };
   }, [terminalLeafId, blockMode, sourceControlRefresh]);
+
+  // 编辑器保存(fs:file-written)与被 watch 目录变更(fs:changed)后防抖刷新，
+  // 使 Source Control 面板的变更列表与磁盘保持同步。
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null;
+      void sourceControlRefresh();
+    }, 400);
+  }, [sourceControlRefresh]);
+  useEffect(() => {
+    const un1 = getCurrentWebviewWindow().listen(
+      "fs:file-written",
+      scheduleRefresh,
+    );
+    const un2 = listenFsChanged(scheduleRefresh);
+    return () => {
+      void un1.then((un) => un());
+      void un2.then((un) => un());
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [scheduleRefresh]);
 
   const toggleSourceControl = useCallback(() => {
     cycleSidebarView("source-control");
