@@ -96,12 +96,12 @@
 | # | 标题 | 根因分析 | 工作量 |
 |---|------|---------|--------|
 | **1028** | 状态栏 breadcrumb `cd` 打入前台 TUI | `sendCd`（`App.tsx:650`）直接 `term.write()` 无 `leafBusy` 检查；`leafBusy` 已在 `useTerminalSession.ts:295` 实现但未暴露给 App 层 | 小（暴露 + 加守卫） |
-| **988** | 撤销 editor 变更后面板不刷新 | editor undo/redo 后未触发 pane re-render | 待诊断 |
-| **807** | localhost:3000 preview 白屏 | preview iframe CORS / CSP 限制，或 dev server HMR 路径问题 | 中 |
-| **672** | Windows Composer AI "Failed to fetch" | Windows WebView2 fetch 代理/证书问题 | 待诊断 |
-| **1107** | macOS "Request failed / load failed" | AI transport 错误处理路径，需看 log | 待诊断 |
-| **974** | 连接 LLM provider 后 agent 不工作 | 同 #1107 类问题，provider 配置未正确下发 | 待诊断 |
-| **514** | 待 tool call 时发 follow-up prompt 卡死 | agent session 状态机不允许 pending 时的新消息 | 中 |
+| **988** | 撤销 editor 变更后面板不刷新 | 插桩实证：状态链（watch 事件→路径匹配→reload→setDoc）全部正常，断点在视图层——`doc.content` 是磁盘快照，`@uiw/react-codemirror` 仅在 value prop 变化时同步；discard 还原到上次加载的快照 → prop 不变 → 视图 stale。修复：EditorPane 外部内容采纳显式 dispatch（`8f14628`）；另按需求追加 Source Control 面板订阅 fs 事件防抖刷新（`f8b9870`） | ✅ E2E 通过 |
+| **807** | localhost:3000 preview 白屏 | 三级对照实证：被预览应用自身响应头（X-Frame-Options / frame-ancestors）拦截，白屏但请求到达；本地 URL 此前不显示嵌入提示。修复：本地 URL 也经 `ai_http_request` 探测（需 `allowPrivateNetwork`），被拦时显示提示条（`832c53c`） | ✅ E2E 通过 |
+| **672** | Windows Composer AI "Failed to fetch" | Windows WebView2 fetch 代理/证书问题 | 待诊断（需 Windows） |
+| **1107** | macOS "Request failed / load failed" | 2026-08-28 macOS 本机实测未复现（key 实测聊天正常），疑似报告用户环境差异（代理/VPN/证书）；"Connected" 仅来自 `lm_ping`（base_url 可达性探测），与聊天链路无关。另发现并修复：自定义端点逗号分隔多模型 ID 被整串当作单个 model 发送，已拆分为独立可选项（`d758f80`） | ✅ 多模型已修；原症状未复现关闭 |
+| **974** | 连接 LLM provider 后 agent 不工作 | 同 #1107 类问题，provider 配置未正确下发 | 待诊断（需 Windows） |
+| **514** | 待 tool call 时发 follow-up prompt 卡死 | e80998b 的 auto-deny 与 sendMessage 竞跑（SDK sendMessage 不经 jobExecutor 队列），且 `addToolApprovalResponse` 只补丁最后一条消息，user 消息入列后 deny 永久打空。修复（用户选方案 A）：pending approval 未响应时阻止发送并多语言提示，deny 后会话健康（`b6ec17f` + i18n `5663596`） | ✅ E2E 通过 |
 
 ---
 
@@ -215,5 +215,17 @@ Windows 机器上：
 
 ---
 
-*上次更新：2026-08-28（#659 Preview tab cmd+w、#630 WebGL 失败 fallback 清理完成；本周第一、二批全部处理完毕，#845 前半待 Windows 复现）*
+## 十一、本批新发现（2026-08-28 修复过程中发现，待后续处理）
+
+| 来源 | 问题 | 状态 |
+|------|------|------|
+| Task 8 E2E | 跨窗口 prefs 同步缺口：Settings（独立 webview）删除自定义端点后，主窗口模型下拉条目不实时消失（重启后正确）。同步链路代码完整（writePref→`terax://prefs-changed`→主窗口 onPreferencesChange→zustand），实时失效原因待查 | 留档待查 |
+| Task 8 审查 | EditorPane 自动补全（`EditorPane.tsx:427`）仍发送端点原始 `modelId` 整串，与 #1107 同类（存量，非本次引入），可按 agent.ts 同法拆分 | 建议后续修 |
+| Task 9 审查 | `net.rs` `header_map_to_strings` 用 HashMap 同名 header 仅保留最后一个，站点发两个 CSP 头时探测可能只看其一（理论绕过，既有） | 知悉 |
+| Task 7 审查 | `AiChat.tsx` ContinueRow（hitStepCap 继续按钮）绕过 #514 提交守卫，共存条件狭窄（如过期持久化状态），失败模式为 SDK 拒绝报错而非卡死 | 建议后续补守卫 |
+| Task 9 审查 | `embedPolicy.test.ts` 缺 ALLOWALL 透传与 `frame-ancestors 'self'` 显式列表两个用例 | 小补 |
+
+---
+
+*上次更新：2026-08-28（跨平台批次完成：#514 提交守卫、#1107 未复现关闭+多模型拆分、#807 XFO 嵌入提示、#988 视图采纳+Source Control 自动刷新；#672/#974 待 Windows 环境）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*
