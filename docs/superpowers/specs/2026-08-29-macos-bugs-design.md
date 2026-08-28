@@ -1,116 +1,123 @@
-# macOS 平台 Bug 修复设计
+# macOS 平台 Bug 修复设计（修订版）
 
-目标：修复 `docs/2026-08-27-pending-issues-plan.md` 第四节列出的三项 macOS bug。本机 macOS 14（Darwin 23.6）无法复现任何一项；#1168/#933 靠防御性探测，#449 靠代码审查 + 逻辑验证。
+目标：修复 `docs/2026-08-27-pending-issues-plan.md` 第四节列出的三项 macOS bug。本机 macOS 14（Darwin 23.6）无法复现任何一项报告环境；#1168/#933 靠防御性探测与上游官方缓解，#449 靠代码审查 + 逻辑验证。
+
+修订说明：初版审查发现 #1168 的离屏探测方案修不了自己的根因（乱码时 context 是创建成功的），已重定向为上游官方选项；#449 撤回了与 TOCTOU 设计冲突的 authorize 缓存化。
 
 ---
 
 ## Bug #1168 — macOS 中文渲染乱码/重叠
 
 ### 症状
-CJK 字符乱码、字形重叠、同一行内正误混杂（报告于 macOS 26 / Terax 0.8.6）。WebGL renderer 对复杂脚本有已知缺陷（上游 #750 同类）。
+CJK 字符乱码、字形重叠、随机字符替换、同一行内正误混杂（报告于 macOS 26 / Terax 0.8.6，用户渲染了大量不同汉字）。
 
-### 根因假设
-`attachWebgl`（`rendererPool.ts:849`）的 catch 路径只覆盖**构造 WebglAddon 时抛异常**的情况（已随 #630 修复清理残留 canvas）。乱码属于"context 创建成功、addon 加载成功，但渲染 shader 对 CJK glyph 处理错误"，不会触发 catch；`webglInitFailed` 闩锁不会被置位，后续 slot 每次绑定时都会重试失败 addon，形成稳态错误渲染。
+### 根因分层
+症状实为两类问题的叠加：
+
+1. **glyph 重叠**：单 cell 宽字形溢出到相邻 cell。xterm.js 5.5.0 引入 opt-in 选项 `rescaleOverlappingGlyphs` 官方缓解（来源：xtermjs/xterm.js discussions/5022；同类报告见 wavetermdev/waveterm#3386）。xterm 6 typings 确认存在（`node_modules/@xterm/xterm/typings/xterm.d.ts:231`），本项目从未启用。选项仅在 GPU renderer 生效（DOM renderer 下无效，文档明示）
+2. **乱码/随机替换**：WebGL char atlas 槽位错位类问题（大量不同 glyph 后出现）。上游无已确认的修复版本，且渲染错误无法在代码层自动判定（像素对错不可机检）。**本批不做，留档待上游**；用户侧兜底是现有 Settings 的 WebGL 开关
+
+初版方案的离屏 context 探测与本 bug 无关（乱码时 context 创建成功），已移入 #933。
 
 ### 方案
-启动前（`src/modules/settings/store.ts` 的 `init()`）用离屏 canvas 做一次 WebGL2 context 可用性探测。失败则在 preferences store 写入 `webglRendererUnusable: true`。`applyWebglPreference` 读取该标志：为 true 时对所有 slot 调 `attachWebgl(slot)` 直接 return，并强制 DOM 渲染重绘。开关设置（`GeneralSection.tsx` 的 WebGL 开关）会清零该标志并重新探测。
+`termOptions()`（`src/modules/terminal/lib/rendererPool.ts:184`）加 `rescaleOverlappingGlyphs: true`，一行改动。
 
 ### 改动点
-1. `src/modules/settings/store.ts`：新增 `webglRendererUnusable: boolean` 字段，默认 false。在 `init()` 里调用 `detectWebglRenderer()`
-2. `src/modules/terminal/lib/rendererPool.ts`：`applyWebglPreference(enabled)` 开头读取 `webglRendererUnusable` 标志；新增导出 `reloadWebglIfUnusable()` 供开关切换时调用
-3. `src/modules/settings/store.ts`：新增 `detectWebglRenderer()` 纯函数，offscreen canvas → try `getContext('webgl2')` → false 则写标志
-4. `src/settings/sections/GeneralSection.tsx`：WebGL 开关 onChange 时调 `reloadWebglIfUnusable()`
+1. `src/modules/terminal/lib/rendererPool.ts`：`termOptions()` 返回对象加 `rescaleOverlappingGlyphs: true`
+2. `docs/2026-08-27-pending-issues-plan.md`：#1168 行更新状态——重叠部分已修，atlas 乱码部分留档待上游
+
+### 已知限制
+- 不修 atlas 槽位错位型乱码（上游无修复可引用）
+- `@xterm/addon-webgl` 升级到 0.20 beta 不在本次范围（beta 通道，无 CJK 修复的确认证据）
 
 ### 测试策略
-- `rendererPool.test.ts`：mock offscreen canvas 返回 null context → 断言 `webglRendererUnusable` 被置位、slot `attachWebgl` 无调用
-- 手动验收：关闭 WebGL 开关再打开，确认所有 terminal slot 走 DOM 渲染路径
+- 本机回归：macOS + WebGL 开启，中文/日文/emoji/powerline 混排渲染目检（emoji/powerline/nerd font 是选项文档明示的不重缩放白名单，需确认无回归）
+- `rendererPool.test.ts`：断言 `termOptions()` 含该选项（防误删）
+- 报告环境（macOS 26）验证依赖用户反馈
 
 ---
 
 ## Bug #933 — macOS 13.0.1 安装后白屏
 
 ### 症状
-全窗口空白（不是仅终端区），报告于 macOS 13 Intel / Terax 0.8.2。无法在本机复现；假设有两种可能：(a) 旧 WebKit WebGL context 创建静默失败（与 #1168 相关），(b) React 组件早期 crash（JS 兼容性或 native 模块缺失）。
+全窗口空白（不是仅终端区），报告于 macOS 13 Intel / Terax 0.8.2。无法本机复现；两种假设：(a) 旧 WebKit WebGL context 创建**静默失败**（不抛异常，canvas 挂上但渲染不出 → 终端区白），(b) React 早期 crash（JS 兼容性等 → 全窗口白）。
 
-### 方案
-两层兜底：
-1. **#1168 的启动探测**作为第一层——如果真因是 WebGL 不可用，已被覆盖；探测失败时 toast 提示"已自动关闭 WebGL 渲染，终端改用 DOM 渲染"
-2. **React Error Boundary** 作为第二层——包 App 内组件树（Router + 所有页面），catch 渲染错误后显示"Terax 遇到了问题，已记录到内部日志。请截图提交 issue"占位符。不重启、不改 UI 结构，仅阻止整页空白
-
-错误不会写额外文件；已有的 Tauri log plugin 会把 Rust 侧 error 写到 `app_local_data_dir` 下的日志文件，用户截图提交 issue 时可附日志。前端不新增 fs 读取命令（避免引入新权限弹窗）。
+### 方案（两层，互为补充）
+1. **离屏 WebGL context 探测**（覆盖假设 a）：app 初始化早期用离屏 canvas 试建 WebGL2 context；失败则置 preferences store 标志 `webglRendererUnusable: true`，`attachWebgl` 读该标志跳过加载（走 DOM 渲染），并经 sonner toast 提示"WebGL 不可用，已改用兼容渲染"
+2. **React Error Boundary**（覆盖假设 b）：新建 `src/components/ErrorBoundary.tsx`，包住 App 渲染的组件树（注意：本项目无 react-router，"包 App 内组件树"指 App.tsx 返回的 JSX 根），catch 渲染错误后显示 fallback UI（中文提示 + "重启"按钮 `window.location.reload()`），阻止整页空白
+3. **前端错误转发 Rust 日志**：`@tauri-apps/plugin-log`（package.json:70，已安装）的 `error()` 在 `window.addEventListener('error')` / `unhandledrejection` 里调用，日志经 tauri-plugin-log 落到 `app_local_data_dir` 日志文件（lib.rs:197 已配置，默认 LogDir target）。用户报 issue 时可附日志
 
 ### 改动点
-1. `src/App.tsx`：import 一个 `ErrorBoundary` 组件（新建 `src/components/ErrorBoundary.tsx`），用它包整个 `<Router>` 内的内容。catch 渲染 `CrashFallback` 组件
-2. `src/components/ErrorBoundary.tsx`：新建，实现 React 18 Error Boundary（`componentDidCatch` + `getDerivedStateFromError`）；fallback UI 显示中文错误提示 + "重启"按钮（`window.location.reload()`）
-3. `src/modules/settings/store.ts`：`detectWebglRenderer()` 失败时 toast（通过 Tauri notification plugin，已有）提示用户
-4. `src/main.tsx`：`window.addEventListener('error')` 和 `unhandledrejection` 打 `console.error`（已在 dev 可见）+ `log::error!`（通过 Tauri invoke 转发到 Rust 日志，见下方）
+1. `src/modules/settings/store.ts`：新增 `webglRendererUnusable: boolean`（默认 false）+ `detectWebglRenderer()`（offscreen canvas → `getContext('webgl2')`，null 则置位）；`init()` 里调用
+2. `src/modules/terminal/lib/rendererPool.ts`：`attachWebgl` 前置门（rendererPool.ts:850 处）加 `webglRendererUnusable` 检查；探测失败时 sonner toast 一次（防重复提示）
+3. `src/components/ErrorBoundary.tsx`：新建，React class component（`getDerivedStateFromError` + `componentDidCatch`），fallback 含重启按钮
+4. `src/app/App.tsx`：用 `<ErrorBoundary>` 包返回的组件树根
+5. `src/main.tsx`：`window.addEventListener('error')` + `unhandledrejection` → `console.error` + `@tauri-apps/plugin-log` 的 `error()`
 
-**不**：
-- 不写独立 JSON 日志文件（避免权限弹窗）
-- 不重启 app（Error Boundary fallback 有重启按钮，用户主动点）
-- 不改 log plugin 配置（默认已写到 log dir）
+### 明确不做
+- 不写独立日志文件（无 fs command 新增，避免权限面扩大）
+- 不自动重启（fallback 提供手动按钮）
+- 不改 tauri-plugin-log 配置（默认 LogDir target 已够）
 
 ### 测试策略
-- 单元测试：mock offscreen canvas 返回 null context → 断言 `webglRendererUnusable` 被置位、slot `attachWebgl` 无调用
-- 手动验收：关闭 WebGL 开关再打开，确认所有 terminal slot 走 DOM 渲染路径
-- 集成（#933）：故意在 `CrashFallback` 上方的组件抛渲染错误 → 断言 Error Boundary 捕获、显示 fallback、app 不整页空白
-- 集成（#933）：模拟 unhandled rejection 在 root level → 断言 `console.error` 被调用、Tauri log 插件记录到 log dir
-- 手动：macOS 13 Intel 环境（如有）开 app → 确认终端渲染正常 + 无白屏
+- 单元：mock `document.createElement('canvas')` 返回 getContext 为 null → 断言 `webglRendererUnusable` 置位、`attachWebgl` 早退
+- 组件：子组件渲染期 throw → ErrorBoundary 显示 fallback、不整页空白（`ErrorBoundary.test.tsx` 新建）
+- main.tsx 的全局 handler：模拟 unhandled rejection → 断言 `console.error` 调用
+- 手动：本机开关 WebGL 开关确认探测路径无副作用
 
 ---
 
 ## Bug #449 — 外接硬盘目录新 tab 挂起
 
 ### 症状
-项目在外接卷上时 Cmd+T 新建 tab 永远不加载（报告于 macOS 26 Apple Silicon / Terax 0.7.1）。根因：`pty_open`（`pty/mod.rs:51`）在 Tauri async 命令体内同步调用 `user_spawn_cwd_or_home` → `std::fs::canonicalize`，未进 `spawn_blocking`，也未复用 `canonicalize_cached`。外接卷休眠时 canonicalize 可阻塞数秒到数十秒，卡住 async runtime worker，tab 永远不出。
+项目在外接卷上时 Cmd+T 新建 tab 永不加载（报告于 macOS 26 Apple Silicon / Terax 0.7.1）。
+
+### 根因
+`pty_open`（`src-tauri/src/modules/pty/mod.rs:51`）是 async command，但在命令体内**同步**调用 `user_spawn_cwd_or_home` → `authorize_user_spawn_cwd` → `std::fs::canonicalize`（workspace.rs:110）。外接卷休眠时 canonicalize 阻塞数秒到数十秒：既卡住该命令的返回（tab 永不出），又占死一个 async runtime worker 线程。
 
 ### 方案
-1. `pty_open` 内把 `user_spawn_cwd_or_home` 调用挪进 `spawn_blocking`
-2. 外层包 `tokio::time::timeout(Duration::from_secs(3), ...)`，超时抛错，回退 home（`user_spawn_cwd_or_home` 已有 Err → None 的 fallback 语义）
-3. `is_executable_dir`（`workspace.rs:238`）里的两次同步 canonicalize 改为调 `Registry::canonicalize_cached`，复用 1s TTL 缓存
-4. 新增日志：超时场景 `log::warn!("external drive canonicalize timed out for {{path}}")`
+1. cwd 解析挪进 `tauri::async_runtime::spawn_blocking`，外层 `tokio::time::timeout(Duration::from_secs(3))`
+2. 超时处理：记录 `log::warn!`，按现有 Err → None 语义回退 home（`user_spawn_cwd_or_home` 的既有行为，tab 能开）
+3. `is_executable_dir`（workspace.rs:231）的 exe_dir canonicalize 结果用 `OnceLock<PathBuf>` 缓存——`current_exe()` 启动后不变，无需每次 canonicalize。**保持纯函数签名**（workspace.rs:199 注释明示 pure 是为可测试性，workspace.rs:926-954 测试依赖）
 
-### 改动点
-1. `src-tauri/src/modules/pty/mod.rs:pty_open`：cwd 解析部分包 `spawn_blocking` + timeout
-2. `src-tauri/src/modules/workspace.rs`：
-   - `authorize_spawn_cwd` / `authorize_user_spawn_cwd` 内的 `std::fs::canonicalize` 改为 `registry.canonicalize_cached`
-   - `is_executable_dir` 改为接受 `&WorkspaceRegistry` 参数，改用 `canonicalize_cached`
-   - `bootstrap_registry` 和 `choose_launch_dir` 调用点传 registry
-3. 日志级别：超时 warn、拒绝 spawn info
+### 明确不做（初版撤回项）
+- **不用 `canonicalize_cached` 替换 authorize 路径的 `std::fs::canonicalize`**：workspace.rs:9-11 注释明示短 TTL 是为 "keeps the auth-check TOCTOU window tight"，授权检查故意无缓存；缓存化会引入 1s symlink 替换窗口。spawn_blocking + timeout 已解决挂起，无需此微优化
+- 不给 `is_executable_dir` 传 `&WorkspaceRegistry` 参数（破坏纯函数测试性）
 
 ### 边界与不变量
-- 正常内盘路径不受影响（`canonicalize_cached` 1s TTL 足够，第一次 canonicalize 后命中缓存）
-- 超时时 cwd 返回 `None` → spawn home，tab 能开；用户稍后再试时卷已唤醒，自然恢复
-- authorized root 集合不变：home 已是 bootstrap 阶段的 authorized root（`bootstrap_registry` 显式授权）
-- 并发外接卷请求：多个 tab 同时创建各自等自己的 3s 超时，不互相阻塞（因为都进了 `spawn_blocking`）
+- 内盘正常路径：spawn_blocking 开销微秒级，3s 超时永不触发，行为不变
+- 超时后 spawn_blocking 内的 canonicalize 仍在后台跑（detached，占一个 blocking 线程直到卷响应）——可接受，tokio blocking pool 动态扩容
+- 超时回退 home 的授权语义不变：home 由 `bootstrap_registry`（lib.rs:232 调用）显式授权
+- 并发开 tab：各自独立 spawn_blocking + 超时，互不阻塞
+
+### 改动点
+1. `src-tauri/src/modules/pty/mod.rs`：`pty_open` 的 `user_spawn_cwd_or_home` 调用包 `spawn_blocking` + `tokio::time::timeout`；超时分支 `log::warn!` + 返回 None 等价行为
+2. `src-tauri/src/modules/workspace.rs`：`is_executable_dir` 内 exe canonicalize 提为 `OnceLock` 缓存（模块级 `fn canonical_exe_dir() -> Option<&'static Path>` 之类）
 
 ### 测试策略
-- 单元测试：mock `canonicalize_cached` 返回 Err(io::ErrorKind::TimedOut) → 断言 `authorize_user_spawn_cwd` 返回 Err（前端收到 cwd 不可用提示）
-- 单元测试：`is_executable_dir` 传 mock registry 返回 Ok(false) → 断言不调用第二次 canonicalize
-- 手动：在有外接卷的环境开 tab 到外接卷目录，观察 tab 是否在 3s 内出现（或回退 home 并 toast）
-- 若无外接卷：用 `cargo test` 跑 workspace.rs 单元测试确认逻辑正确；code review 确认 `spawn_blocking` + timeout 模式正确
+- 既有 `choose_launch_dir` 三测试（workspace.rs:926-954）不改，跑通即证明纯函数签名未破坏
+- 新增：`is_executable_dir` 对 exe 目录返回 true 的既有语义测试（若无可加，用 tempdir + 测试内改 current_exe 不可行则留手动）
+- 超时分支：超时时长提为参数或 `#[cfg(test)]` 缩短，用真实 sleep 验证 Elapsed → home 回退分支；若注入代价高则该分支靠 code review（如实标注）
+- 手动：有外接卷时开 tab 验证；无卷则 `cargo nextest run` 全绿 + review 确认模式正确
 
 ---
 
 ## 跨 bug 协调
 
-- **#1168 与 #933 共享同一份启动探测**：#1168 的 `detectWebglRenderer()` 放在 `store.init()` 里，#933 的 Error Boundary 也在同一阶段挂载，两者互为补充
-- **#933 日志路径**与 **#816 cwd 回退 home** 共用 `dirs::home_dir()`，不引入新依赖
-- **#449 与 #816**：#816 是启动时 cwd 不存在检查（已通过），#449 是运行时 spawn 时的 external drive 超时；两者语义一致（不可用回退 home），共用同一 fallback 通道
-
----
+- 离屏探测属 #933（context 静默失败），`rescaleOverlappingGlyphs` 属 #1168（渲染正确性），两者不再混用
+- #933 的 plugin-log 转发复用 lib.rs:197 既有 log 配置，无新增 Rust 依赖
+- #449 与 #816 共用"不可用 → home"语义（#816 启动路径已修，#449 是 spawn 运行时路径）
 
 ## 不做什么
 
-- 不做 WebGL shader 层的 CJK glyph atlas 修复（上游 #750 相关，本仓库无权改上游 xterm.js）
-- 不做 Wayland key duplication（#1167，Linux 领域）
-- 不修 `is_executable_dir` 在 `choose_launch_dir` 里的同步调用（那部分不在 pty_open 路径上，且是内盘场景，不动）
-- 不在 toast 里暴露具体错误栈（隐私）
-
----
+- 不做 atlas 槽位错位型乱码修复（上游无修复可引用，渲染错误不可机检）
+- 不升级 `@xterm/addon-webgl` 0.20 beta（无 CJK 修复确认证据）
+- 不缓存 authorize 路径 canonicalize（TOCTOU，见 #449 撤回项）
+- 不做 Wayland（#1167）/ 其他平台 bug
+- toast 不暴露错误栈细节
 
 ## 验收标准
 
 1. 本机 `pnpm lint && pnpm check-types && pnpm test && cd src-tauri && cargo clippy --all-targets --locked -- -D warnings && cargo nextest run --locked` 全绿
-2. `docs/2026-08-27-pending-issues-plan.md` 第三节 macOS 行标记为已修复，附提交哈希
-3. 代码审查：#449 无 sync I/O 在 async 命令体，#933 错误日志不泄漏敏感信息，#1168 启动探测不阻塞主线程
+2. `docs/2026-08-27-pending-issues-plan.md` **第四节** macOS 行更新状态与提交哈希（#1168 注明 atlas 部分留档）
+3. 代码审查：#449 async 命令体无同步文件系统调用；#933 探测不阻塞启动、错误转发不泄漏敏感信息；#1168 选项启用后本机中英混排无回归
