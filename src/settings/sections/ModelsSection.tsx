@@ -25,6 +25,7 @@ import {
   type CustomEndpoint,
   compatModelIdForEndpoint,
   DEFAULT_MODEL_ID,
+  endpointIdFromCompatModel,
   getAutocompleteEligibleModels,
   getCompatModelInfo,
   getProvider,
@@ -231,15 +232,17 @@ export function ModelsSection() {
 
     // Drop the now-dead model id from favorites/recents before touching the
     // selection, so the recents push from a selection reset can't race it.
-    const deadModelId = compatModelIdForEndpoint(id);
+    // Matches both the legacy `compat-<id>` and the slug `compat-<id>#<slug>`.
+    const isDeadModel = (m: string) =>
+      isCompatModelId(m) && endpointIdFromCompatModel(m) === id;
     const { favoriteModelIds, recentModelIds } = usePreferencesStore.getState();
-    if (favoriteModelIds.includes(deadModelId)) {
-      await setFavoriteModelIds(
-        favoriteModelIds.filter((m) => m !== deadModelId),
-      );
+    const nextFavorites = favoriteModelIds.filter((m) => !isDeadModel(m));
+    if (nextFavorites.length !== favoriteModelIds.length) {
+      await setFavoriteModelIds(nextFavorites);
     }
-    if (recentModelIds.includes(deadModelId)) {
-      await setRecentModelIds(recentModelIds.filter((m) => m !== deadModelId));
+    const nextRecents = recentModelIds.filter((m) => !isDeadModel(m));
+    if (nextRecents.length !== recentModelIds.length) {
+      await setRecentModelIds(nextRecents);
     }
 
     // If the deleted endpoint was the active model, the selection would dangle
@@ -247,7 +250,7 @@ export function ModelsSection() {
     // endpoint when one remains, else the default model.
     const remaining = customEndpoints.filter((e) => e.id !== id);
     const { selectedModelId, setSelectedModelId } = useChatStore.getState();
-    if (selectedModelId === deadModelId) {
+    if (isDeadModel(selectedModelId)) {
       setSelectedModelId(
         remaining[0]
           ? compatModelIdForEndpoint(remaining[0].id)

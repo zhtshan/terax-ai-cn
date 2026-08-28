@@ -6,10 +6,12 @@ import {
   isCompatModelId,
   migrateLegacyCompatEndpoint,
   modelKeepsReasoning,
+  modelSlugFromCompatModel,
   modelSupportsTemperature,
   modelUsesReasoningTokens,
   MODEL_PRICING,
   resolveModel,
+  splitEndpointModels,
   type CustomEndpoint,
 } from "./config";
 
@@ -31,6 +33,86 @@ describe("compat model id helpers", () => {
   it("treats static model ids as non-compat", () => {
     expect(isCompatModelId("gpt-5.4-mini")).toBe(false);
     expect(endpointIdFromCompatModel("gpt-5.4-mini")).toBe("");
+  });
+
+  it("round-trips a slug-qualified model id", () => {
+    const mid = compatModelIdForEndpoint("ep1", "model-a");
+    expect(mid).toBe("compat-ep1#model-a");
+    expect(isCompatModelId(mid)).toBe(true);
+    expect(endpointIdFromCompatModel(mid)).toBe("ep1");
+    expect(modelSlugFromCompatModel(mid)).toBe("model-a");
+  });
+
+  it("keeps the legacy form without a slug", () => {
+    const mid = compatModelIdForEndpoint("ep1");
+    expect(mid).toBe("compat-ep1");
+    expect(endpointIdFromCompatModel(mid)).toBe("ep1");
+    expect(modelSlugFromCompatModel(mid)).toBe(null);
+  });
+
+  it("cuts the endpoint id at the first # when a slug is present", () => {
+    expect(
+      endpointIdFromCompatModel(compatModelIdForEndpoint("ab12cd34", "m")),
+    ).toBe("ab12cd34");
+    expect(endpointIdFromCompatModel("compat-ep1#m#x")).toBe("ep1");
+  });
+
+  it("returns no slug for non-compat ids", () => {
+    expect(modelSlugFromCompatModel("gpt-5.4-mini")).toBe(null);
+  });
+});
+
+describe("splitEndpointModels", () => {
+  it("returns empty for blank input", () => {
+    expect(splitEndpointModels("")).toEqual([]);
+    expect(splitEndpointModels("   ")).toEqual([]);
+    expect(splitEndpointModels(" , , ")).toEqual([]);
+  });
+
+  it("keeps a single id intact", () => {
+    expect(splitEndpointModels("llama-3.3-70b")).toEqual(["llama-3.3-70b"]);
+  });
+
+  it("splits on commas, trims and drops empties", () => {
+    expect(splitEndpointModels(" a , b ,, c ")).toEqual(["a", "b", "c"]);
+  });
+
+  it("dedupes preserving first occurrence order", () => {
+    expect(splitEndpointModels("b, a, b, c, a")).toEqual(["b", "a", "c"]);
+  });
+});
+
+describe("getCompatModelInfo slug labels", () => {
+  const multi: CustomEndpoint = {
+    id: "ab12cd34",
+    name: "My LLM",
+    baseURL: "https://api.example.com/v1",
+    modelId: "model-a, model-b",
+    contextLimit: 64_000,
+  };
+
+  it("labels a slug entry with the slug and keeps the endpoint name as hint", () => {
+    const mid = compatModelIdForEndpoint(multi.id, "model-b");
+    const info = resolveModel(mid, [multi]);
+    expect(info.id).toBe(mid);
+    expect(info.label).toBe("model-b");
+    expect(info.hint).toBe("My LLM");
+  });
+
+  it("labels a legacy selection with the first configured model", () => {
+    const info = resolveModel(compatModelIdForEndpoint(multi.id), [multi]);
+    expect(info.label).toBe("model-a");
+  });
+
+  it("keeps the single-model label for a legacy selection", () => {
+    const info = resolveModel(compatModelIdForEndpoint(endpoint.id), [endpoint]);
+    expect(info.label).toBe(endpoint.modelId);
+  });
+
+  it("falls back to the endpoint name when no model splits out", () => {
+    const blank: CustomEndpoint = { ...multi, modelId: "  " };
+    const info = resolveModel(compatModelIdForEndpoint(blank.id), [blank]);
+    expect(info.label).toBe("My LLM");
   });
 });
 

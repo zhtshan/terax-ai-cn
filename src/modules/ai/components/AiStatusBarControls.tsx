@@ -51,6 +51,7 @@ import {
   MODELS,
   providerNeedsKey,
   PROVIDERS,
+  splitEndpointModels,
   STT_PROVIDER_LABELS,
   type ModelCapabilities,
   type ModelId,
@@ -252,9 +253,20 @@ function ModelDropdown() {
   };
 
   const epModelInfos = useMemo(() => {
-    return customEndpoints.map((ep) =>
-      getCompatModelInfo(compatModelIdForEndpoint(ep.id), customEndpoints),
-    );
+    return customEndpoints.flatMap((ep) => {
+      const slugs = splitEndpointModels(ep.modelId);
+      if (slugs.length === 0) {
+        return [
+          getCompatModelInfo(compatModelIdForEndpoint(ep.id), customEndpoints),
+        ];
+      }
+      return slugs.map((slug) =>
+        getCompatModelInfo(
+          compatModelIdForEndpoint(ep.id, slug),
+          customEndpoints,
+        ),
+      );
+    });
   }, [customEndpoints]);
 
   const sortedProviders = useMemo(() => {

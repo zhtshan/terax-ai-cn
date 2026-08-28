@@ -129,9 +129,17 @@ export type CustomEndpoint = {
 };
 
 const COMPAT_MODEL_PREFIX = "compat-";
+const COMPAT_MODEL_SLUG_SEPARATOR = "#";
 
-export function compatModelIdForEndpoint(endpointId: string): string {
-  return `${COMPAT_MODEL_PREFIX}${endpointId}`;
+/** Settings accept comma-separated model ids per endpoint (#1107); each slug
+ *  becomes its own selectable compat entry: `compat-<eid>#<slug>`. */
+export function compatModelIdForEndpoint(
+  endpointId: string,
+  slug?: string,
+): string {
+  return slug
+    ? `${COMPAT_MODEL_PREFIX}${endpointId}${COMPAT_MODEL_SLUG_SEPARATOR}${slug}`
+    : `${COMPAT_MODEL_PREFIX}${endpointId}`;
 }
 
 export function isCompatModelId(modelId: string): boolean {
@@ -139,9 +147,29 @@ export function isCompatModelId(modelId: string): boolean {
 }
 
 export function endpointIdFromCompatModel(modelId: string): string {
-  return isCompatModelId(modelId)
-    ? modelId.slice(COMPAT_MODEL_PREFIX.length)
-    : "";
+  if (!isCompatModelId(modelId)) return "";
+  const rest = modelId.slice(COMPAT_MODEL_PREFIX.length);
+  const cut = rest.indexOf(COMPAT_MODEL_SLUG_SEPARATOR);
+  return cut === -1 ? rest : rest.slice(0, cut);
+}
+
+export function modelSlugFromCompatModel(modelId: string): string | null {
+  if (!isCompatModelId(modelId)) return null;
+  const cut = modelId.indexOf(COMPAT_MODEL_SLUG_SEPARATOR);
+  if (cut === -1) return null;
+  return modelId.slice(cut + 1) || null;
+}
+
+export function splitEndpointModels(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const slug = part.trim();
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push(slug);
+  }
+  return out;
 }
 
 /** One-shot migration of the legacy single OpenAI-compatible config into the
@@ -641,10 +669,13 @@ export function getCompatModelInfo(
   const eid = endpointIdFromCompatModel(modelId);
   const ep = endpoints.find((e) => e.id === eid);
   const name = ep?.name || "Custom endpoint";
+  const label =
+    modelSlugFromCompatModel(modelId) ??
+    (splitEndpointModels(ep?.modelId ?? "")[0] || name);
   return {
     id: modelId,
     provider: "openai-compatible",
-    label: ep?.modelId || name,
+    label,
     hint: name,
     description: ep
       ? `${name} — ${ep.baseURL}`
