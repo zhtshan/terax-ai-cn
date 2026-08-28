@@ -51,6 +51,7 @@ import {
   vimCompartment,
   wrapCompartment,
 } from "./lib/extensions";
+import { pendingExternalAdoption } from "./lib/externalAdoption";
 import {
   applyFormattedContent,
   readFileText,
@@ -485,6 +486,24 @@ export const EditorPane = memo(
           indentExtension(detectIndentUnit(doc.content)),
         ),
       });
+    }, [doc]);
+
+    const docRef = useRef(doc);
+    docRef.current = doc;
+    // 外部内容采纳：doc 状态更新（初始加载/reload 发布）后，以视图实际内容
+    // 为准检测差异并整体替换。不依赖 value prop 字符串变化（#988）。
+    useEffect(() => {
+      const view = cmRef.current?.view;
+      if (!view || doc.status !== "ready") return;
+      const target = pendingExternalAdoption(
+        doc.content,
+        view.state.doc.toString(),
+      );
+      if (target !== null) {
+        view.dispatch({
+          changes: { from: 0, to: view.state.doc.length, insert: target },
+        });
+      }
     }, [doc]);
 
     const lspExt = useLspExtension(path, langId, doc.status === "ready");
