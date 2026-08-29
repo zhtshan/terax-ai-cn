@@ -62,8 +62,8 @@
 | # | 标题 | 工作量 |
 |---|------|--------|
 | **816** | 右键"用 Terax 打开"的目录被删除后 app 卡死 | 启动时校验 cwd 存在性，不存在则 fallback 到 home | 小 |
-| **814** | git add 全选随机失败（删除文件后） | git status parsing 竞态，需加重试或锁 | 中 |
-| **566** | Windows explorer 无法访问 D:\ 盘 | `list_drives` 已有；explorer 未使用盘符选择器，仍走固定 cwd | 小（接线） |
+| **814** | git add 全选随机失败（删除文件后） | 根因修正（实验证实）：非解析竞态，而是 status 快照漂移——已删除的 untracked 路径仍在 UI 列表，整批 `git add -- <paths>` 对其报 `fatal: pathspec did not match any files`，一个失败全批失败；`git add .` 正常因 `.` 恒可匹配。已删除的 tracked 路径可正常 stage 删除。修复：`stage` 内预过滤幽灵路径（磁盘不存在且 `git ls-files` 不命中则剔除；全消失时 no-op Ok），2 个集成测试覆盖 | ✅ 本批完成 |
+| **566** | Windows explorer 无法访问 D:\ 盘 | 已随盘符切换器落地（`b0fd4e2`，2026-08-19）：选择器 → `sendCd` → 终端 cd → OSC 7 → explorer 根更新；本计划原备注"未使用盘符选择器"过时。已知边缘：活动 leaf 非终端时 `sendCd` 静默失败（与其他 onNavigate 调用方一致，留档不修） | ✅ `b0fd4e2` |
 | **1222** | macOS 快速打字字符遗漏 | xterm buffer overflow 或 keydown 事件丢帧；需在 macOS 复现确认 | 待诊断 |
 
 ---
@@ -232,5 +232,5 @@ Windows 机器上：
 
 ---
 
-*上次更新：2026-08-29（第十一节首项"跨窗口 prefs 同步缺口"插桩复测关闭：链路完好，原观察为 f8871f8 已修的悬空选中残留；新增 store.test.ts 固化分发契约）*
+*上次更新：2026-08-29（#566 关闭：盘符切换器 `b0fd4e2` 已于 2026-08-19 落地，原备注过时；#814 修复：stage 过滤已消失 untracked 路径，根因为快照漂移非解析竞态。上游三 PR 仍 OPEN）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*
