@@ -343,10 +343,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
 
 const store = new LazyStore(STORE_PATH, { defaults: {}, autoSave: 200 });
 
-// LazyStore.onChange only fires within the writing process. The settings
-// page lives in a separate webview, so writes there never reach the main
-// window's subscribers. Mirror every setter through a Tauri event so any
-// window can listen.
+// Mirror every setter through a Tauri event so any window can subscribe.
+// (LazyStore.onChange also reaches other windows: tauri-plugin-store emits
+// store://change app-wide with a per-path rid shared by every webview.)
 const PREFS_CHANGED_EVENT = "terax://prefs-changed";
 
 async function writePref<T>(key: string, value: T): Promise<void> {

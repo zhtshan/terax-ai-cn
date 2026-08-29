@@ -219,7 +219,7 @@ Windows 机器上：
 
 | 来源 | 问题 | 状态 |
 |------|------|------|
-| Task 8 E2E | 跨窗口 prefs 同步缺口：Settings（独立 webview）删除自定义端点后，主窗口模型下拉条目不实时消失（重启后正确）。同步链路代码完整（writePref→`terax://prefs-changed`→主窗口 onPreferencesChange→zustand），实时失效原因待查 | 留档待查 |
+| Task 8 E2E | 跨窗口 prefs 同步缺口：Settings（独立 webview）删除自定义端点后，主窗口模型下拉条目不实时消失（重启后正确） | ✅ 2026-08-29 插桩复测关闭：同步链路本身完好（writePref→`terax://prefs-changed` 与 plugin-store `store://change` 双通道均实时到达主窗口并更新 zustand，chatStore 自愈订阅触发，下拉条目实时增删）。08-28 观察到的"不实时消失"实为已删端点作为选中项在下拉触发器/列表中的残留显示，`f8871f8`（晚于该观察）已修。链路分发行为固化为 `store.test.ts` 回归测试 |
 | Task 8 审查 | EditorPane 自动补全（`EditorPane.tsx:427`）仍发送端点原始 `modelId` 整串，与 #1107 同类（存量，非本次引入），可按 agent.ts 同法拆分 | ✅ `d78b88b`（`compatWireModel` 纯函数统一 slug/legacy 解析；`expandCompatModelInfos` 统一聊天与补全两处下拉条目展开；补全下拉同步按 slug 拆分条目） |
 | Task 9 审查 | `net.rs` `header_map_to_strings` 用 HashMap 同名 header 仅保留最后一个，站点发两个 CSP 头时探测可能只看其一（理论绕过，既有） | 知悉 |
 | Task 7 审查 | `AiChat.tsx` ContinueRow（hitStepCap 继续按钮）绕过 #514 提交守卫，共存条件狭窄（如过期持久化状态），失败模式为 SDK 拒绝报错而非卡死 | 建议后续修 → ✅ `513ce8a`（守卫与 composer 一致 + toast；组件测试覆盖拦截/放行两路） |
@@ -232,5 +232,5 @@ Windows 机器上：
 
 ---
 
-*上次更新：2026-08-29（第十一节"建议后续修"四项全部完成：EditorPane modelId 拆分 / ContinueRow #514 守卫 / 窗口入口 ErrorBoundary / shell override 超时守护）*
+*上次更新：2026-08-29（第十一节首项"跨窗口 prefs 同步缺口"插桩复测关闭：链路完好，原观察为 f8871f8 已修的悬空选中残留；新增 store.test.ts 固化分发契约）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*
