@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import ReactDOM from "react-dom/client";
 import App from "./app/App";
+import { ErrorBoundary } from "./components/ErrorBoundary";
 import { installGlobalErrorReporting } from "./lib/globalErrorReport";
 import { initLaunchDir } from "./lib/launchDir";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "./lib/platform";
@@ -46,7 +47,9 @@ await invoke("pty_close_all").catch(() => {});
 await initLaunchDir();
 
 ReactDOM.createRoot(document.getElementById("root") as HTMLElement).render(
-  <App />,
+  <ErrorBoundary>
+    <App />
+  </ErrorBoundary>,
 );
 
 // Window starts hidden (per tauri.conf.json) so users never see a transparent

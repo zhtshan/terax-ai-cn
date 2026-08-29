@@ -1,4 +1,3 @@
-import { ErrorBoundary } from "@/components/ErrorBoundary";
 import {
   ResizableHandle,
   ResizablePanel,
@@ -1653,9 +1652,5 @@ export default function App() {
     </ThemeProvider>
   );
 
-  return (
-    <ErrorBoundary>
-      <AiComposerProvider>{shell}</AiComposerProvider>
-    </ErrorBoundary>
-  );
+  return <AiComposerProvider>{shell}</AiComposerProvider>;
 }
