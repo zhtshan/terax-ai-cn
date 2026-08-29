@@ -70,12 +70,12 @@
 
 ## 四、macOS 平台 Bug
 
-| # | 标题 | 根因分析 | 工作量 |
-|---|------|---------|--------|
-| **873** | macOS IME  composing 时 Enter 直接提交 AI 消息 | `AiComposerInput.tsx:257` Enter handler 缺 `isComposing` 守卫（同 #845 前半段） | 小（1 行） |
-| **1168** | macOS 中文渲染乱码/重叠 | WebGL renderer + CJK glyph 已知问题（上游 #750 同类）；fallback Canvas renderer 可能正常 | 中 |
-| **933** | macOS 13.0.1 安装后白屏 | 旧版 macOS WebGL 不支持 + 启动时未 fallback | 小 |
-| **449** | macOS 外接硬盘目录新 tab 挂起 | `is_usable_launch_dir` 对外接卷响应慢；`canonicalize` 卡住 | 中 |
+| # | 标题 | 根因分析 | 工作量 | 备注 |
+|---|------|---------|--------|------|
+| **873** | macOS IME  composing 时 Enter 直接提交 AI 消息 | `AiComposerInput.tsx:257` Enter handler 缺 `isComposing` 守卫（同 #845 前半段） | 小（1 行） | ✅ `a145a27` |
+| **1168** | macOS 中文渲染乱码/重叠 | WebGL renderer + CJK glyph 已知问题（上游 #750 同类）；fallback Canvas renderer 可能正常 | 中 | 重叠部分 ✅ `71dffb5`（rescaleOverlappingGlyphs）；乱码/atlas 错位部分留档待上游（atlas-slot-corruption-type），渲染错误不可机检，用户可关 WebGL 开关兜底 |
+| **933** | macOS 13.0.1 安装后白屏 | 旧版 macOS WebGL 不支持 + 启动时未 fallback | 小 | ✅ `1e28be3`（WebGL 启动探测）+ `03fb2e8`（attachWebgl 门 + toast）+ `70518e9`（ErrorBoundary + 错误转发日志；修复 `50a1309` + `da5fab0`）；macOS 13 Intel 实机验证依赖用户反馈 |
+| **449** | macOS 外接硬盘目录新 tab 挂起 | `is_usable_launch_dir` 对外接卷响应慢；`canonicalize` 卡住 | 中 | ✅ `c46eeae`（probe 拆分 + exe 缓存）+ `047e72f`（pty_open 超时守护）；外接卷实测待用户环境 |
 
 ---
 
@@ -230,5 +230,5 @@ Windows 机器上：
 
 ---
 
-*上次更新：2026-08-28（跨平台批次完成：#514 提交守卫、#1107 未复现关闭+多模型拆分、#807 XFO 嵌入提示、#988 视图采纳+Source Control 自动刷新；#672/#974 待 Windows 环境）*
+*上次更新：2026-08-29（macOS 平台三项 bug 修复留档：#1168 重叠修复（乱码留档待上游）/#933 启动探测+ErrorBoundary/#449 spawn_blocking+超时守护）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*
