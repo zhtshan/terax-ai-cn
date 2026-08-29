@@ -1,4 +1,5 @@
 use std::path::PathBuf;
+use std::time::Duration;
 
 use portable_pty::CommandBuilder;
 
@@ -55,7 +56,8 @@ pub fn build_command(
     blocks: bool,
     shell: Option<String>,
 ) -> Result<CommandBuilder, String> {
-    let shell = sanitize_shell_override(shell);
+    // `shell` arrives already sanitized via `sanitize_shell_override_async`
+    // in pty_open; running the check here would repeat blocking canonicalize IO.
     #[cfg(unix)]
     {
         let _ = workspace;
@@ -69,6 +71,8 @@ pub fn build_command(
 
 // Honor the override only if it matches an enumerated shell, so a tampered
 // setting can't spawn an arbitrary binary across the IPC boundary.
+// Pure check: canonicalize IO runs under a timeout via `sanitize_shell_override_inner`
+// so an asleep external drive can't stall the spawn path (#449 sibling).
 fn sanitize_shell_override(shell: Option<String>) -> Option<String> {
     let candidate = shell
         .map(|s| s.trim().to_string())
@@ -83,6 +87,51 @@ fn sanitize_shell_override(shell: Option<String>) -> Option<String> {
         log::warn!("ignoring non-enumerated shell override '{candidate}'");
         None
     }
+}
+
+const SHELL_OVERRIDE_TIMEOUT_SECS: u64 = 3;
+
+// Canonicalize on a blocking thread under a timeout: a stale override pointing
+// at an asleep volume would otherwise stall this tab's spawn (#449 sibling).
+async fn sanitize_shell_override_inner<F, Fut>(
+    shell: Option<String>,
+    timeout: Duration,
+    probe: F,
+) -> Option<String>
+where
+    F: FnOnce(String) -> Fut,
+    Fut: std::future::Future<Output = Option<String>>,
+{
+    let candidate = shell
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())?;
+    match tokio::time::timeout(timeout, probe(candidate.clone())).await {
+        Ok(sanitized) => sanitized,
+        Err(_) => {
+            log::warn!(
+                "shell override probe timed out after {timeout:?} (external drive asleep?); using default shell"
+            );
+            None
+        }
+    }
+}
+
+pub async fn sanitize_shell_override_async(shell: Option<String>) -> Option<String> {
+    sanitize_shell_override_inner(
+        shell,
+        std::time::Duration::from_secs(SHELL_OVERRIDE_TIMEOUT_SECS),
+        |candidate| async move {
+            tauri::async_runtime::spawn_blocking(move || {
+                sanitize_shell_override(Some(candidate))
+            })
+            .await
+            .unwrap_or_else(|e| {
+                log::warn!("shell override probe join failed: {e}");
+                None
+            })
+        },
+    )
+    .await
 }
 
 pub fn detect_shell_name() -> String {
@@ -1081,5 +1130,58 @@ mod tests {
     fn empty_or_missing_override_is_none() {
         assert_eq!(sanitize_shell_override(Some("   ".into())), None);
         assert_eq!(sanitize_shell_override(None), None);
+    }
+}
+
+#[cfg(test)]
+mod sanitize_override_timeout_tests {
+    use super::sanitize_shell_override_inner;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn probe_timeout_falls_back_to_default_shell() {
+        let result = sanitize_shell_override_inner(
+            Some("/external/slow/zsh".to_owned()),
+            Duration::from_millis(20),
+            |_candidate| async {
+                tokio::time::sleep(Duration::from_secs(30)).await;
+                unreachable!("probe must be abandoned on timeout");
+            },
+        )
+        .await;
+        assert_eq!(result, None);
+    }
+
+    #[tokio::test]
+    async fn blank_override_skips_probe() {
+        let result = sanitize_shell_override_inner(
+            Some("   ".to_owned()),
+            Duration::from_secs(1),
+            |_candidate| async { unreachable!("blank override must not reach probe") },
+        )
+        .await;
+        assert_eq!(result, None);
+    }
+
+    #[tokio::test]
+    async fn none_override_skips_probe() {
+        let result = sanitize_shell_override_inner(
+            None,
+            Duration::from_secs(1),
+            |_candidate| async { unreachable!("missing override must not reach probe") },
+        )
+        .await;
+        assert_eq!(result, None);
+    }
+
+    #[tokio::test]
+    async fn enumerated_shell_passes_through() {
+        let result = sanitize_shell_override_inner(
+            Some("/bin/zsh".to_owned()),
+            Duration::from_secs(1),
+            |candidate| async move { Some(candidate) },
+        )
+        .await;
+        assert_eq!(result.as_deref(), Some("/bin/zsh"));
     }
 }

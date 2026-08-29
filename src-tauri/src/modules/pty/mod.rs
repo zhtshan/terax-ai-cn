@@ -124,6 +124,7 @@ pub async fn pty_open(
     let workspace = WorkspaceEnv::from_option(workspace);
     let blocks = blocks.unwrap_or(false);
     let cwd = spawn_cwd_or_home(&registry, cwd, workspace.clone()).await;
+    let shell = shell_init::sanitize_shell_override_async(shell).await;
     let id = state.next_id.fetch_add(1, Ordering::Relaxed);
     // Snapshot the alias map at spawn time; the reader thread will own this
     // value. Live updates after spawn don't reach existing ptys by design —
