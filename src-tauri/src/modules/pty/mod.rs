@@ -8,6 +8,7 @@ use std::io::Write;
 use std::sync::atomic::{AtomicU32, Ordering};
 use std::sync::{Arc, RwLock};
 use std::thread;
+use std::time::Duration;
 
 use portable_pty::PtySize;
 use tauri::ipc::{Channel, Response};
@@ -21,7 +22,7 @@ pub use agent_detect::AliasMap;
 pub(super) const PTY_DROPPED_EVENT: &str = "terax:pty-dropped";
 
 use crate::modules::agent_alias_state::{self, AliasState};
-use crate::modules::workspace::{user_spawn_cwd_or_home, WorkspaceEnv, WorkspaceRegistry};
+use crate::modules::workspace::{probe_spawn_cwd, WorkspaceEnv, WorkspaceRegistry};
 use session::Session;
 
 pub struct PtyState {
@@ -46,6 +47,64 @@ impl PtyState {
     }
 }
 
+const SPAWN_CWD_TIMEOUT_SECS: u64 = 3;
+
+// Canonicalize on a blocking thread under a timeout: an asleep external drive
+// can stall std::fs::canonicalize for tens of seconds, which used to hang new
+// tabs forever and pin an async worker (#449). The registry authorize stays on
+// the async side so authorized roots are still recorded for this session.
+async fn spawn_cwd_or_home(
+    registry: &WorkspaceRegistry,
+    cwd: Option<String>,
+    workspace: WorkspaceEnv,
+) -> Option<String> {
+    spawn_cwd_or_home_inner(
+        registry,
+        cwd,
+        workspace,
+        Duration::from_secs(SPAWN_CWD_TIMEOUT_SECS),
+        |cwd, ws| async move {
+            tauri::async_runtime::spawn_blocking(move || probe_spawn_cwd(&cwd, &ws))
+                .await
+                .unwrap_or_else(|e| Err(e.to_string()))
+        },
+    )
+    .await
+}
+
+async fn spawn_cwd_or_home_inner<F, Fut>(
+    registry: &WorkspaceRegistry,
+    cwd: Option<String>,
+    workspace: WorkspaceEnv,
+    timeout: Duration,
+    probe: F,
+) -> Option<String>
+where
+    F: FnOnce(String, WorkspaceEnv) -> Fut,
+    Fut: std::future::Future<Output = Result<std::path::PathBuf, String>>,
+{
+    let cwd = cwd.map(|s| s.trim().to_owned()).filter(|s| !s.is_empty())?;
+    match tokio::time::timeout(timeout, probe(cwd.clone(), workspace.clone())).await {
+        Ok(Ok(canonical)) => {
+            if let Err(e) = registry.authorize(&canonical) {
+                log::warn!("pty cwd authorize failed: {e}; opening home");
+                return None;
+            }
+            Some(cwd)
+        }
+        Ok(Err(e)) => {
+            log::warn!("pty cwd {cwd:?} unusable ({e}); opening home");
+            None
+        }
+        Err(_) => {
+            log::warn!(
+                "pty cwd probe timed out after {timeout:?} (external drive asleep?); opening home"
+            );
+            None
+        }
+    }
+}
+
 #[tauri::command]
 #[allow(clippy::too_many_arguments)]
 pub async fn pty_open(
@@ -64,7 +123,7 @@ pub async fn pty_open(
 ) -> Result<u32, String> {
     let workspace = WorkspaceEnv::from_option(workspace);
     let blocks = blocks.unwrap_or(false);
-    let cwd = user_spawn_cwd_or_home(&registry, cwd.as_deref(), &workspace);
+    let cwd = spawn_cwd_or_home(&registry, cwd, workspace.clone()).await;
     let id = state.next_id.fetch_add(1, Ordering::Relaxed);
     // Snapshot the alias map at spawn time; the reader thread will own this
     // value. Live updates after spawn don't reach existing ptys by design —
@@ -335,4 +394,61 @@ pub fn pty_shell_name() -> String {
 #[tauri::command]
 pub fn pty_list_shells() -> Vec<shell_init::ShellInfo> {
     shell_init::list_shells()
+}
+
+#[cfg(test)]
+mod spawn_cwd_tests {
+    use super::*;
+    use crate::modules::workspace::WorkspaceRegistry;
+    use std::time::Duration;
+
+    #[tokio::test]
+    async fn probe_timeout_falls_back_to_home() {
+        let registry = WorkspaceRegistry::default();
+        let result = spawn_cwd_or_home_inner(
+            &registry,
+            Some("/external/slow/path".to_owned()),
+            WorkspaceEnv::Local,
+            Duration::from_millis(20),
+            |_cwd, _ws| async {
+                tokio::time::sleep(Duration::from_secs(30)).await;
+                unreachable!("probe must be abandoned on timeout");
+            },
+        )
+        .await;
+        assert_eq!(result, None);
+    }
+
+    #[tokio::test]
+    async fn empty_cwd_returns_none_without_probe() {
+        let registry = WorkspaceRegistry::default();
+        let result = spawn_cwd_or_home_inner(
+            &registry,
+            Some("   ".to_owned()),
+            WorkspaceEnv::Local,
+            Duration::from_secs(1),
+            |_cwd, _ws| async { unreachable!("blank cwd must not reach probe") },
+        )
+        .await;
+        assert_eq!(result, None);
+    }
+
+    #[tokio::test]
+    async fn successful_probe_authorizes_and_returns_cwd() {
+        let registry = WorkspaceRegistry::default();
+        let dir = std::env::temp_dir().join("terax-spawn-cwd-ok");
+        std::fs::create_dir_all(&dir).unwrap();
+        let dir = std::fs::canonicalize(&dir).unwrap();
+        let result = spawn_cwd_or_home_inner(
+            &registry,
+            Some(dir.to_string_lossy().to_string()),
+            WorkspaceEnv::Local,
+            Duration::from_secs(1),
+            |cwd, _ws| async move { Ok(std::path::PathBuf::from(cwd)) },
+        )
+        .await;
+        assert_eq!(result.as_deref(), Some(dir.to_string_lossy().as_ref()));
+        assert!(registry.is_authorized(&dir));
+        let _ = std::fs::remove_dir(&dir);
+    }
 }
