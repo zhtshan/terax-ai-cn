@@ -1,6 +1,11 @@
+import { error as logError } from "@tauri-apps/plugin-log";
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it, vi, afterEach } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { ErrorBoundary } from "./ErrorBoundary";
+
+vi.mock("@tauri-apps/plugin-log", () => ({
+  error: vi.fn(() => Promise.resolve()),
+}));
 
 function Bomb(): never {
   throw new Error("boom");
@@ -21,8 +26,24 @@ describe("ErrorBoundary", () => {
     expect(screen.getByText("重启应用")).toBeTruthy();
   });
 
+  it("persists boundary-captured crashes to the tauri log", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>,
+    );
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining("render crash"),
+    );
+  });
+
   it("renders children untouched when nothing throws", () => {
-    render(<ErrorBoundary><div>ok-content</div></ErrorBoundary>);
+    render(
+      <ErrorBoundary>
+        <div>ok-content</div>
+      </ErrorBoundary>,
+    );
     expect(screen.getByText("ok-content")).toBeTruthy();
   });
 });

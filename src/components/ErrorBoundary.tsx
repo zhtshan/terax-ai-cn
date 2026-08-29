@@ -1,3 +1,4 @@
+import { error as logError } from "@tauri-apps/plugin-log";
 import { Component, type ReactNode } from "react";
 
 type Props = { children: ReactNode };
@@ -14,6 +15,9 @@ export class ErrorBoundary extends Component<Props, State> {
 
   componentDidCatch(error: unknown, info: unknown): void {
     console.error("[terax] render crash captured:", error, info);
+    // React swallows errors a boundary catches, so the window error listener
+    // never sees them; persist here or prod crashes leave no log evidence.
+    void logError(`render crash: ${String(error)}`).catch(() => {});
   }
 
   render(): ReactNode {
@@ -31,7 +35,9 @@ export class ErrorBoundary extends Component<Props, State> {
           }}
         >
           <p>界面遇到了问题，已停止渲染。</p>
-          <p style={{ opacity: 0.7 }}>Something went wrong. The error has been logged.</p>
+          <p style={{ opacity: 0.7 }}>
+            Something went wrong. The error has been logged.
+          </p>
           <button type="button" onClick={() => window.location.reload()}>
             重启应用
           </button>
