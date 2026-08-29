@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
-
 import {
   initialModeState,
   type ModeEvent,
   modeOf,
   reduceMode,
+  returnsToPrompt,
 } from "./modeMachine";
 
 function run(events: ModeEvent[]) {
@@ -42,6 +42,21 @@ describe("modeMachine", () => {
     expect(modeOf(run([osc("C"), alt(true), alt(false), osc("D")]))).toBe(
       "prompt",
     );
+  });
+
+  describe("returnsToPrompt", () => {
+    it("is true when leaving running or alt for the prompt", () => {
+      expect(returnsToPrompt("running", "prompt")).toBe(true);
+      expect(returnsToPrompt("alt", "prompt")).toBe(true);
+    });
+
+    it("is false when already at the prompt or leaving it", () => {
+      expect(returnsToPrompt("prompt", "prompt")).toBe(false);
+      expect(returnsToPrompt("prompt", "running")).toBe(false);
+      expect(returnsToPrompt("prompt", "alt")).toBe(false);
+      expect(returnsToPrompt("running", "alt")).toBe(false);
+      expect(returnsToPrompt("alt", "running")).toBe(false);
+    });
   });
 
   it("is idempotent for repeated markers and unchanged alt-screen", () => {

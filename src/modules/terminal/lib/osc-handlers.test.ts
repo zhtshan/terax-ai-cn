@@ -1,5 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
 import type { Terminal } from "@xterm/xterm";
+import { describe, expect, it, vi } from "vitest";
+import { MOUSE_TRACKING_DISABLE } from "./mouseModeReset";
 import {
   createShellIntegrationState,
   registerCwdHandler,
@@ -17,18 +18,25 @@ vi.mock("@/lib/platform", () => ({ IS_WINDOWS: true }));
  */
 type OscHandler = (data: string) => boolean | Promise<boolean>;
 
-function makeFakeTerm() {
+function makeFakeTerm(
+  mouseTrackingMode: "none" | "x10" | "vt200" | "drag" | "any" = "none",
+) {
   const handlers = new Map<number, OscHandler>();
+  const write = vi.fn();
   const term = {
+    write,
+    modes: { mouseTrackingMode },
     parser: {
       registerOscHandler(code: number, handler: OscHandler) {
         handlers.set(code, handler);
         return { dispose: () => handlers.delete(code) };
       },
     },
-    registerMarker: vi.fn().mockReturnValue({ isDisposed: false, dispose: vi.fn() }),
+    registerMarker: vi
+      .fn()
+      .mockReturnValue({ isDisposed: false, dispose: vi.fn() }),
   } as unknown as Terminal;
-  return { term, handlers };
+  return { term, handlers, write };
 }
 
 async function flushClipboardQueue() {
@@ -143,6 +151,40 @@ describe("OSC 133 command-state tracking", () => {
     expect(onCommandState).toHaveBeenLastCalledWith(true);
     handlers.get(133)?.("A");
     expect(onCommandState).toHaveBeenLastCalledWith(false);
+  });
+});
+
+describe("mouse tracking reset on command end", () => {
+  it("clears stuck mouse tracking when the command finishes (OSC 133 D)", () => {
+    // A TUI killed without cleanup (SIGKILL/crash/dropped SSH) leaves mouse
+    // tracking on; the shell still emits D, which is the recovery point.
+    const { term, handlers, write } = makeFakeTerm("any");
+    registerPromptTracker(term);
+
+    handlers.get(133)?.("C;vim");
+    handlers.get(133)?.("D;0");
+
+    expect(write).toHaveBeenCalledWith(MOUSE_TRACKING_DISABLE);
+  });
+
+  it("does not write when tracking is already off", () => {
+    const { term, handlers, write } = makeFakeTerm("none");
+    registerPromptTracker(term);
+
+    handlers.get(133)?.("C;ls");
+    handlers.get(133)?.("D;0");
+
+    expect(write).not.toHaveBeenCalled();
+  });
+
+  it("does not reset on prompt markers alone (A/B)", () => {
+    const { term, handlers, write } = makeFakeTerm("vt200");
+    registerPromptTracker(term);
+
+    handlers.get(133)?.("A");
+    handlers.get(133)?.("B");
+
+    expect(write).not.toHaveBeenCalled();
   });
 });
 

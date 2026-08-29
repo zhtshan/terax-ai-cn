@@ -2,13 +2,15 @@ import { ensureMonoFontsLoaded } from "@/lib/fonts";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { invoke } from "@tauri-apps/api/core";
 import type { SearchAddon } from "@xterm/addon-search";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";import {
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
   BlockDecorations,
   type BlockMatch,
   type VisibleBlocks,
 } from "../block/lib/blockDecorations";
-import type { BlockMode } from "../block/lib/modeMachine";
+import { type BlockMode, returnsToPrompt } from "../block/lib/modeMachine";
 import { DormantRing } from "./dormantRing";
+import { resetMouseTracking } from "./mouseModeReset";
 import {
   createShellIntegrationState,
   registerCwdHandler,
@@ -570,10 +572,12 @@ async function openPtyForSession(
 function applyBlockMode(leafId: number, mode: BlockMode): void {
   const s = sessions.get(leafId);
   if (!s) return;
+  const prev = s.blockMode;
   s.blockMode = mode;
   s.commandRunning = mode !== "prompt";
   const slot = getSlotForLeaf(leafId);
   if (slot) {
+    if (returnsToPrompt(prev, mode)) resetMouseTracking(slot.term);
     const prompt = mode === "prompt";
     slot.term.options.disableStdin = prompt;
     // Disable the helper textarea at the prompt so a grid click can't focus the
@@ -735,16 +739,16 @@ export async function respawnSession(
   // terminals after the alias map changes, so the Rust detector picks up
   // new command names without a page reload.
   await Promise.all(
-    Array.from(sessions.keys()).map((id) => _respawnOne(sessions.get(id)!, cwd)),
+    Array.from(sessions.keys()).map((id) =>
+      _respawnOne(sessions.get(id)!, cwd),
+    ),
   );
 }
 
 async function _respawnOne(s: Session, cwd?: string): Promise<void> {
   if (s.disposed) return;
   // leafId isn't stored on the session; enumerate sessions and match by ref.
-  const leafId = [...sessions.entries()]
-    .find(([, ss]) => ss === s)
-    ?.[0] ?? -1;
+  const leafId = [...sessions.entries()].find(([, ss]) => ss === s)?.[0] ?? -1;
   if (leafId === -1) return;
   s.pty?.close();
   s.pty = null;
@@ -875,7 +879,7 @@ function waitForPtyDropped(id: number, timeoutMs: number): Promise<void> {
       // between schedule and fire will have replaced `entry.timer`.
       const cur = pendingDrops.get(id);
       if (cur?.timer === timer) pendingDrops.delete(id);
-      for (const r of (cur?.resolvers ?? resolvers)) r();
+      for (const r of cur?.resolvers ?? resolvers) r();
     }, timeoutMs);
     pendingDrops.set(id, { resolvers, timer });
   });
