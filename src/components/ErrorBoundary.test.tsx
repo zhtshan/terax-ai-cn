@@ -11,6 +11,10 @@ function Bomb(): never {
   throw new Error("boom");
 }
 
+function StackBomb(): never {
+  throw new Error("boom-with-stack");
+}
+
 afterEach(() => {
   vi.restoreAllMocks();
 });
@@ -35,6 +39,18 @@ describe("ErrorBoundary", () => {
     );
     expect(logError).toHaveBeenCalledWith(
       expect.stringContaining("render crash"),
+    );
+  });
+
+  it("persists the stack when the thrown value is an Error", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <ErrorBoundary>
+        <StackBomb />
+      </ErrorBoundary>,
+    );
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining("boom-with-stack"),
     );
   });
 

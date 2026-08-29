@@ -25,15 +25,38 @@ describe("installGlobalErrorReporting", () => {
     installGlobalErrorReporting();
     expect(handlers).toHaveLength(1);
     handlers[0]({
-      message: "boom",
+      error: new Error("boom-with-stack"),
+      message: "boom-with-stack",
       filename: "app.js",
       lineno: 3,
       colno: 7,
     } as never);
     expect(consoleSpy).toHaveBeenCalledWith(
-      expect.stringContaining("window.onerror: boom @ app.js:3:7"),
+      expect.stringContaining("boom-with-stack"),
     );
-    expect(logError).toHaveBeenCalled();
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining("boom-with-stack"),
+    );
+    consoleSpy.mockRestore();
+  });
+
+  it("falls back to a readable line when no error object is present", () => {
+    const handlers = captureHandlers("error");
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    installGlobalErrorReporting();
+    expect(handlers).toHaveLength(1);
+    handlers[0]({
+      message: undefined,
+      filename: "f.js",
+      lineno: 1,
+      colno: 2,
+    } as never);
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("window.onerror: (no error object) @ f.js:1:2"),
+    );
+    expect(logError).toHaveBeenCalledWith(
+      expect.stringContaining("window.onerror: (no error object) @ f.js:1:2"),
+    );
     consoleSpy.mockRestore();
   });
 

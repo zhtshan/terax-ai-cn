@@ -227,6 +227,8 @@ Windows 机器上：
 | 终审 | `composer.tsx` #514 提交守卫无自动化组件测试（该 bug 已两次静默修复失败） | ✅ `deedea8`（3 个组件测试：pending 不发送/toast/草稿保留，不 mock 守卫本体） |
 | 终审 | Source Control 的 fs 触发刷新绕过节流，且 400ms 防抖为纯 trailing-reset | ✅ `871af47`（复用 1500ms 最小间隔 + max-wait 上限；遗留：与 block-return 直接刷新路径未共享节流状态） |
 | 终审 | `EditorPane.tsx` `docRef` 死代码（只写不读） | ✅ `e4a0097` |
+| 终审 | settings 窗口（独立入口 src/settings/main.tsx）未接 ErrorBoundary 与 installGlobalErrorReporting，渲染崩溃仍白屏；且 ErrorBoundary 包在 App return 内，App 自身 render body 崩溃不落兜底。建议后续把两者上移到两个窗口入口 | 建议后续修 |
+| 终审 | shell_init.rs:76 sanitize_shell_override 在 session::spawn 内 canonicalize 用户自定义 shell 路径，阻塞线程但无超时，指向休眠卷的陈旧配置仍可挂起单个 tab（#449 同类，异步 worker 已不被占用） | 留档待后续 |
 
 ---
 

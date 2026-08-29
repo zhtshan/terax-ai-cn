@@ -17,7 +17,10 @@ export class ErrorBoundary extends Component<Props, State> {
     console.error("[terax] render crash captured:", error, info);
     // React swallows errors a boundary catches, so the window error listener
     // never sees them; persist here or prod crashes leave no log evidence.
-    void logError(`render crash: ${String(error)}`).catch(() => {});
+    // Stack beats message for diagnosing unreproducible white screens (#933).
+    const detail =
+      error instanceof Error ? (error.stack ?? error.message) : String(error);
+    void logError(`render crash: ${detail} | ${String(info)}`).catch(() => {});
   }
 
   render(): ReactNode {
