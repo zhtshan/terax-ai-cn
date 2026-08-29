@@ -95,6 +95,20 @@ pub fn authorize_spawn_cwd(
     Ok(Some(canonical))
 }
 
+// Pure fs probe split out of authorize_user_spawn_cwd so pty_open can run it
+// on a blocking thread under a timeout (#449); the registry mutation stays on
+// the caller side. Kept free of caching: the short-TTL-free canonicalize is
+// what keeps the auth TOCTOU window tight.
+pub fn probe_spawn_cwd(cwd: &str, workspace: &WorkspaceEnv) -> Result<PathBuf, String> {
+    let resolved = resolve_path(cwd, workspace);
+    let canonical =
+        std::fs::canonicalize(&resolved).map_err(|e| format!("cwd not accessible: {e}"))?;
+    if !canonical.is_dir() {
+        return Err(format!("cwd is not a directory: {}", canonical.display()));
+    }
+    Ok(canonical)
+}
+
 // User-initiated terminal spawn: canonicalize, require a real dir, and register
 // it as a root instead of rejecting paths outside existing roots.
 pub fn authorize_user_spawn_cwd(
@@ -105,12 +119,7 @@ pub fn authorize_user_spawn_cwd(
     let Some(cwd) = cwd.map(str::trim).filter(|s| !s.is_empty()) else {
         return Ok(None);
     };
-    let resolved = resolve_path(cwd, workspace);
-    let canonical =
-        std::fs::canonicalize(&resolved).map_err(|e| format!("cwd not accessible: {e}"))?;
-    if !canonical.is_dir() {
-        return Err(format!("cwd is not a directory: {}", canonical.display()));
-    }
+    let canonical = probe_spawn_cwd(cwd, workspace)?;
     registry.authorize(&canonical).map_err(|e| e.to_string())?;
     Ok(Some(canonical))
 }
@@ -228,17 +237,23 @@ fn is_usable_launch_dir(path: &Path) -> bool {
     true
 }
 
+fn canonical_exe_dir() -> Option<&'static Path> {
+    static EXE_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
+    EXE_DIR
+        .get_or_init(|| {
+            let exe = std::env::current_exe().ok()?;
+            std::fs::canonicalize(exe.parent()?).ok()
+        })
+        .as_deref()
+}
+
 fn is_executable_dir(path: &Path) -> bool {
-    let Ok(exe) = std::env::current_exe() else {
+    let Some(exe_dir) = canonical_exe_dir() else {
         return false;
     };
-    let Some(exe_dir) = exe.parent() else {
-        return false;
-    };
-    match (std::fs::canonicalize(path), std::fs::canonicalize(exe_dir)) {
-        (Ok(a), Ok(b)) => a == b,
-        _ => false,
-    }
+    std::fs::canonicalize(path)
+        .map(|canonical| canonical == exe_dir)
+        .unwrap_or(false)
 }
 
 #[cfg(target_os = "linux")]
@@ -950,6 +965,28 @@ mod auth_tests {
         std::fs::remove_dir(&env).expect("delete env");
         let resolved = choose_launch_dir(Some(&snap), Some(env));
         assert_eq!(resolved, None);
+    }
+
+    #[test]
+    fn probe_spawn_cwd_accepts_real_dir() {
+        let dir = tempdir("probe-ok");
+        let got = probe_spawn_cwd(dir.to_str().unwrap(), &WorkspaceEnv::Local).unwrap();
+        assert_eq!(got, dir);
+    }
+
+    #[test]
+    fn probe_spawn_cwd_rejects_missing_path() {
+        let err = probe_spawn_cwd("/no/such/terax/probe-path", &WorkspaceEnv::Local).unwrap_err();
+        assert!(err.contains("not accessible"));
+    }
+
+    #[test]
+    fn probe_spawn_cwd_rejects_file() {
+        let dir = tempdir("probe-file");
+        let file = dir.join("f.txt");
+        std::fs::write(&file, "x").unwrap();
+        let err = probe_spawn_cwd(file.to_str().unwrap(), &WorkspaceEnv::Local).unwrap_err();
+        assert!(err.contains("not a directory"));
     }
 }
 
