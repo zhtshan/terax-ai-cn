@@ -30,7 +30,9 @@ import {
   TerminalIcon,
 } from "@hugeicons/core-free-icons";
 import { SLASH_COMMANDS, TERAX_CMD_RE } from "../lib/slashCommands";
+import { collectPendingApprovalIds } from "../lib/pendingApprovals";
 import { Spinner } from "@/components/ui/spinner";
+import { toast } from "sonner";
 import { useChatStore } from "../store/chatStore";
 import { sendMessage } from "../store/chatRuntime";
 import type {
@@ -246,6 +248,16 @@ export function AiChatView({
         {showContinue && (
           <ContinueRow
             onContinue={() => {
+              // #514 守卫与 composer 提交路径一致：approval 未响应时
+              // sendMessage 会被 SDK 以冲突拒绝，先拦截。
+              const sessionId = useChatStore.getState().activeSessionId;
+              if (collectPendingApprovalIds(messages).length > 0) {
+                toast.warning(t("ai.toolApproval.pendingTitle"), {
+                  id: `approval-pending:${sessionId}`,
+                  description: t("ai.toolApproval.pendingDesc"),
+                });
+                return;
+              }
               patchAgentMeta({ hitStepCap: false });
               void sendMessage(
                 t("ai.chat.continuePrompt"),
