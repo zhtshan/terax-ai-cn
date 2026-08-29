@@ -173,6 +173,22 @@ export function splitEndpointModels(raw: string): string[] {
   return out;
 }
 
+/** The concrete model id a compat selection resolves to on the wire: the
+ *  slug when present, else the first id of the endpoint's comma list (#1107). */
+export function compatWireModel(
+  selectedCompatId: string,
+  endpoints: readonly CustomEndpoint[],
+): string {
+  return (
+    modelSlugFromCompatModel(selectedCompatId) ??
+    splitEndpointModels(
+      endpoints.find((e) => e.id === endpointIdFromCompatModel(selectedCompatId))
+        ?.modelId ?? "",
+    )[0] ??
+    ""
+  );
+}
+
 /** True when `modelId` is a compat id whose endpoint has been deleted. */
 export function isOrphanCompatModel(
   modelId: string,
@@ -705,6 +721,22 @@ export function getCompatModelInfo(
       : "Custom OpenAI-compatible endpoint",
     capabilities: { intelligence: 3, speed: 3, cost: 3 },
   };
+}
+
+/** One dropdown entry per comma-separated model; a bare entry when the
+ *  endpoint lists none. Shared by the chat and autocomplete pickers. */
+export function expandCompatModelInfos(
+  endpoints: readonly CustomEndpoint[],
+): ModelInfo[] {
+  return endpoints.flatMap((ep) => {
+    const slugs = splitEndpointModels(ep.modelId);
+    if (slugs.length === 0) {
+      return [getCompatModelInfo(compatModelIdForEndpoint(ep.id), endpoints)];
+    }
+    return slugs.map((slug) =>
+      getCompatModelInfo(compatModelIdForEndpoint(ep.id, slug), endpoints),
+    );
+  });
 }
 
 export function resolveModel(

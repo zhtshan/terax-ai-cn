@@ -1,5 +1,5 @@
 import { isMarkdownPath } from "@/lib/utils";
-import { endpointIdFromCompatModel } from "@/modules/ai/config";
+import { compatWireModel, endpointIdFromCompatModel } from "@/modules/ai/config";
 import { getCustomEndpointKey, getKey } from "@/modules/ai/lib/keyring";
 import {
   lspFormatDocument,
@@ -424,7 +424,7 @@ export const EditorPane = memo(
                   : p === "ollama"
                     ? s.ollamaModelId
                     : p === "openai-compatible"
-                      ? (compatEp?.modelId ?? "")
+                      ? compatWireModel(s.autocompleteModelId, s.customEndpoints)
                       : p === "openrouter"
                         ? s.openrouterModelId
                         : s.autocompleteModelId;

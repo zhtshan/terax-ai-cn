@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   type CustomEndpoint,
   compatModelIdForEndpoint,
+  compatWireModel,
   DEFAULT_MODEL_ID,
   endpointIdFromCompatModel,
+  expandCompatModelInfos,
   getModelContextLimit,
   isCompatModelId,
   isOrphanCompatModel,
@@ -160,6 +162,63 @@ describe("getCompatModelInfo slug labels", () => {
     const blank: CustomEndpoint = { ...multi, modelId: "  " };
     const info = resolveModel(compatModelIdForEndpoint(blank.id), [blank]);
     expect(info.label).toBe("My LLM");
+  });
+});
+
+describe("compatWireModel", () => {
+  it("returns the slug from a slug-qualified selection", () => {
+    expect(
+      compatWireModel(compatModelIdForEndpoint(endpoint.id, "qwen3-coder"), [
+        endpoint,
+      ]),
+    ).toBe("qwen3-coder");
+  });
+
+  it("falls back to the first listed model for a legacy selection", () => {
+    const multi: CustomEndpoint = { ...endpoint, modelId: "model-a, model-b" };
+    expect(compatWireModel(compatModelIdForEndpoint(multi.id), [multi])).toBe(
+      "model-a",
+    );
+  });
+
+  it("returns empty for a legacy selection whose endpoint is gone", () => {
+    expect(compatWireModel("compat-gone", [endpoint])).toBe("");
+  });
+
+  it("returns empty when no slug and the endpoint lists no usable model", () => {
+    const blank: CustomEndpoint = { ...endpoint, modelId: " , " };
+    expect(compatWireModel(compatModelIdForEndpoint(blank.id), [blank])).toBe(
+      "",
+    );
+  });
+});
+
+describe("expandCompatModelInfos", () => {
+  it("expands each comma-separated model into its own selectable entry", () => {
+    const multi: CustomEndpoint = { ...endpoint, modelId: "model-a, model-b" };
+    const infos = expandCompatModelInfos([multi]);
+    expect(infos.map((i) => i.id)).toEqual([
+      compatModelIdForEndpoint(multi.id, "model-a"),
+      compatModelIdForEndpoint(multi.id, "model-b"),
+    ]);
+    expect(infos[0]?.label).toBe("model-a");
+    expect(infos[0]?.hint).toBe(multi.name);
+  });
+
+  it("keeps one slug entry for an endpoint with a single model", () => {
+    const infos = expandCompatModelInfos([endpoint]);
+    expect(infos).toHaveLength(1);
+    expect(infos[0]?.id).toBe(
+      compatModelIdForEndpoint(endpoint.id, endpoint.modelId),
+    );
+    expect(infos[0]?.label).toBe(endpoint.modelId);
+  });
+
+  it("keeps a bare endpoint entry when it lists no usable model", () => {
+    const blank: CustomEndpoint = { ...endpoint, modelId: " , " };
+    const infos = expandCompatModelInfos([blank]);
+    expect(infos).toHaveLength(1);
+    expect(infos[0]?.id).toBe(compatModelIdForEndpoint(blank.id));
   });
 });
 

@@ -8,6 +8,7 @@ import {
 } from "ai";
 import {
   DEFAULT_MODEL_ID,
+  compatWireModel,
   endpointIdFromCompatModel,
   getModelContextLimit,
   isCompatModelId,
@@ -15,12 +16,10 @@ import {
   MAX_AGENT_STEPS,
   MLX_DEFAULT_BASE_URL,
   modelKeepsReasoning,
-  modelSlugFromCompatModel,
   OLLAMA_DEFAULT_BASE_URL,
   providerNeedsKey,
   resolveModel,
   selectSystemPrompt,
-  splitEndpointModels,
   type CustomEndpoint,
   type ProviderId,
 } from "../config";
@@ -246,12 +245,7 @@ export function buildConfiguredLanguageModel(
         `${ep.name}: no model id set. Open Settings → Models.`,
       );
     }
-    // Slug form sends only the selected model; a legacy selection falls back
-    // to the first id in the comma-separated list (#1107).
-    const wireModel =
-      modelSlugFromCompatModel(modelId) ??
-      splitEndpointModels(ep.modelId)[0] ??
-      ep.modelId.trim();
+    const wireModel = compatWireModel(modelId, local.customEndpoints ?? []);
     return buildLanguageModel(
       "openai-compatible",
       keys,

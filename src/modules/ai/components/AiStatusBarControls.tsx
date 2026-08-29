@@ -44,14 +44,13 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  compatModelIdForEndpoint,
+  expandCompatModelInfos,
   getCompatModelInfo,
   getModel,
   isCompatModelId,
   MODELS,
   providerNeedsKey,
   PROVIDERS,
-  splitEndpointModels,
   STT_PROVIDER_LABELS,
   type ModelCapabilities,
   type ModelId,
@@ -252,22 +251,10 @@ function ModelDropdown() {
     return hasKeyFor(m.provider);
   };
 
-  const epModelInfos = useMemo(() => {
-    return customEndpoints.flatMap((ep) => {
-      const slugs = splitEndpointModels(ep.modelId);
-      if (slugs.length === 0) {
-        return [
-          getCompatModelInfo(compatModelIdForEndpoint(ep.id), customEndpoints),
-        ];
-      }
-      return slugs.map((slug) =>
-        getCompatModelInfo(
-          compatModelIdForEndpoint(ep.id, slug),
-          customEndpoints,
-        ),
-      );
-    });
-  }, [customEndpoints]);
+  const epModelInfos = useMemo(
+    () => expandCompatModelInfos(customEndpoints),
+    [customEndpoints],
+  );
 
   const sortedProviders = useMemo(() => {
     const configured: (typeof PROVIDERS)[number][] = [];

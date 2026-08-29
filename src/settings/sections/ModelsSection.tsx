@@ -21,6 +21,7 @@ import {
   type CustomEndpoint,
   compatModelIdForEndpoint,
   DEFAULT_MODEL_ID,
+  expandCompatModelInfos,
   getAutocompleteEligibleModels,
   getCompatModelInfo,
   getProvider,
@@ -708,14 +709,13 @@ function AutocompleteRow({
     return getBindingTokens(bindings[0]).join("");
   }, [userShortcuts]);
 
-  // One selectable model per fully-configured OpenAI-compatible endpoint.
+  // One selectable model per comma-separated id of each fully-configured
+// OpenAI-compatible endpoint.
   const compatItems = useMemo(
     () =>
-      customEndpoints
-        .filter((e) => e.baseURL.trim() && e.modelId.trim())
-        .map((e) =>
-          getCompatModelInfo(compatModelIdForEndpoint(e.id), customEndpoints),
-        ),
+      expandCompatModelInfos(
+        customEndpoints.filter((e) => e.baseURL.trim() && e.modelId.trim()),
+      ),
     [customEndpoints],
   );
 
