@@ -9,7 +9,7 @@ import {
 
 type State = Preferences & {
   hydrated: boolean;
-  /** Runtime-only — #933: set by boot-time WebGL probe; never persisted. */
+  /** Runtime-only (#933): set by boot-time WebGL probe; never persisted. */
   webglRendererUnusable: boolean;
   /** Subscribe & hydrate. Idempotent — safe to call from multiple windows. */
   init: () => Promise<void>;
