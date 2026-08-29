@@ -6,8 +6,11 @@ import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import ReactDOM from "react-dom/client";
 import App from "./app/App";
+import { installGlobalErrorReporting } from "./lib/globalErrorReport";
 import { initLaunchDir } from "./lib/launchDir";
 import { IS_MAC, USE_CUSTOM_WINDOW_CONTROLS } from "./lib/platform";
+
+installGlobalErrorReporting();
 
 if (USE_CUSTOM_WINDOW_CONTROLS) {
   document.documentElement.dataset.chrome = "borderless";
