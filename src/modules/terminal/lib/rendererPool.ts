@@ -8,6 +8,7 @@ import { SerializeAddon } from "@xterm/addon-serialize";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { WebglAddon } from "@xterm/addon-webgl";
 import { type FontWeight, type IDisposable, Terminal } from "@xterm/xterm";
+import { toast } from "sonner";
 import { shouldCursorBlink } from "./cursorBlink";
 import {
   readTerminalClipboard,
@@ -93,6 +94,7 @@ let windowActive =
   typeof document === "undefined" || (!document.hidden && document.hasFocus());
 let windowActivityBound = false;
 let cursorBlinkEnabled = false;
+let webglUnusableToastShown = false;
 
 function bindWindowActivityListeners(): void {
   if (windowActivityBound || typeof window === "undefined") return;
@@ -850,6 +852,13 @@ const IDLE_SLOTS_KEEP_WARM = 1;
 function attachWebgl(slot: Slot): void {
   if (slot.webglAddon || slot.webglInitFailed || !slot.term.element) return;
   if (!usePreferencesStore.getState().terminalWebglEnabled) return;
+  if (usePreferencesStore.getState().webglRendererUnusable) {
+    if (!webglUnusableToastShown) {
+      webglUnusableToastShown = true;
+      toast.error("WebGL 渲染不可用，已改用兼容渲染");
+    }
+    return;
+  }
   const elem = slot.term.element;
   const before = new Set<HTMLCanvasElement>(
     elem.querySelectorAll<HTMLCanvasElement>("canvas"),

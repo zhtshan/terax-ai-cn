@@ -121,6 +121,10 @@ vi.mock("@xterm/addon-webgl", () => ({
   },
 }));
 
+vi.mock("sonner", () => ({
+  toast: { error: vi.fn() },
+}));
+
 // Mock styles/tokens to avoid document dependency in theme building.
 vi.mock("@/styles/tokens", () => ({
   readTerminalTokens: vi.fn(() => ({
@@ -546,5 +550,21 @@ describe("attachWebgl failure fallback", () => {
       await flushFrames();
       expect(lastOptions?.rescaleOverlappingGlyphs).toBe(true);
     });
+  });
+
+  // #933: when the boot probe found WebGL2 unusable, attaching would blank
+  // the terminal on old WebKit. The flag must gate every attach path.
+  it("skips webgl attach when the boot probe flagged the renderer unusable", async () => {
+    const { usePreferencesStore } = await import("@/modules/settings/preferences");
+    const { toast } = await import("sonner");
+    usePreferencesStore.setState({ webglRendererUnusable: true });
+    const { acquireSlot, refreshLeafSlot } = await setupPool();
+    acquireSlot(acquireParams(31));
+    refreshLeafSlot(31);
+    await flushFrames();
+    expect(webglMock.constructCount).toBe(0);
+    expect(toast.error).toHaveBeenCalledTimes(1);
+    usePreferencesStore.setState({ webglRendererUnusable: false });
+    vi.mocked(toast.error).mockClear();
   });
 });
