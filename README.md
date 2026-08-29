@@ -21,7 +21,7 @@
 
 ---
 
-> **声明**：本项目是 [Terax](https://github.com/crynta/terax-ai) 的中文汉化版本，原作者为 [Crynta](https://github.com/crynta)。本汉化版本遵循 Apache License 2.0 协议。
+> **声明**：本项目是 [Terax](https://github.com/crynta/terax-ai) 的中文汉化版本，原作者为 [Crynta](https://github.com/crynta)，中文版作者为 [JackalEthen](https://github.com/JackalEthen/terax-ai-cn)。本汉化版本遵循 Apache License 2.0 协议。
 
 ## 下载
 
