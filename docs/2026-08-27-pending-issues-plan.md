@@ -220,17 +220,17 @@ Windows 机器上：
 | 来源 | 问题 | 状态 |
 |------|------|------|
 | Task 8 E2E | 跨窗口 prefs 同步缺口：Settings（独立 webview）删除自定义端点后，主窗口模型下拉条目不实时消失（重启后正确）。同步链路代码完整（writePref→`terax://prefs-changed`→主窗口 onPreferencesChange→zustand），实时失效原因待查 | 留档待查 |
-| Task 8 审查 | EditorPane 自动补全（`EditorPane.tsx:427`）仍发送端点原始 `modelId` 整串，与 #1107 同类（存量，非本次引入），可按 agent.ts 同法拆分 | 建议后续修 |
+| Task 8 审查 | EditorPane 自动补全（`EditorPane.tsx:427`）仍发送端点原始 `modelId` 整串，与 #1107 同类（存量，非本次引入），可按 agent.ts 同法拆分 | ✅ `d78b88b`（`compatWireModel` 纯函数统一 slug/legacy 解析；`expandCompatModelInfos` 统一聊天与补全两处下拉条目展开；补全下拉同步按 slug 拆分条目） |
 | Task 9 审查 | `net.rs` `header_map_to_strings` 用 HashMap 同名 header 仅保留最后一个，站点发两个 CSP 头时探测可能只看其一（理论绕过，既有） | 知悉 |
-| Task 7 审查 | `AiChat.tsx` ContinueRow（hitStepCap 继续按钮）绕过 #514 提交守卫，共存条件狭窄（如过期持久化状态），失败模式为 SDK 拒绝报错而非卡死 | 建议后续补守卫 |
+| Task 7 审查 | `AiChat.tsx` ContinueRow（hitStepCap 继续按钮）绕过 #514 提交守卫，共存条件狭窄（如过期持久化状态），失败模式为 SDK 拒绝报错而非卡死 | 建议后续修 → ✅ `513ce8a`（守卫与 composer 一致 + toast；组件测试覆盖拦截/放行两路） |
 | Task 9 审查 | `embedPolicy.test.ts` 缺 ALLOWALL 透传与 `frame-ancestors 'self'` 显式列表两个用例 | ✅ `deedea8` |
 | 终审 | `composer.tsx` #514 提交守卫无自动化组件测试（该 bug 已两次静默修复失败） | ✅ `deedea8`（3 个组件测试：pending 不发送/toast/草稿保留，不 mock 守卫本体） |
 | 终审 | Source Control 的 fs 触发刷新绕过节流，且 400ms 防抖为纯 trailing-reset | ✅ `871af47`（复用 1500ms 最小间隔 + max-wait 上限；遗留：与 block-return 直接刷新路径未共享节流状态） |
 | 终审 | `EditorPane.tsx` `docRef` 死代码（只写不读） | ✅ `e4a0097` |
-| 终审 | settings 窗口（独立入口 src/settings/main.tsx）未接 ErrorBoundary 与 installGlobalErrorReporting，渲染崩溃仍白屏；且 ErrorBoundary 包在 App return 内，App 自身 render body 崩溃不落兜底。建议后续把两者上移到两个窗口入口 | 建议后续修 |
-| 终审 | shell_init.rs:76 sanitize_shell_override 在 session::spawn 内 canonicalize 用户自定义 shell 路径，阻塞线程但无超时，指向休眠卷的陈旧配置仍可挂起单个 tab（#449 同类，异步 worker 已不被占用） | 留档待后续 |
+| 终审 | settings 窗口（独立入口 src/settings/main.tsx）未接 ErrorBoundary 与 installGlobalErrorReporting，渲染崩溃仍白屏；且 ErrorBoundary 包在 App return 内，App 自身 render body 崩溃不落兜底。建议后续把两者上移到两个窗口入口 | ✅ `8975b0b`（boundary 上移 main.tsx 与 settings/main.tsx；settings 接入全局错误上报；App 内层 boundary 移除，入口单点兜底） |
+| 终审 | shell_init.rs:76 sanitize_shell_override 在 session::spawn 内 canonicalize 用户自定义 shell 路径，阻塞线程但无超时，指向休眠卷的陈旧配置仍可挂起单个 tab（#449 同类，异步 worker 已不被占用） | 留档待后续 → ✅ `0d6c223`（校验上移 pty_open async 侧，spawn_blocking + 3s 超时回退默认 shell） |
 
 ---
 
-*上次更新：2026-08-29（macOS 平台三项 bug 修复留档：#1168 重叠修复（乱码留档待上游）/#933 启动探测+ErrorBoundary/#449 spawn_blocking+超时守护）*
+*上次更新：2026-08-29（第十一节"建议后续修"四项全部完成：EditorPane modelId 拆分 / ContinueRow #514 守卫 / 窗口入口 ErrorBoundary / shell override 超时守护）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*
