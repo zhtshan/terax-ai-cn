@@ -109,7 +109,8 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     label: "MLX",
     keyringAccount: "",
     keyPrefix: null,
-    consoleUrl: "https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md",
+    consoleUrl:
+      "https://github.com/ml-explore/mlx-lm/blob/main/mlx_lm/SERVER.md",
   },
   {
     id: "ollama",
@@ -129,9 +130,17 @@ export type CustomEndpoint = {
 };
 
 const COMPAT_MODEL_PREFIX = "compat-";
+const COMPAT_MODEL_SLUG_SEPARATOR = "#";
 
-export function compatModelIdForEndpoint(endpointId: string): string {
-  return `${COMPAT_MODEL_PREFIX}${endpointId}`;
+/** Settings accept comma-separated model ids per endpoint (#1107); each slug
+ *  becomes its own selectable compat entry: `compat-<eid>#<slug>`. */
+export function compatModelIdForEndpoint(
+  endpointId: string,
+  slug?: string,
+): string {
+  return slug
+    ? `${COMPAT_MODEL_PREFIX}${endpointId}${COMPAT_MODEL_SLUG_SEPARATOR}${slug}`
+    : `${COMPAT_MODEL_PREFIX}${endpointId}`;
 }
 
 export function isCompatModelId(modelId: string): boolean {
@@ -139,9 +148,67 @@ export function isCompatModelId(modelId: string): boolean {
 }
 
 export function endpointIdFromCompatModel(modelId: string): string {
-  return isCompatModelId(modelId)
-    ? modelId.slice(COMPAT_MODEL_PREFIX.length)
-    : "";
+  if (!isCompatModelId(modelId)) return "";
+  const rest = modelId.slice(COMPAT_MODEL_PREFIX.length);
+  const cut = rest.indexOf(COMPAT_MODEL_SLUG_SEPARATOR);
+  return cut === -1 ? rest : rest.slice(0, cut);
+}
+
+export function modelSlugFromCompatModel(modelId: string): string | null {
+  if (!isCompatModelId(modelId)) return null;
+  const cut = modelId.indexOf(COMPAT_MODEL_SLUG_SEPARATOR);
+  if (cut === -1) return null;
+  return modelId.slice(cut + 1) || null;
+}
+
+export function splitEndpointModels(raw: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const part of raw.split(",")) {
+    const slug = part.trim();
+    if (!slug || seen.has(slug)) continue;
+    seen.add(slug);
+    out.push(slug);
+  }
+  return out;
+}
+
+/** The concrete model id a compat selection resolves to on the wire: the
+ *  slug when present, else the first id of the endpoint's comma list (#1107). */
+export function compatWireModel(
+  selectedCompatId: string,
+  endpoints: readonly CustomEndpoint[],
+): string {
+  return (
+    modelSlugFromCompatModel(selectedCompatId) ??
+    splitEndpointModels(
+      endpoints.find((e) => e.id === endpointIdFromCompatModel(selectedCompatId))
+        ?.modelId ?? "",
+    )[0] ??
+    ""
+  );
+}
+
+/** True when `modelId` is a compat id whose endpoint has been deleted. */
+export function isOrphanCompatModel(
+  modelId: string,
+  endpoints: readonly CustomEndpoint[],
+): boolean {
+  if (!isCompatModelId(modelId)) return false;
+  const eid = endpointIdFromCompatModel(modelId);
+  return !endpoints.some((e) => e.id === eid);
+}
+
+/** Replacement selection for an orphaned compat id: first surviving endpoint,
+ *  else the default model. Null when `modelId` is not orphaned. */
+export function orphanCompatFallback(
+  modelId: string,
+  endpoints: readonly CustomEndpoint[],
+): string | null {
+  if (!isOrphanCompatModel(modelId, endpoints)) return null;
+  return endpoints[0]
+    ? compatModelIdForEndpoint(endpoints[0].id)
+    : DEFAULT_MODEL_ID;
 }
 
 /** One-shot migration of the legacy single OpenAI-compatible config into the
@@ -641,16 +708,35 @@ export function getCompatModelInfo(
   const eid = endpointIdFromCompatModel(modelId);
   const ep = endpoints.find((e) => e.id === eid);
   const name = ep?.name || "Custom endpoint";
+  const label =
+    modelSlugFromCompatModel(modelId) ??
+    (splitEndpointModels(ep?.modelId ?? "")[0] || name);
   return {
     id: modelId,
     provider: "openai-compatible",
-    label: ep?.modelId || name,
+    label,
     hint: name,
     description: ep
       ? `${name} — ${ep.baseURL}`
       : "Custom OpenAI-compatible endpoint",
     capabilities: { intelligence: 3, speed: 3, cost: 3 },
   };
+}
+
+/** One dropdown entry per comma-separated model; a bare entry when the
+ *  endpoint lists none. Shared by the chat and autocomplete pickers. */
+export function expandCompatModelInfos(
+  endpoints: readonly CustomEndpoint[],
+): ModelInfo[] {
+  return endpoints.flatMap((ep) => {
+    const slugs = splitEndpointModels(ep.modelId);
+    if (slugs.length === 0) {
+      return [getCompatModelInfo(compatModelIdForEndpoint(ep.id), endpoints)];
+    }
+    return slugs.map((slug) =>
+      getCompatModelInfo(compatModelIdForEndpoint(ep.id, slug), endpoints),
+    );
+  });
 }
 
 export function resolveModel(

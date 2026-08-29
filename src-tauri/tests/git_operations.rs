@@ -130,6 +130,75 @@ fn stage_then_commit_produces_log_entry() {
 }
 
 #[test]
+fn stage_skips_vanished_untracked_but_still_stages_deleted_tracked() {
+    if skip_if_no_git() {
+        return;
+    }
+    // Upstream #814: the Source Control list is a snapshot; a file deleted
+    // after the last refresh stays in it, and `git add -- <it>` is a fatal
+    // pathspec error that used to fail the whole batch. A deleted-but-tracked
+    // path must keep staging its deletion.
+    let fx = GitRepoFixture::new();
+    fx.write_file("tracked.txt", "seed\n");
+    fx.write_file("doomed.txt", "bye\n");
+    fx.run_git(&["add", "tracked.txt", "doomed.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "seed"]);
+
+    fx.write_file("ghost.txt", "never staged\n");
+    std::fs::remove_file(fx.repo_path.join("ghost.txt")).unwrap();
+    std::fs::remove_file(fx.repo_path.join("doomed.txt")).unwrap();
+    fx.write_file("tracked.txt", "seed\nmore\n");
+
+    operations::stage(
+        &fx.registry,
+        &fx.repo_str(),
+        &["ghost.txt".into(), "doomed.txt".into(), "tracked.txt".into()],
+        &fx.workspace,
+    )
+    .expect("vanished untracked must not fail the batch");
+
+    let snap = operations::status(&fx.registry, &fx.repo_str(), &fx.workspace).unwrap();
+    let tracked = snap
+        .changed_files
+        .iter()
+        .find(|f| f.path == "tracked.txt")
+        .expect("tracked.txt in status");
+    assert!(tracked.staged);
+    let doomed = snap
+        .changed_files
+        .iter()
+        .find(|f| f.path == "doomed.txt")
+        .expect("deleted tracked still listed");
+    assert!(doomed.staged);
+    assert!(!snap.changed_files.iter().any(|f| f.path == "ghost.txt"));
+}
+
+#[test]
+fn stage_batch_of_only_vanished_untracked_is_ok_noop() {
+    if skip_if_no_git() {
+        return;
+    }
+    let fx = GitRepoFixture::new();
+    fx.write_file("seed.txt", "seed\n");
+    fx.run_git(&["add", "seed.txt"]);
+    fx.run_git(&["commit", "-q", "-m", "seed"]);
+
+    fx.write_file("ghost.txt", "gone\n");
+    std::fs::remove_file(fx.repo_path.join("ghost.txt")).unwrap();
+
+    operations::stage(
+        &fx.registry,
+        &fx.repo_str(),
+        &["ghost.txt".into()],
+        &fx.workspace,
+    )
+    .expect("all-vanished batch is a no-op success");
+
+    let snap = operations::status(&fx.registry, &fx.repo_str(), &fx.workspace).unwrap();
+    assert!(snap.changed_files.is_empty());
+}
+
+#[test]
 fn unstage_clears_index_entry() {
     if skip_if_no_git() {
         return;

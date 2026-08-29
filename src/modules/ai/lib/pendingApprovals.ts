@@ -2,13 +2,10 @@ import type { UIMessage } from "@ai-sdk/react";
 
 /**
  * Collect every `state: "approval-requested"` tool part's approval id from the
- * chat history. Used by the composer to auto-deny any approval the user did
- * not act on before sending a new turn — otherwise the AI SDK treats the new
- * user message as a collision with the still-pending approval and the chat
- * errors out, blocking the rest of the session (#951).
- *
- * Pure function. Caller is responsible for actually invoking
- * `chat.addToolApprovalResponse({ id, approved: false })` for each id.
+ * chat history. The composer uses these ids to BLOCK sending a new message while
+ * an approval is unanswered (#514): denying is a user action from the approval
+ * UI, never auto-dispatched. Returning the ids is enough for the caller to
+ * detect the blocking condition.
  */
 export function collectPendingApprovalIds(messages: UIMessage[]): string[] {
   const ids: string[] = [];

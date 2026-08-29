@@ -21,6 +21,10 @@ export function modeOf(state: ModeState): BlockMode {
   return state.altScreen ? "alt" : state.phase;
 }
 
+export function returnsToPrompt(prev: BlockMode, next: BlockMode): boolean {
+  return next === "prompt" && prev !== "prompt";
+}
+
 export function reduceMode(state: ModeState, event: ModeEvent): ModeState {
   if (event.type === "altScreen") {
     if (state.altScreen === event.active) return state;

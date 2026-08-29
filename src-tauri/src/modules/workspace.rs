@@ -95,6 +95,20 @@ pub fn authorize_spawn_cwd(
     Ok(Some(canonical))
 }
 
+// Pure fs probe split out of authorize_user_spawn_cwd so pty_open can run it
+// on a blocking thread under a timeout (#449); the registry mutation stays on
+// the caller side. Kept free of caching: the short-TTL-free canonicalize is
+// what keeps the auth TOCTOU window tight.
+pub fn probe_spawn_cwd(cwd: &str, workspace: &WorkspaceEnv) -> Result<PathBuf, String> {
+    let resolved = resolve_path(cwd, workspace);
+    let canonical =
+        std::fs::canonicalize(&resolved).map_err(|e| format!("cwd not accessible: {e}"))?;
+    if !canonical.is_dir() {
+        return Err(format!("cwd is not a directory: {}", canonical.display()));
+    }
+    Ok(canonical)
+}
+
 // User-initiated terminal spawn: canonicalize, require a real dir, and register
 // it as a root instead of rejecting paths outside existing roots.
 pub fn authorize_user_spawn_cwd(
@@ -105,31 +119,9 @@ pub fn authorize_user_spawn_cwd(
     let Some(cwd) = cwd.map(str::trim).filter(|s| !s.is_empty()) else {
         return Ok(None);
     };
-    let resolved = resolve_path(cwd, workspace);
-    let canonical =
-        std::fs::canonicalize(&resolved).map_err(|e| format!("cwd not accessible: {e}"))?;
-    if !canonical.is_dir() {
-        return Err(format!("cwd is not a directory: {}", canonical.display()));
-    }
+    let canonical = probe_spawn_cwd(cwd, workspace)?;
     registry.authorize(&canonical).map_err(|e| e.to_string())?;
     Ok(Some(canonical))
-}
-
-// A saved cwd can be stale or from another environment (e.g. a Windows path in
-// a now-WSL space); the terminal must still open, so fall back to home.
-pub fn user_spawn_cwd_or_home(
-    registry: &WorkspaceRegistry,
-    cwd: Option<&str>,
-    workspace: &WorkspaceEnv,
-) -> Option<String> {
-    let cwd = cwd.map(str::trim).filter(|s| !s.is_empty())?;
-    match authorize_user_spawn_cwd(registry, Some(cwd), workspace) {
-        Ok(_) => Some(cwd.to_owned()),
-        Err(e) => {
-            log::warn!("pty cwd {cwd:?} unusable in {workspace:?} ({e}); opening home");
-            None
-        }
-    }
 }
 
 pub fn bootstrap_registry(registry: &WorkspaceRegistry) {
@@ -228,17 +220,23 @@ fn is_usable_launch_dir(path: &Path) -> bool {
     true
 }
 
+fn canonical_exe_dir() -> Option<&'static Path> {
+    static EXE_DIR: OnceLock<Option<PathBuf>> = OnceLock::new();
+    EXE_DIR
+        .get_or_init(|| {
+            let exe = std::env::current_exe().ok()?;
+            std::fs::canonicalize(exe.parent()?).ok()
+        })
+        .as_deref()
+}
+
 fn is_executable_dir(path: &Path) -> bool {
-    let Ok(exe) = std::env::current_exe() else {
+    let Some(exe_dir) = canonical_exe_dir() else {
         return false;
     };
-    let Some(exe_dir) = exe.parent() else {
-        return false;
-    };
-    match (std::fs::canonicalize(path), std::fs::canonicalize(exe_dir)) {
-        (Ok(a), Ok(b)) => a == b,
-        _ => false,
-    }
+    std::fs::canonicalize(path)
+        .map(|canonical| canonical == exe_dir)
+        .unwrap_or(false)
 }
 
 #[cfg(target_os = "linux")]
@@ -847,43 +845,6 @@ mod auth_tests {
     }
 
     #[test]
-    fn user_spawn_cwd_or_home_keeps_accessible_dir() {
-        let dir = tempdir("orhome-ok");
-        let reg = WorkspaceRegistry::default();
-        let s = dir.to_string_lossy().into_owned();
-        assert_eq!(
-            user_spawn_cwd_or_home(&reg, Some(&s), &WorkspaceEnv::Local),
-            Some(s)
-        );
-        assert!(reg.is_authorized(&dir));
-    }
-
-    #[test]
-    fn user_spawn_cwd_or_home_falls_back_when_inaccessible() {
-        let mut missing = env::temp_dir();
-        missing.push(format!("terax-orhome-missing-{}", std::process::id()));
-        let reg = WorkspaceRegistry::default();
-        let s = missing.to_string_lossy().into_owned();
-        assert_eq!(
-            user_spawn_cwd_or_home(&reg, Some(&s), &WorkspaceEnv::Local),
-            None
-        );
-    }
-
-    #[test]
-    fn user_spawn_cwd_or_home_passes_through_empty() {
-        let reg = WorkspaceRegistry::default();
-        assert_eq!(
-            user_spawn_cwd_or_home(&reg, None, &WorkspaceEnv::Local),
-            None
-        );
-        assert_eq!(
-            user_spawn_cwd_or_home(&reg, Some("  "), &WorkspaceEnv::Local),
-            None
-        );
-    }
-
-    #[test]
     fn authorize_spawn_cwd_blocks_symlink_escape() {
         let allowed = tempdir("symroot");
         let outside = tempdir("symtarget");
@@ -950,6 +911,28 @@ mod auth_tests {
         std::fs::remove_dir(&env).expect("delete env");
         let resolved = choose_launch_dir(Some(&snap), Some(env));
         assert_eq!(resolved, None);
+    }
+
+    #[test]
+    fn probe_spawn_cwd_accepts_real_dir() {
+        let dir = tempdir("probe-ok");
+        let got = probe_spawn_cwd(dir.to_str().unwrap(), &WorkspaceEnv::Local).unwrap();
+        assert_eq!(got, dir);
+    }
+
+    #[test]
+    fn probe_spawn_cwd_rejects_missing_path() {
+        let err = probe_spawn_cwd("/no/such/terax/probe-path", &WorkspaceEnv::Local).unwrap_err();
+        assert!(err.contains("not accessible"));
+    }
+
+    #[test]
+    fn probe_spawn_cwd_rejects_file() {
+        let dir = tempdir("probe-file");
+        let file = dir.join("f.txt");
+        std::fs::write(&file, "x").unwrap();
+        let err = probe_spawn_cwd(file.to_str().unwrap(), &WorkspaceEnv::Local).unwrap_err();
+        assert!(err.contains("not a directory"));
     }
 }
 

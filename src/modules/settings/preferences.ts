@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import {
   DEFAULT_PREFERENCES,
+  detectWebglRenderer,
   loadPreferences,
   onPreferencesChange,
   type Preferences,
@@ -8,6 +9,8 @@ import {
 
 type State = Preferences & {
   hydrated: boolean;
+  /** Runtime-only (#933): set by boot-time WebGL probe; never persisted. */
+  webglRendererUnusable: boolean;
   /** Subscribe & hydrate. Idempotent — safe to call from multiple windows. */
   init: () => Promise<void>;
 };
@@ -48,10 +51,12 @@ export function readBgFastPath(): {
 export const usePreferencesStore = create<State>((set) => ({
   ...DEFAULT_PREFERENCES,
   hydrated: false,
+  webglRendererUnusable: false,
   init: () => {
     if (initPromise) return initPromise;
     initPromise = (async () => {
       try {
+        if (!detectWebglRenderer()) set({ webglRendererUnusable: true });
         const prefs = await loadPreferences();
         set({ ...prefs, hydrated: true });
         mirrorBgFastPath(prefs.backgroundKind, prefs.backgroundImageId);

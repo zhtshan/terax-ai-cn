@@ -44,7 +44,7 @@ import { HugeiconsIcon } from "@hugeicons/react";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import {
-  compatModelIdForEndpoint,
+  expandCompatModelInfos,
   getCompatModelInfo,
   getModel,
   isCompatModelId,
@@ -251,11 +251,10 @@ function ModelDropdown() {
     return hasKeyFor(m.provider);
   };
 
-  const epModelInfos = useMemo(() => {
-    return customEndpoints.map((ep) =>
-      getCompatModelInfo(compatModelIdForEndpoint(ep.id), customEndpoints),
-    );
-  }, [customEndpoints]);
+  const epModelInfos = useMemo(
+    () => expandCompatModelInfos(customEndpoints),
+    [customEndpoints],
+  );
 
   const sortedProviders = useMemo(() => {
     const configured: (typeof PROVIDERS)[number][] = [];

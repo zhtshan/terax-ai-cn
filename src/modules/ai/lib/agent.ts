@@ -8,6 +8,7 @@ import {
 } from "ai";
 import {
   DEFAULT_MODEL_ID,
+  compatWireModel,
   endpointIdFromCompatModel,
   getModelContextLimit,
   isCompatModelId,
@@ -244,10 +245,11 @@ export function buildConfiguredLanguageModel(
         `${ep.name}: no model id set. Open Settings → Models.`,
       );
     }
+    const wireModel = compatWireModel(modelId, local.customEndpoints ?? []);
     return buildLanguageModel(
       "openai-compatible",
       keys,
-      ep.modelId.trim(),
+      wireModel,
       { openaiCompatibleBaseURL: ep.baseURL },
       local.customEndpointKeys?.[eid],
     );

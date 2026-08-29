@@ -1,0 +1,52 @@
+import { error as logError } from "@tauri-apps/plugin-log";
+import { Component, type ReactNode } from "react";
+
+type Props = { children: ReactNode };
+type State = { hasError: boolean };
+
+// Last-resort screen for render crashes (#933): without it a throwing child
+// blanks the whole window on platforms we cannot reproduce.
+export class ErrorBoundary extends Component<Props, State> {
+  state: State = { hasError: false };
+
+  static getDerivedStateFromError(): State {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: unknown, info: unknown): void {
+    console.error("[terax] render crash captured:", error, info);
+    // React swallows errors a boundary catches, so the window error listener
+    // never sees them; persist here or prod crashes leave no log evidence.
+    // Stack beats message for diagnosing unreproducible white screens (#933).
+    const detail =
+      error instanceof Error ? (error.stack ?? error.message) : String(error);
+    void logError(`render crash: ${detail} | ${String(info)}`).catch(() => {});
+  }
+
+  render(): ReactNode {
+    if (this.state.hasError) {
+      return (
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            justifyContent: "center",
+            height: "100vh",
+            gap: 12,
+            fontFamily: "system-ui, sans-serif",
+          }}
+        >
+          <p>界面遇到了问题，已停止渲染。</p>
+          <p style={{ opacity: 0.7 }}>
+            Something went wrong. The error has been logged.
+          </p>
+          <button type="button" onClick={() => window.location.reload()}>
+            重启应用
+          </button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}

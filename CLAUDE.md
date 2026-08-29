@@ -6,13 +6,13 @@
 
 ## 代码搜索
 
-本仓库已建 CodeGraph 索引（`.codegraph/` 存在）。**切换模型或新开会话时，搜索/定位代码优先用 CodeGraph**：
+本仓库已建 CodeGraph 索引（`.codegraph/` 存在）。**切换模型或新开会话时，搜索、定位代码必须优先用 CodeGraph**：
 
 ```bash
 codegraph explore "<symbol names or question>"
 ```
 
-或 MCP tool `codegraph_explore`（可用时）。仅当 CodeGraph 无结果时才降级到 grep/find。
+仅当 CodeGraph 无结果时才降级到 grep/find。
 
 ---
 

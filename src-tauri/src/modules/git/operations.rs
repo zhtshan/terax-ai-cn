@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use std::ffi::{OsStr, OsString};
 use std::path::Path;
 
@@ -274,6 +275,10 @@ pub fn stage(
         return Ok(());
     }
     let resolved = resolve_pathspecs(&repo_root.local_path, paths)?;
+    let resolved = drop_vanished_untracked(&repo_root, resolved)?;
+    if resolved.is_empty() {
+        return Ok(());
+    }
     let mut args: Vec<OsString> = vec!["add".into(), "--".into()];
     for p in &resolved {
         args.push(p.clone().into());
@@ -285,6 +290,41 @@ pub fn stage(
         DEFAULT_TIMEOUT_SECS,
     )?;
     ensure_success(&output, "git add failed")
+}
+
+// The Source Control list is a client-side snapshot: a file deleted after the
+// last refresh still appears in it, and `git add -- <it>` dies with a fatal
+// pathspec error that fails the whole batch. A vanished path the index no
+// longer tracks has nothing to stage, so drop it; a deleted-but-tracked path
+// must stay (staging its deletion is the point).
+fn drop_vanished_untracked(
+    repo_root: &ResolvedGitDirectory,
+    resolved: Vec<String>,
+) -> Result<Vec<String>> {
+    let missing: Vec<&String> = resolved
+        .iter()
+        .filter(|p| !repo_root.local_path.join(p).exists())
+        .collect();
+    if missing.is_empty() {
+        return Ok(resolved);
+    }
+    let mut ls_args: Vec<OsString> = vec!["ls-files".into(), "-z".into(), "--".into()];
+    for p in &missing {
+        ls_args.push((*p).clone().into());
+    }
+    let output = run_git(
+        &repo_root.workspace,
+        Some(&repo_root.git_path),
+        ls_args,
+        DEFAULT_TIMEOUT_SECS,
+    )?;
+    ensure_success(&output, "git ls-files failed")?;
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    let tracked: HashSet<&str> = stdout.split('\0').filter(|s| !s.is_empty()).collect();
+    Ok(resolved
+        .into_iter()
+        .filter(|p| repo_root.local_path.join(p).exists() || tracked.contains(p.as_str()))
+        .collect())
 }
 
 pub fn unstage(

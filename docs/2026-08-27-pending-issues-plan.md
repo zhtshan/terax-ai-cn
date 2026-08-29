@@ -55,27 +55,27 @@
 | **909** | Windows 上 Claude Code 不被检测 | 默认检测 `claude` 命令；用户用别名 `cc` 启动时无效。需支持自定义命令名配置 | 小 |
 | **909** | 同上（中文版扩展） | 支持任意用户配置的 alias（如 `ca`、`cca`），且内置 AI agent 都可通过 Settings > Agents 设置 `terminalCommand`/`terminalAgent`，自动派生到 alias map | 小 |
 | **1132** | Win11 codeblocks 不嵌入 | Windows WebView2 markdown 渲染差异，可能 CSP 或 HTML 转义路径不同 | 待诊断 |
-| **630** | Windows WebGL off 导致无法输入 | WebGL 初始化失败时 fallback 路径未正确建立 textarea focus | 小 |
+| **630** | Windows WebGL off 导致无法输入 | 根因（代码已核实，非 focus 问题）：`WebglRenderer` 构造函数在 shader 初始化（`GlyphRenderer`/`RectangleRenderer` 的 `throwIfFalsy`）失败前就已把 canvas append 进 `screenElement`，而 xterm `loadAddon` 无回滚；我们的 catch 只 warn，残留的死 canvas 覆盖在 DOM 渲染层之上，打字有 echo 但被遮死，用户报"无法输入"。设置关 WebGL 后 `attachWebgl` 在偏好门提前 return、不再创建 canvas，故恢复。**修复**：catch 中 diff 移除新增 canvas（`releaseCanvasContext` + remove）+ dispose 半初始化 addon + `refresh` 重绘；`webglInitFailed` 闩锁阻止每次绑定的重试风暴（`applyWebglPreference(true)` 显式清零） | 小 | ✅ 本周完成 |
 
 ### P2 — 稳定性 / 路径
 
 | # | 标题 | 工作量 |
 |---|------|--------|
 | **816** | 右键"用 Terax 打开"的目录被删除后 app 卡死 | 启动时校验 cwd 存在性，不存在则 fallback 到 home | 小 |
-| **814** | git add 全选随机失败（删除文件后） | git status parsing 竞态，需加重试或锁 | 中 |
-| **566** | Windows explorer 无法访问 D:\ 盘 | `list_drives` 已有；explorer 未使用盘符选择器，仍走固定 cwd | 小（接线） |
+| **814** | git add 全选随机失败（删除文件后） | 根因修正（实验证实）：非解析竞态，而是 status 快照漂移——已删除的 untracked 路径仍在 UI 列表，整批 `git add -- <paths>` 对其报 `fatal: pathspec did not match any files`，一个失败全批失败；`git add .` 正常因 `.` 恒可匹配。已删除的 tracked 路径可正常 stage 删除。修复：`stage` 内预过滤幽灵路径（磁盘不存在且 `git ls-files` 不命中则剔除；全消失时 no-op Ok），2 个集成测试覆盖 | ✅ 本批完成 |
+| **566** | Windows explorer 无法访问 D:\ 盘 | 已随盘符切换器落地（`b0fd4e2`，2026-08-19）：选择器 → `sendCd` → 终端 cd → OSC 7 → explorer 根更新；本计划原备注"未使用盘符选择器"过时。已知边缘：活动 leaf 非终端时 `sendCd` 静默失败（与其他 onNavigate 调用方一致，留档不修） | ✅ `b0fd4e2` |
 | **1222** | macOS 快速打字字符遗漏 | xterm buffer overflow 或 keydown 事件丢帧；需在 macOS 复现确认 | 待诊断 |
 
 ---
 
 ## 四、macOS 平台 Bug
 
-| # | 标题 | 根因分析 | 工作量 |
-|---|------|---------|--------|
-| **873** | macOS IME  composing 时 Enter 直接提交 AI 消息 | `AiComposerInput.tsx:257` Enter handler 缺 `isComposing` 守卫（同 #845 前半段） | 小（1 行） |
-| **1168** | macOS 中文渲染乱码/重叠 | WebGL renderer + CJK glyph 已知问题（上游 #750 同类）；fallback Canvas renderer 可能正常 | 中 |
-| **933** | macOS 13.0.1 安装后白屏 | 旧版 macOS WebGL 不支持 + 启动时未 fallback | 小 |
-| **449** | macOS 外接硬盘目录新 tab 挂起 | `is_usable_launch_dir` 对外接卷响应慢；`canonicalize` 卡住 | 中 |
+| # | 标题 | 根因分析 | 工作量 | 备注 |
+|---|------|---------|--------|------|
+| **873** | macOS IME  composing 时 Enter 直接提交 AI 消息 | `AiComposerInput.tsx:257` Enter handler 缺 `isComposing` 守卫（同 #845 前半段） | 小（1 行） | ✅ `a145a27` |
+| **1168** | macOS 中文渲染乱码/重叠 | WebGL renderer + CJK glyph 已知问题（上游 #750 同类）；fallback Canvas renderer 可能正常 | 中 | 重叠部分 ✅ `71dffb5`（rescaleOverlappingGlyphs）；乱码/atlas 错位部分留档待上游（atlas-slot-corruption-type），渲染错误不可机检，用户可关 WebGL 开关兜底 |
+| **933** | macOS 13.0.1 安装后白屏 | 旧版 macOS WebGL 不支持 + 启动时未 fallback | 小 | ✅ `1e28be3`（WebGL 启动探测）+ `03fb2e8`（attachWebgl 门 + toast）+ `70518e9`（ErrorBoundary + 错误转发日志；修复 `50a1309` + `da5fab0`）；macOS 13 Intel 实机验证依赖用户反馈 |
+| **449** | macOS 外接硬盘目录新 tab 挂起 | `is_usable_launch_dir` 对外接卷响应慢；`canonicalize` 卡住 | 中 | ✅ `c46eeae`（probe 拆分 + exe 缓存）+ `047e72f`（pty_open 超时守护）；外接卷实测待用户环境 |
 
 ---
 
@@ -96,12 +96,12 @@
 | # | 标题 | 根因分析 | 工作量 |
 |---|------|---------|--------|
 | **1028** | 状态栏 breadcrumb `cd` 打入前台 TUI | `sendCd`（`App.tsx:650`）直接 `term.write()` 无 `leafBusy` 检查；`leafBusy` 已在 `useTerminalSession.ts:295` 实现但未暴露给 App 层 | 小（暴露 + 加守卫） |
-| **988** | 撤销 editor 变更后面板不刷新 | editor undo/redo 后未触发 pane re-render | 待诊断 |
-| **807** | localhost:3000 preview 白屏 | preview iframe CORS / CSP 限制，或 dev server HMR 路径问题 | 中 |
-| **672** | Windows Composer AI "Failed to fetch" | Windows WebView2 fetch 代理/证书问题 | 待诊断 |
-| **1107** | macOS "Request failed / load failed" | AI transport 错误处理路径，需看 log | 待诊断 |
-| **974** | 连接 LLM provider 后 agent 不工作 | 同 #1107 类问题，provider 配置未正确下发 | 待诊断 |
-| **514** | 待 tool call 时发 follow-up prompt 卡死 | agent session 状态机不允许 pending 时的新消息 | 中 |
+| **988** | 撤销 editor 变更后面板不刷新 | 插桩实证：状态链（watch 事件→路径匹配→reload→setDoc）全部正常，断点在视图层——`doc.content` 是磁盘快照，`@uiw/react-codemirror` 仅在 value prop 变化时同步；discard 还原到上次加载的快照 → prop 不变 → 视图 stale。修复：EditorPane 外部内容采纳显式 dispatch（`8f14628`）；另按需求追加 Source Control 面板订阅 fs 事件防抖刷新（`f8b9870`） | ✅ E2E 通过 |
+| **807** | localhost:3000 preview 白屏 | 三级对照实证：被预览应用自身响应头（X-Frame-Options / frame-ancestors）拦截，白屏但请求到达；本地 URL 此前不显示嵌入提示。修复：本地 URL 也经 `ai_http_request` 探测（需 `allowPrivateNetwork`），被拦时显示提示条（`832c53c`） | ✅ E2E 通过 |
+| **672** | Windows Composer AI "Failed to fetch" | Windows WebView2 fetch 代理/证书问题 | 待诊断（需 Windows） |
+| **1107** | macOS "Request failed / load failed" | 2026-08-28 macOS 本机实测未复现（key 实测聊天正常），疑似报告用户环境差异（代理/VPN/证书）；"Connected" 仅来自 `lm_ping`（base_url 可达性探测），与聊天链路无关。另发现并修复：自定义端点逗号分隔多模型 ID 被整串当作单个 model 发送，已拆分为独立可选项（`d758f80`） | ✅ 多模型已修；原症状未复现关闭 |
+| **974** | 连接 LLM provider 后 agent 不工作 | 同 #1107 类问题，provider 配置未正确下发 | 待诊断（需 Windows） |
+| **514** | 待 tool call 时发 follow-up prompt 卡死 | e80998b 的 auto-deny 与 sendMessage 竞跑（SDK sendMessage 不经 jobExecutor 队列），且 `addToolApprovalResponse` 只补丁最后一条消息，user 消息入列后 deny 永久打空。修复（用户选方案 A）：pending approval 未响应时阻止发送并多语言提示，deny 后会话健康（`b6ec17f` + i18n `5663596`） | ✅ E2E 通过 |
 
 ---
 
@@ -120,7 +120,7 @@
 6. **#1156 + #977** — ConPTY lifecycle race（Rust `drop_session` 加 reader thread join 超时，或前端 `switchWorkspace` 改为 async drain 后再 reset）— ✅ `5362206`
 7. **#909** — Claude Code 自定义命令检测（配置项 + alias 匹配）— ✅ `fa203c9..6bb7507`（8 个提交）
 8. **#659** — Preview tab cmd+w 关闭 — ✅ `6795e66`（allow preview close even as last tab; 移除 command palette 对应 disabled）
-9. **#630** — Windows WebGL fallback 路径
+9. **#630** — Windows WebGL fallback 路径 — ✅ 本周完成（`attachWebgl` 失败路径清理残留 canvas + `webglInitFailed` 闩锁；根因修正为失败 canvas 遮挡渲染，非 focus 问题）
 
 ### 第三批（下周，需要诊断）
 
@@ -215,5 +215,22 @@ Windows 机器上：
 
 ---
 
-*上次更新：2026-08-28（#659 Preview tab cmd+w 行为修正完成）*
+## 十一、本批新发现（2026-08-28 修复过程中发现，待后续处理）
+
+| 来源 | 问题 | 状态 |
+|------|------|------|
+| Task 8 E2E | 跨窗口 prefs 同步缺口：Settings（独立 webview）删除自定义端点后，主窗口模型下拉条目不实时消失（重启后正确） | ✅ 2026-08-29 插桩复测关闭：同步链路本身完好（writePref→`terax://prefs-changed` 与 plugin-store `store://change` 双通道均实时到达主窗口并更新 zustand，chatStore 自愈订阅触发，下拉条目实时增删）。08-28 观察到的"不实时消失"实为已删端点作为选中项在下拉触发器/列表中的残留显示，`f8871f8`（晚于该观察）已修。链路分发行为固化为 `store.test.ts` 回归测试 |
+| Task 8 审查 | EditorPane 自动补全（`EditorPane.tsx:427`）仍发送端点原始 `modelId` 整串，与 #1107 同类（存量，非本次引入），可按 agent.ts 同法拆分 | ✅ `d78b88b`（`compatWireModel` 纯函数统一 slug/legacy 解析；`expandCompatModelInfos` 统一聊天与补全两处下拉条目展开；补全下拉同步按 slug 拆分条目） |
+| Task 9 审查 | `net.rs` `header_map_to_strings` 用 HashMap 同名 header 仅保留最后一个，站点发两个 CSP 头时探测可能只看其一（理论绕过，既有） | 知悉 |
+| Task 7 审查 | `AiChat.tsx` ContinueRow（hitStepCap 继续按钮）绕过 #514 提交守卫，共存条件狭窄（如过期持久化状态），失败模式为 SDK 拒绝报错而非卡死 | 建议后续修 → ✅ `513ce8a`（守卫与 composer 一致 + toast；组件测试覆盖拦截/放行两路） |
+| Task 9 审查 | `embedPolicy.test.ts` 缺 ALLOWALL 透传与 `frame-ancestors 'self'` 显式列表两个用例 | ✅ `deedea8` |
+| 终审 | `composer.tsx` #514 提交守卫无自动化组件测试（该 bug 已两次静默修复失败） | ✅ `deedea8`（3 个组件测试：pending 不发送/toast/草稿保留，不 mock 守卫本体） |
+| 终审 | Source Control 的 fs 触发刷新绕过节流，且 400ms 防抖为纯 trailing-reset | ✅ `871af47`（复用 1500ms 最小间隔 + max-wait 上限；遗留：与 block-return 直接刷新路径未共享节流状态） |
+| 终审 | `EditorPane.tsx` `docRef` 死代码（只写不读） | ✅ `e4a0097` |
+| 终审 | settings 窗口（独立入口 src/settings/main.tsx）未接 ErrorBoundary 与 installGlobalErrorReporting，渲染崩溃仍白屏；且 ErrorBoundary 包在 App return 内，App 自身 render body 崩溃不落兜底。建议后续把两者上移到两个窗口入口 | ✅ `8975b0b`（boundary 上移 main.tsx 与 settings/main.tsx；settings 接入全局错误上报；App 内层 boundary 移除，入口单点兜底） |
+| 终审 | shell_init.rs:76 sanitize_shell_override 在 session::spawn 内 canonicalize 用户自定义 shell 路径，阻塞线程但无超时，指向休眠卷的陈旧配置仍可挂起单个 tab（#449 同类，异步 worker 已不被占用） | 留档待后续 → ✅ `0d6c223`（校验上移 pty_open async 侧，spawn_blocking + 3s 超时回退默认 shell） |
+
+---
+
+*上次更新：2026-08-29（#566 关闭：盘符切换器 `b0fd4e2` 已于 2026-08-19 落地，原备注过时；#814 修复：stage 过滤已消失 untracked 路径，根因为快照漂移非解析竞态。上游三 PR 仍 OPEN）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*

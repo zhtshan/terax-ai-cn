@@ -164,6 +164,28 @@
       "editSnippet": "编辑片段",
       "noSnippets": "暂无代码片段。创建一个后在 AI 输入框中使用 <1>#handle</1> 插入。",
       "builtin": "内置",
+      "builtins": {
+        "coder": {
+          "name": "编程助手",
+          "description": "通用编程助手，可编写、修改和运行代码。"
+        },
+        "architect": {
+          "name": "架构师",
+          "description": "负责方案设计与权衡，先规划再动手。"
+        },
+        "reviewer": {
+          "name": "代码审查",
+          "description": "审查变更的正确性、性能与安全性。"
+        },
+        "security": {
+          "name": "安全审计",
+          "description": "对变更做威胁建模并指出安全漏洞。"
+        },
+        "designer": {
+          "name": "设计师",
+          "description": "专注 UI/UX 的评审与打磨。"
+        }
+      },
       "useAgent": "使用代理",
       "icon": "图标",
       "name": "名称",
@@ -399,7 +421,9 @@
       "linesReview": "{{lines}} 行 · 在差异标签页中查看",
       "replaceAll": " · 全部替换",
       "diffReview": "−{{removed}} / +{{added}} 行 · 在差异标签页中查看",
-      "editsReview": "{{edits}} 处编辑 · 在差异标签页中查看"
+      "editsReview": "{{edits}} 处编辑 · 在差异标签页中查看",
+      "pendingTitle": "有待处理的审批",
+      "pendingDesc": "请先批准或拒绝待处理的工具调用，再发送新消息。"
     },
     "tools": {
       "read": "读取",
@@ -776,7 +800,7 @@
     "checking": "检查中…",
     "placeholder": "http://localhost:3000",
     "openInBrowser": "在系统浏览器中打开",
-    "embedWarning": "许多公共网站拒绝嵌入（X-Frame-Options）。如果页面为空，请在外部打开。",
+    "embedWarning": "站点响应头（X-Frame-Options / frame-ancestors）禁止嵌入。页面为空时，可在外部打开，或放宽开发服务器的响应头。",
     "suspended": "预览已暂停",
     "suspendedDesc": "在后台闲置后释放以节省内存。",
     "nothingToPreview": "暂无内容可预览"

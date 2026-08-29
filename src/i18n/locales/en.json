@@ -164,6 +164,28 @@
       "editSnippet": "Edit snippet",
       "noSnippets": "No snippets yet. Create one and insert it with <1>#handle</1> in the AI input.",
       "builtin": "Built-in",
+      "builtins": {
+        "coder": {
+          "name": "Coder",
+          "description": "General-purpose coding assistant. Writes, edits, and runs."
+        },
+        "architect": {
+          "name": "Architect",
+          "description": "Design and tradeoffs. Plans before code."
+        },
+        "reviewer": {
+          "name": "Code Reviewer",
+          "description": "Reviews diffs for correctness, perf, security."
+        },
+        "security": {
+          "name": "Security",
+          "description": "Threat-models changes and flags vulns."
+        },
+        "designer": {
+          "name": "Designer",
+          "description": "UI/UX critique and refinement."
+        }
+      },
       "useAgent": "Use agent",
       "icon": "Icon",
       "name": "Name",
@@ -399,7 +421,9 @@
       "linesReview": "{{lines}} line(s) · review in the diff tab",
       "replaceAll": " · replace all",
       "diffReview": "−{{removed}} / +{{added}} line(s) · review in the diff tab",
-      "editsReview": "{{edits}} edit(s) · review in the diff tab"
+      "editsReview": "{{edits}} edit(s) · review in the diff tab",
+      "pendingTitle": "Pending approval",
+      "pendingDesc": "Respond to the pending tool call (approve or deny) before sending a new message."
     },
     "tools": {
       "read": "Read",
@@ -781,7 +805,7 @@
     "checking": "checking…",
     "placeholder": "http://localhost:3000",
     "openInBrowser": "Open in system browser",
-    "embedWarning": "Many public sites refuse to embed (X-Frame-Options). If the page is blank, open it externally.",
+    "embedWarning": "The site's response headers (X-Frame-Options / frame-ancestors) block embedding. If the page is blank, open it externally or relax the headers on your dev server.",
     "suspended": "Preview suspended",
     "suspendedDesc": "Released to free memory after sitting in the background.",
     "nothingToPreview": "Nothing to preview yet"

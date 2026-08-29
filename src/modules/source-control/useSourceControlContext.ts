@@ -1,9 +1,18 @@
 import { native } from "@/modules/ai/lib/native";
+import { listenFsChanged } from "@/modules/explorer/lib/watch";
 import type { SidebarViewId } from "@/modules/sidebar";
 import type { Tab } from "@/modules/tabs";
 import { useBlockController } from "@/modules/terminal/lib/blockController";
+import { getCurrentWebviewWindow } from "@tauri-apps/api/webviewWindow";
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useSourceControl } from "./useSourceControl";
+
+// fs 触发的刷新沿用 useSourceControl 的 1500ms 最小间隔，不绕过其他路径的节流；
+// 2000ms 上限窗口（同 fs watcher MAX_WINDOW 的延迟封顶思路）保证持续变更下
+// 刷新最迟在突发首个触发后 2s 内执行，不会无限推迟。
+const FS_REFRESH_DEBOUNCE_MS = 400;
+const FS_REFRESH_MIN_INTERVAL_MS = 1500;
+const FS_REFRESH_MAX_WAIT_MS = 2000;
 
 function dirname(path: string | null): string | null {
   if (!path) return null;
@@ -101,6 +110,53 @@ export function useSourceControlContext({
     }
     prevBlockRef.current = { leafId: terminalLeafId, mode: blockMode };
   }, [terminalLeafId, blockMode, sourceControlRefresh]);
+
+  // 编辑器保存(fs:file-written)与被 watch 目录变更(fs:changed)后防抖刷新，
+  // 使 Source Control 面板的变更列表与磁盘保持同步。
+  const refreshTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const refreshCapTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const lastFsRefreshAtRef = useRef(0);
+  const runFsRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = null;
+    if (refreshCapTimerRef.current) clearTimeout(refreshCapTimerRef.current);
+    refreshCapTimerRef.current = null;
+    lastFsRefreshAtRef.current = Date.now();
+    void sourceControlRefresh();
+  }, [sourceControlRefresh]);
+  const scheduleRefresh = useCallback(() => {
+    // 突发的首个触发起挂上限定时器，连续变更时 400ms trailing 防抖会被不断
+    // 重置，上限保证刷新仍会落地。
+    if (
+      refreshTimerRef.current === null &&
+      refreshCapTimerRef.current === null
+    ) {
+      refreshCapTimerRef.current = setTimeout(
+        runFsRefresh,
+        FS_REFRESH_MAX_WAIT_MS,
+      );
+    }
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => {
+      refreshTimerRef.current = null;
+      const elapsed = Date.now() - lastFsRefreshAtRef.current;
+      if (elapsed < FS_REFRESH_MIN_INTERVAL_MS) return;
+      runFsRefresh();
+    }, FS_REFRESH_DEBOUNCE_MS);
+  }, [runFsRefresh]);
+  useEffect(() => {
+    const un1 = getCurrentWebviewWindow().listen(
+      "fs:file-written",
+      scheduleRefresh,
+    );
+    const un2 = listenFsChanged(scheduleRefresh);
+    return () => {
+      void un1.then((un) => un());
+      void un2.then((un) => un());
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+      if (refreshCapTimerRef.current) clearTimeout(refreshCapTimerRef.current);
+    };
+  }, [scheduleRefresh]);
 
   const toggleSourceControl = useCallback(() => {
     cycleSidebarView("source-control");

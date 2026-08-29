@@ -1,5 +1,6 @@
 import { IS_WINDOWS } from "@/lib/platform";
 import type { IMarker, Terminal } from "@xterm/xterm";
+import { resetMouseTracking } from "./mouseModeReset";
 
 const MAX_OSC52_CLIPBOARD_BYTES = 1024 * 1024;
 
@@ -69,6 +70,7 @@ export function registerPromptTracker(
       // OSC 133 D — command ends.
       if (state) state.inCommand = false;
       onCommandState?.(false);
+      resetMouseTracking(term);
     }
     return true;
   });

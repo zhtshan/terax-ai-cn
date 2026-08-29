@@ -1,6 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import i18next from "i18next";
 import {
   type Agent,
+  agentDisplay,
   BUILTIN_AGENTS,
   findAgent,
   type TerminalBuiltin,
@@ -59,6 +61,28 @@ describe("BUILTIN_AGENTS", () => {
     const ids = BUILTIN_AGENTS.map((a) => a.id);
     expect(new Set(ids).size).toBe(ids.length);
     expect(BUILTIN_AGENTS.every((a) => a.builtIn)).toBe(true);
+  });
+});
+
+describe("agentDisplay", () => {
+  it("zh-CN 下内置代理解析为中文文案，不回退英文原名或裸 key", () => {
+    for (const a of BUILTIN_AGENTS) {
+      const d = agentDisplay((k) => i18next.t(k), a);
+      expect(d.name).not.toBe(a.name);
+      expect(d.name).not.toContain("settings.agents");
+      expect(d.description).not.toContain("settings.agents");
+      expect(d.description.length).toBeGreaterThan(0);
+    }
+    expect(agentDisplay((k) => i18next.t(k), BUILTIN_AGENTS[0]).name).toBe(
+      "编程助手",
+    );
+  });
+
+  it("自定义代理原样返回自身字段", () => {
+    expect(agentDisplay((k) => i18next.t(k), custom)).toEqual({
+      name: "Mine",
+      description: "",
+    });
   });
 });
 
