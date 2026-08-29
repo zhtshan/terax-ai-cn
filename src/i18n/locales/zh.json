@@ -164,6 +164,28 @@
       "editSnippet": "编辑片段",
       "noSnippets": "暂无代码片段。创建一个后在 AI 输入框中使用 <1>#handle</1> 插入。",
       "builtin": "内置",
+      "builtins": {
+        "coder": {
+          "name": "编程助手",
+          "description": "通用编程助手，可编写、修改和运行代码。"
+        },
+        "architect": {
+          "name": "架构师",
+          "description": "负责方案设计与权衡，先规划再动手。"
+        },
+        "reviewer": {
+          "name": "代码审查",
+          "description": "审查变更的正确性、性能与安全性。"
+        },
+        "security": {
+          "name": "安全审计",
+          "description": "对变更做威胁建模并指出安全漏洞。"
+        },
+        "designer": {
+          "name": "设计师",
+          "description": "专注 UI/UX 的评审与打磨。"
+        }
+      },
       "useAgent": "使用代理",
       "icon": "图标",
       "name": "名称",

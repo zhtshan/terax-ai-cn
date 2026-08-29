@@ -13,6 +13,7 @@ import { AGENT_ICONS } from "@/modules/ai/components/AgentSwitcher";
 import {
   type Agent,
   type AgentIconId,
+  agentDisplay,
   BUILTIN_AGENTS,
   TERMINAL_BUILTINS,
   TERMINAL_BUILTIN_LABELS,
@@ -257,6 +258,7 @@ function AgentCard({
   onDelete: (() => void) | null;
 }) {
   const { t } = useTranslation();
+  const display = agentDisplay(t, agent);
   const Icon = AGENT_ICONS[agent.icon] ?? SparklesIcon;
   return (
     <div
@@ -273,7 +275,7 @@ function AgentCard({
         </div>
         <div className="flex min-w-0 flex-1 flex-col">
           <span className="flex items-center gap-1.5 text-[12.5px] font-medium">
-            {agent.name}
+            {display.name}
             {agent.builtIn ? (
               <span className="rounded bg-muted/50 px-1 py-0.5 text-[9px] tracking-wide text-muted-foreground uppercase">
                 {t("settings.agents.builtin")}
@@ -281,7 +283,7 @@ function AgentCard({
             ) : null}
           </span>
           <span className="line-clamp-2 text-[10.5px] leading-relaxed text-muted-foreground">
-            {agent.description}
+            {display.description}
           </span>
         </div>
       </div>

@@ -21,6 +21,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { AgentIconId } from "../lib/agents";
+import { agentDisplay } from "../lib/agents";
 import { useAgentsStore } from "../store/agentsStore";
 import { useTranslation } from "react-i18next";
 
@@ -50,6 +51,7 @@ export function AgentSwitcher({
   void customAgents; // keeps the store subscription alive
 
   const active = list.find((a) => a.id === activeId) ?? list[0];
+  const activeDisplay = agentDisplay(t, active);
   const builtIn = list.filter((a) => a.builtIn);
   const custom = list.filter((a) => !a.builtIn);
   const ActiveIcon = ICONS[active.icon] ?? SparklesIcon;
@@ -67,10 +69,10 @@ export function AgentSwitcher({
               ? "flex h-6 items-center gap-1 rounded-md border border-border/60 bg-card px-1.5 text-[10.5px] text-muted-foreground transition-colors hover:border-border hover:bg-accent hover:text-foreground"
               : "text-xs mr-1",
           )}
-          title={t("ai.agentSwitcher.agentLabel", { name: active.name })}
+          title={t("ai.agentSwitcher.agentLabel", { name: activeDisplay.name })}
         >
           <HugeiconsIcon icon={ActiveIcon} size={11} strokeWidth={1.75} />
-          <span className="max-w-[7rem] truncate">{active.name}</span>
+          <span className="max-w-[7rem] truncate">{activeDisplay.name}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}
             size={10}
@@ -85,6 +87,7 @@ export function AgentSwitcher({
         </div>
         {builtIn.map((a) => {
           const Icon = ICONS[a.icon] ?? SparklesIcon;
+          const display = agentDisplay(t, a);
           return (
             <DropdownMenuItem
               key={a.id}
@@ -106,9 +109,9 @@ export function AgentSwitcher({
                 )}
               />
               <span className="flex min-w-0 flex-1 flex-col">
-                <span>{a.name}</span>
+                <span>{display.name}</span>
                 <span className="line-clamp-1 text-[10.5px] text-muted-foreground">
-                  {a.description}
+                  {display.description}
                 </span>
               </span>
               {a.id === activeId ? (

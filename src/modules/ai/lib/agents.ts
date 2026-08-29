@@ -107,6 +107,15 @@ export const BUILTIN_AGENTS: readonly Agent[] = [
   },
 ] as const;
 
+export function agentDisplay(
+  t: (key: string) => string,
+  a: Agent,
+): { name: string; description: string } {
+  if (!a.builtIn) return { name: a.name, description: a.description };
+  const base = `settings.agents.builtins.${a.id.replace("builtin:", "")}`;
+  return { name: t(`${base}.name`), description: t(`${base}.description`) };
+}
+
 const STORE_PATH = "terax-ai-agents.json";
 const KEY_CUSTOM = "customAgents";
 const KEY_ACTIVE = "activeAgentId";
