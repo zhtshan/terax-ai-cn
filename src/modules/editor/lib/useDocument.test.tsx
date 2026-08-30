@@ -278,4 +278,26 @@ describe("useDocument 外部变更检测", () => {
     warn.mockRestore();
     expect(h.result.current.doc).toMatchObject({ status: "ready" });
   });
+
+  it("外部标记已置位时重复检测不重复上抛", async () => {
+    mockDisk(text("A"));
+    const onExternal = vi.fn();
+    const h = setup(onExternal);
+    await untilReady(h);
+    mockDisk(text("B", 200));
+    act(() => {
+      h.result.current.onChange("local edit");
+    });
+    await act(async () => {
+      h.result.current.reload();
+    });
+    await waitFor(() => expect(onExternal).toHaveBeenCalledWith(true));
+    mockDisk(text("C", 300));
+    await act(async () => {
+      h.result.current.reload();
+    });
+    await act(async () => {});
+    expect(onExternal).toHaveBeenCalledTimes(1);
+    expect(onExternal).toHaveBeenLastCalledWith(true);
+  });
 });
