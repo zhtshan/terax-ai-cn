@@ -50,7 +50,8 @@ Auto-executes (no approval) — subagents are read-only by design.`,
             durationMs: r.durationMs,
           };
         } catch (e) {
-          if (signal?.aborted) return { type, aborted: true };
+          if (e instanceof Error && e.name === "AbortError")
+            return { type, aborted: true };
           return { error: String(e), type };
         }
       },
