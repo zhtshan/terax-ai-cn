@@ -606,6 +606,7 @@ function BashRunOutput({ data }: { data: Record<string, unknown> }) {
   const cwdAfter = typeof data.cwd_after === "string" ? data.cwd_after : null;
   const truncated = Boolean(data.truncated);
   const timedOut = Boolean(data.timed_out);
+  const interrupted = Boolean(data.interrupted);
 
   const hasStdout = stdout.length > 0;
   const hasStderr = stderr.length > 0;
@@ -660,6 +661,11 @@ function BashRunOutput({ data }: { data: Record<string, unknown> }) {
         {timedOut ? (
           <span className="rounded bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:text-amber-400">
             {t("ai.tools.timedOut")}
+          </span>
+        ) : null}
+        {interrupted ? (
+          <span className="rounded bg-amber-500/15 px-1.5 py-0.5 font-mono text-[10px] text-amber-700 dark:text-amber-400">
+            {t("ai.tools.interrupted")}
           </span>
         ) : null}
         {truncated ? (

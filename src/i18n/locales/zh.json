@@ -463,7 +463,8 @@
       "stdout": "标准输出",
       "stderr": "标准错误",
       "exitCode": "退出码 {{code}}",
-      "timedOut": "超时"
+      "timedOut": "超时",
+      "interrupted": "已中断"
     },
     "agentSwitcher": {
       "agentLabel": "代理：{{name}}",

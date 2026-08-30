@@ -463,7 +463,8 @@
       "stdout": "stdout",
       "stderr": "stderr",
       "exitCode": "exit {{code}}",
-      "timedOut": "timed out"
+      "timedOut": "timed out",
+      "interrupted": "interrupted"
     },
     "agentSwitcher": {
       "agentLabel": "Agent: {{name}}",

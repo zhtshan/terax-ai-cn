@@ -62,3 +62,51 @@ describe("Tool glob output", () => {
     expect(screen.getByText(truncated)).toBeTruthy();
   });
 });
+
+describe("Tool bash_run output", () => {
+  const interrupted = i18next.t("ai.tools.interrupted");
+
+  it("marks interrupted runs", () => {
+    render(
+      <Tool
+        toolName="bash_run"
+        state="output-available"
+        defaultOpen
+        input={{ command: "sleep 30" }}
+        output={{
+          command: "sleep 30",
+          stdout: "partial",
+          stderr: "",
+          exit_code: null,
+          timed_out: false,
+          truncated: false,
+          interrupted: true,
+          cwd_after: null,
+        }}
+      />,
+    );
+    expect(screen.getByText(interrupted)).toBeTruthy();
+  });
+
+  it("does not mark normal runs as interrupted", () => {
+    render(
+      <Tool
+        toolName="bash_run"
+        state="output-available"
+        defaultOpen
+        input={{ command: "echo hi" }}
+        output={{
+          command: "echo hi",
+          stdout: "hi",
+          stderr: "",
+          exit_code: 0,
+          timed_out: false,
+          truncated: false,
+          interrupted: false,
+          cwd_after: null,
+        }}
+      />,
+    );
+    expect(screen.queryByText(interrupted)).toBeFalsy();
+  });
+});
