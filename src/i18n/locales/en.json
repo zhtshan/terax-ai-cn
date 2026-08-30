@@ -751,7 +751,10 @@
     "mode": "Mode: {{name}}",
     "fewerLanguages": "↑ Fewer languages",
     "allLanguages": "↓ All languages",
-    "renameTab": "Rename tab"
+    "renameTab": "Rename tab",
+    "externalChange": "Changed on disk",
+    "externalReload": "Reload (discard local changes)",
+    "externalKeep": "Keep my version"
   },
   "explorer": {
     "noCurrentDir": "No current directory",
@@ -878,7 +881,15 @@
       "unavailable": "Diff preview is not available for this file.",
       "compareToWorking": "vs current file",
       "jumpToDiff": "Jump to a diff position"
-    }
+    },
+    "fileChangedOnDisk": "File changed on disk",
+    "fileChangedOnDiskDesc": "{{name}} was modified by another program while you had unsaved changes. Overwrite to keep your version.",
+    "overwrite": "Overwrite",
+    "lspFormatFailed": "Language server format failed",
+    "formatSkipped": "Format on save skipped",
+    "formatSkippedNoFormatterDesc": "The active language server has no formatter. Pick an external one in Settings (Ruff for Python, Prettier, rustfmt, ...).",
+    "formatSkippedNoLspDesc": "No active language server for this file. Enable one in the statusbar, or pick an external formatter in Settings.",
+    "saveToPreview": "Save to preview"
   },
   "gitHistory": {
     "loadingCommits": "Loading commits…",

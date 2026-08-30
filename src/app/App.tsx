@@ -1193,6 +1193,19 @@ export default function App() {
     [updateTab],
   );
 
+  const handleEditorExternalChange = useCallback(
+    (id: number, changed: boolean) => updateTab(id, { externalChange: changed }),
+    [updateTab],
+  );
+
+  const handleExternalReload = useCallback((id: number) => {
+    editorRefs.current.get(id)?.forceReload();
+  }, []);
+
+  const handleExternalKeep = useCallback((id: number) => {
+    editorRefs.current.get(id)?.acknowledgeExternalChange();
+  }, []);
+
   const handleRenameTab = useCallback(
     (id: number, title: string) => updateTab(id, { customTitle: title.trim() }),
     [updateTab],
@@ -1418,6 +1431,8 @@ export default function App() {
               searchTarget={searchTarget}
               searchRef={searchInlineRef}
               onOverrideLanguage={setOverrideLanguage}
+              onExternalReload={handleExternalReload}
+              onExternalKeep={handleExternalKeep}
             />
           )}
 
@@ -1517,6 +1532,7 @@ export default function App() {
                       onClosePane={handlePaneCloseByLeaf}
                       registerEditorHandle={registerEditorHandle}
                       onEditorDirtyChange={handleEditorDirty}
+                      onEditorExternalChange={handleEditorExternalChange}
                       onEditorCloseTab={disposeTab}
                       registerPreviewHandle={registerPreviewHandle}
                       onPreviewUrlChange={handlePreviewUrl}

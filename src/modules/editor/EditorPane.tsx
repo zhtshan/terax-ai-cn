@@ -34,6 +34,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   inlineCompletion,
@@ -82,8 +83,13 @@ export type EditorPaneHandle = {
   focus: () => void;
   getSelection: () => string | null;
   getPath: () => string;
-  /** Re-read the file from disk. Skips silently if the buffer is dirty. */
+  /** Re-read the file from disk. Returns false when skipped for a dirty
+   * buffer, which then flags the tab when the disk copy diverged. */
   reload: () => boolean;
+  /** Discard the local buffer and adopt the on-disk version. */
+  forceReload: () => void;
+  /** Hook-side clear of the external-change flag (keeps the local buffer). */
+  acknowledgeExternalChange: () => void;
   /** Move the cursor to a 1-based line and center it, once content is ready. */
   gotoLine: (line: number) => void;
   /** Apply CodeMirror's undo/redo commands. */
@@ -101,6 +107,7 @@ type Props = {
   path: string;
   overrideLanguage?: string | null;
   onDirtyChange?: (dirty: boolean) => void;
+  onExternalChange?: (changed: boolean) => void;
   onSaved?: () => void;
   onClose?: () => void;
   onOutlineChange?: (items: OutlineItem[] | null) => void;
@@ -129,6 +136,7 @@ export const EditorPane = memo(
       path,
       overrideLanguage,
       onDirtyChange,
+      onExternalChange,
       onSaved,
       onClose,
       onOutlineChange,
@@ -137,13 +145,28 @@ export const EditorPane = memo(
       onActiveHeadingChange,
     } = props;
 
-    const { doc, onChange, save, reload, adoptDiskText, openAnyway } =
-      useDocument({
-        path,
-        onDirtyChange,
-      });
+    const { t } = useTranslation();
+
+    const {
+      doc,
+      onChange,
+      save,
+      reload,
+      discardAndReload,
+      acknowledgeExternalChange,
+      adoptDiskText,
+      openAnyway,
+    } = useDocument({
+      path,
+      onDirtyChange,
+      onExternalChange,
+    });
     const reloadRef = useRef(reload);
     reloadRef.current = reload;
+    const discardReloadRef = useRef(discardAndReload);
+    discardReloadRef.current = discardAndReload;
+    const ackRef = useRef(acknowledgeExternalChange);
+    ackRef.current = acknowledgeExternalChange;
     const adoptDiskTextRef = useRef(adoptDiskText);
     adoptDiskTextRef.current = adoptDiskText;
     const cmRef = useRef<ReactCodeMirrorRef>(null);
@@ -300,22 +323,20 @@ export const EditorPane = memo(
           try {
             res = await lspFormatDocument(view);
           } catch (e) {
-            toast.error("Language server format failed", {
+            toast.error(t("editor.lspFormatFailed"), {
               description: String(e),
             });
           }
           if (res === "unsupported" && !warnedNoFormatRef.current) {
             warnedNoFormatRef.current = true;
-            toast.warning("Format on save skipped", {
-              description:
-                "The active language server has no formatter. Pick an external one in Settings (Ruff for Python, Prettier, rustfmt, ...).",
+            toast.warning(t("editor.formatSkipped"), {
+              description: t("editor.formatSkippedNoFormatterDesc"),
             });
           }
         } else if (!warnedNoLspRef.current) {
           warnedNoLspRef.current = true;
-          toast.warning("Format on save skipped", {
-            description:
-              "No active language server for this file. Enable one in the statusbar, or pick an external formatter in Settings.",
+          toast.warning(t("editor.formatSkipped"), {
+            description: t("editor.formatSkippedNoLspDesc"),
           });
         }
       }
@@ -347,7 +368,7 @@ export const EditorPane = memo(
         }
       }
       onSavedRef.current?.();
-    }, [refreshCodeOutline]);
+    }, [refreshCodeOutline, t]);
     const performSaveRef = useRef(performSave);
     performSaveRef.current = performSave;
 
@@ -623,6 +644,8 @@ export const EditorPane = memo(
         },
         getPath: () => path,
         reload: () => reloadRef.current(),
+        forceReload: () => discardReloadRef.current(),
+        acknowledgeExternalChange: () => ackRef.current(),
         gotoLine: (line: number) => {
           pendingLineRef.current = line;
           applyPendingGoto();

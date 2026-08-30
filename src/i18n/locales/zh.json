@@ -746,7 +746,10 @@
     "mode": "模式:{{name}}",
     "fewerLanguages": "↑ 收起语言",
     "allLanguages": "↓ 全部语言",
-    "renameTab": "重命名标签"
+    "renameTab": "重命名标签",
+    "externalChange": "磁盘已修改",
+    "externalReload": "重新加载（放弃本地修改）",
+    "externalKeep": "保留我的版本"
   },
   "explorer": {
     "noCurrentDir": "没有当前目录",
@@ -873,7 +876,15 @@
       "unavailable": "该文件无法预览差异。",
       "compareToWorking": "对比当前文件",
       "jumpToDiff": "跳转到差异位置"
-    }
+    },
+    "fileChangedOnDisk": "磁盘上的文件已修改",
+    "fileChangedOnDiskDesc": "{{name}} 在你有未保存的修改时被其他程序修改。覆盖以保留你的版本。",
+    "overwrite": "覆盖",
+    "lspFormatFailed": "语言服务器格式化失败",
+    "formatSkipped": "保存时已跳过格式化",
+    "formatSkippedNoFormatterDesc": "当前语言服务器没有格式化器。请在设置中选择外部格式化器（Python 用 Ruff、Prettier、rustfmt 等）。",
+    "formatSkippedNoLspDesc": "此文件没有活动的语言服务器。请在状态栏启用一个，或在设置中选择外部格式化器。",
+    "saveToPreview": "保存后可预览"
   },
   "gitHistory": {
     "loadingCommits": "加载提交中…",
