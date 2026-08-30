@@ -634,6 +634,7 @@
       "aiAskSelection": "Ask AI about selection"
     },
     "disabled": {
+      "blocksTab": "Blocks tab",
       "noTerminalTab": "No terminal tab",
       "paneLimit": "Pane limit",
       "lastTab": "Last tab",

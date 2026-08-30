@@ -629,6 +629,7 @@
       "aiAskSelection": "向 AI 询问选区"
     },
     "disabled": {
+      "blocksTab": "Blocks 标签页",
       "noTerminalTab": "没有终端标签页",
       "paneLimit": "分屏已达上限",
       "lastTab": "最后一个标签页",
