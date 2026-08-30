@@ -16,6 +16,7 @@ type Args = {
   modelId: string;
   toolContext: ToolContext;
   lmstudioBaseURL?: string;
+  abortSignal?: AbortSignal;
   onStep?: (label: string) => void;
 };
 
@@ -32,6 +33,7 @@ export async function runSubagent({
   modelId,
   toolContext,
   lmstudioBaseURL,
+  abortSignal,
   onStep,
 }: Args): Promise<RunResult> {
   const def = SUBAGENTS[type];
@@ -60,6 +62,7 @@ export async function runSubagent({
     prompt,
     tools: tools as Parameters<typeof generateText>[0]["tools"],
     stopWhen: stepCountIs(SUBAGENT_MAX_STEPS),
+    abortSignal,
     onStepFinish: (step) => {
       if (!onStep) return;
       const last = step.toolCalls?.[step.toolCalls.length - 1];
