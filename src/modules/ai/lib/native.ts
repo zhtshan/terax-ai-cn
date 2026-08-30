@@ -223,6 +223,7 @@ export const native = {
       exit_code: number | null;
       timed_out: boolean;
       truncated: boolean;
+      interrupted: boolean;
       cwd_after: string;
     }>("shell_session_run", {
       id,
@@ -233,6 +234,8 @@ export const native = {
     }),
   shellSessionClose: (id: number) =>
     invoke<void>("shell_session_close", { id }),
+  shellSessionInterrupt: (id: number) =>
+    invoke<boolean>("shell_session_interrupt", { id }),
   shellBgSpawn: (command: string, cwd?: string | null) =>
     invoke<number>("shell_bg_spawn", {
       command,

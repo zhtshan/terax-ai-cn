@@ -37,29 +37,40 @@ export function buildShellTools(ctx: ToolContext) {
         timeout_secs: z.number().int().min(1).max(300).optional(),
       }),
       needsApproval: true,
-      execute: async ({ command, timeout_secs }) => {
+      execute: async ({ command, timeout_secs }, options) => {
         const safety = checkShellCommand(command);
         if (!safety.ok) return { error: safety.reason };
         const sid = ctx.getSessionId();
         if (!sid) return { error: "no active chat session" };
+        const signal = options?.abortSignal;
+        if (signal?.aborted) return { command, interrupted: true };
         try {
           const cwd = ctx.getCwd();
           const shellId = await getSessionShell(workspaceSessionKey(sid), cwd);
-          const r = await native.shellSessionRun(
-            shellId,
-            command,
-            cwd,
-            timeout_secs,
-          );
-          return {
-            command,
-            stdout: r.stdout,
-            stderr: r.stderr,
-            exit_code: r.exit_code,
-            timed_out: r.timed_out,
-            truncated: r.truncated,
-            cwd_after: r.cwd_after,
+          const onAbort = () => {
+            void native.shellSessionInterrupt(shellId).catch(() => {});
           };
+          signal?.addEventListener("abort", onAbort, { once: true });
+          try {
+            const r = await native.shellSessionRun(
+              shellId,
+              command,
+              cwd,
+              timeout_secs,
+            );
+            return {
+              command,
+              stdout: r.stdout,
+              stderr: r.stderr,
+              exit_code: r.exit_code,
+              timed_out: r.timed_out,
+              truncated: r.truncated,
+              interrupted: r.interrupted,
+              cwd_after: r.cwd_after,
+            };
+          } finally {
+            signal?.removeEventListener("abort", onAbort);
+          }
         } catch (e) {
           return { error: String(e) };
         }
