@@ -15,8 +15,8 @@
 |----|------|------|------|------|
 | CR-01 | `src/modules/ai/store/chatRuntime.ts:138` | 自定义端点模型下「继续」按钮静默失效 | 双验 | 已修复 c2901fe |
 | CR-02 | `src/components/ai-elements/tool.tsx:508-514` | glob 工具卡片永远显示「无匹配」 | 双验 | 已修复 f7406b9 |
-| CR-03 | `src/modules/ai/lib/proxyFetch.ts:83-95` + `src-tauri/src/modules/net.rs:433-437` | 停止生成不取消上游 HTTP 请求 | 双验 | 已修复 0a0552b（Rust request_id 取消通道）+ ec382b4（TS abort 接入 ai_http_cancel），2026-08-30 |
-| CR-04 | `src/modules/ai/tools/shell.ts:40,77` 等 | bash_run / run_subagent 无中止通道 | 双验 | |
+| CR-03 | `src/modules/ai/lib/proxyFetch.ts:83-95` + `src-tauri/src/modules/net.rs:433-437` | 停止生成不取消上游 HTTP 请求 | 双验 | 已修复 0a0552b（Rust request_id 取消通道）+ 0ffe564（注释标点修正）+ ec382b4（TS abort 接入 ai_http_cancel），2026-08-30 |
+| CR-04 | `src/modules/ai/tools/shell.ts:40,77` 等 | bash_run / run_subagent 无中止通道 | 双验 | 已修复 73e9196（Rust 中断命令与 interrupted 标记）+ e853605（测试修正）+ 1ef7a64（bash_run 接入 abortSignal）+ b41a1aa（run_subagent 透传停止信号），2026-08-30 |
 
 ### CR-01 Continue 按钮对自定义端点完全失效
 
@@ -38,10 +38,14 @@
 JS 侧 abort 只 reject/error 本地流，但持有 Tauri `Channel` 的闭包仍存活，Rust 侧 `on_event.send()` 持续成功，net.rs 的「channel dropped 即停流」分支永不触发。后果：点 Stop 后服务端继续生成、继续计费，直到响应自然结束。
 修法：加显式 cancel 命令，或让 Rust 任务可被取消（如传 token、select on 关闭信号）。
 
+修复记录（2026-08-30，0a0552b/0ffe564/ec382b4）：`ai_http_stream` 增加 `request_id`，Rust 侧 `AiStreamCancelState` 注册 `watch` 取消令牌（Drop guard 保证摘除），新增 `ai_http_cancel` 命令；`send()` 与 chunk 循环 `tokio::select!` 取消分支，取消即 drop reqwest future 撕断连接。TS 侧 proxyFetch 每请求生成 UUID 并在 abort / ReadableStream cancel 时 fire-and-forget 取消。新增 `proxyFetch.test.ts` 与 net.rs 注册表单测。裁决记录：入口 `signal.aborted` 预检已移除（与 abort 即取消的语义互斥，测试锁定新契约）；预中止窄窗口 cancel 先于注册落空属已知边界（生产 signal 每次 send 新建，窗口不可达），Rust tombstone 列为观察项。
+
 ### CR-04 已批准命令与子代理无中止通道
 
 `bash_run` / `bash_background` 的 execute 不接收 abortSignal，Rust 侧 `shell_session_run` 无取消命令（`shellSessionClose` 全仓库无调用者）；`runSubagent.ts:57` 的 `generateText` 同样不接 signal。点 Stop 后 UI 回 idle，但命令继续跑满 timeout（上限 300s）、子代理继续烧完 12 步 token，且子代理 `onStep`（`tools/subagent.ts:41`）持续 patch 全局 `agentMeta`，空闲会话里显示过期步骤。
 修法：与 CR-03 同属「停止链路」专项，一并设计取消通道。
+
+修复记录（2026-08-30，73e9196/e853605/1ef7a64/b41a1aa）：`ShellSession` 增加 `active` 注册表（`SharedChild` + interrupted 标志），`run_blocking_inner` spawn 后注册、Drop guard 摘除；新增 `shell_session_interrupt` 命令杀全部活动子进程，`SessionRunOutput.interrupted` 回传。TS 侧 `bash_run` 接 `options.abortSignal` 触发 interrupt（预中止不派生 shell），`run_subagent` 透传 signal 至 `generateText`，abort 返回 `{ type, aborted: true }`。`bash_background` 按 spec 保留不杀。已知边界：interrupt 只杀直接子进程，孙进程持管道致该次 run 延至孙退出（与既有 timeout 路径同类，不扩大）。新增 shell_session_interrupt 集成测试与 shell/subagent/runSubagent 单测。
 
 ---
 
@@ -154,7 +158,7 @@ persistMessages 只挂在绑定 activeSessionId 的 Bridge 上。切走后后台
 ## 七、修复优先级建议
 
 1. 立即修（功能损坏，几行级）：CR-01、CR-02。已全部完成（c2901fe / f7406b9，2026-08-30，全量 793 用例绿）。
-2. 停止链路专项：CR-03 + CR-04（同根因，需跨 TS/Rust 设计取消通道）。
+2. 停止链路专项：CR-03 + CR-04（同根因，需跨 TS/Rust 设计取消通道）。已全部完成（0a0552b / 0ffe564 / ec382b4 / 73e9196 / e853605 / 1ef7a64 / b41a1aa，2026-08-30，全量验收门绿：lint 零错误、805 vitest + 311 nextest 用例全过）。
 3. 数据正确性：CR-05 + CR-06（plan 一组）、CR-07、CR-08、CR-09、CR-10。
 4. P2/P3 按顺手顺带清。
 
