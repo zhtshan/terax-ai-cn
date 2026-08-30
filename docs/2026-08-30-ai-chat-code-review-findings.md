@@ -38,7 +38,7 @@
 JS 侧 abort 只 reject/error 本地流，但持有 Tauri `Channel` 的闭包仍存活，Rust 侧 `on_event.send()` 持续成功，net.rs 的「channel dropped 即停流」分支永不触发。后果：点 Stop 后服务端继续生成、继续计费，直到响应自然结束。
 修法：加显式 cancel 命令，或让 Rust 任务可被取消（如传 token、select on 关闭信号）。
 
-修复记录（2026-08-30，0a0552b/0ffe564/ec382b4）：`ai_http_stream` 增加 `request_id`，Rust 侧 `AiStreamCancelState` 注册 `watch` 取消令牌（Drop guard 保证摘除），新增 `ai_http_cancel` 命令；`send()` 与 chunk 循环 `tokio::select!` 取消分支，取消即 drop reqwest future 撕断连接。TS 侧 proxyFetch 每请求生成 UUID 并在 abort / ReadableStream cancel 时 fire-and-forget 取消。新增 `proxyFetch.test.ts` 与 net.rs 注册表单测。裁决记录：入口 `signal.aborted` 预检已移除（与 abort 即取消的语义互斥，测试锁定新契约）；预中止窄窗口 cancel 先于注册落空属已知边界（生产 signal 每次 send 新建，窗口不可达），Rust tombstone 列为观察项。
+修复记录（2026-08-30，0a0552b/0ffe564/ec382b4）：`ai_http_stream` 增加 `request_id`，Rust 侧 `AiStreamCancelState` 注册 `watch` 取消令牌（Drop guard 保证摘除），新增 `ai_http_cancel` 命令；`send()` 与 chunk 循环 `tokio::select!` 取消分支，取消即 drop reqwest future 撕断连接。TS 侧 proxyFetch 每请求生成 UUID 并在 abort / ReadableStream cancel 时 fire-and-forget 取消。新增 `proxyFetch.test.ts` 与 net.rs 注册表单测。裁决记录：入口预检移除后，executor 内以 `cancelled` 短路，预中止请求不再发起；Rust 侧取消注册前置到函数入口，DNS/验证阶段即可响应取消。
 
 ### CR-04 已批准命令与子代理无中止通道
 
