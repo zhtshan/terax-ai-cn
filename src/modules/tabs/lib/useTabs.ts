@@ -410,22 +410,21 @@ export function useTabs(initial?: Partial<TerminalTab>) {
 
   const removeTabsForSpace = useCallback(
     (spaceId: string, fallbackSpaceId: string, fallbackCwd?: string) => {
-      let toDispose: number[] = [];
-      setTabs((curr) => {
-        const plan = planSpaceRemoval(
-          curr,
-          activeIdRef.current,
-          spaceId,
-          fallbackSpaceId,
-          fallbackCwd,
-          () => nextIdRef.current++,
-        );
-        if (!plan) return curr;
-        toDispose = plan.disposeLeafIds;
-        setActiveId(plan.activeId);
-        return plan.tabs;
-      });
-      for (const lid of toDispose) disposeSession(lid);
+      // Snapshot-based plan: setTabs updaters run lazily under a pending
+      // update, so side effects (dispose, setActiveId) must not wait on them.
+      const plan = planSpaceRemoval(
+        tabsRef.current,
+        activeIdRef.current,
+        spaceId,
+        fallbackSpaceId,
+        fallbackCwd,
+        () => nextIdRef.current++,
+      );
+      if (!plan) return;
+      tabsRef.current = plan.tabs;
+      setTabs(plan.tabs);
+      setActiveId(plan.activeId);
+      for (const lid of plan.disposeLeafIds) disposeSession(lid);
     },
     [],
   );
@@ -939,19 +938,20 @@ export function useTabs(initial?: Partial<TerminalTab>) {
   );
 
   const closeTab = useCallback((id: number) => {
-    let toDispose: number[] = [];
-    setTabs((curr) => {
-      const fallback = nextActiveInSpace(curr, id);
-      if (fallback === null) return curr;
-      const target = curr.find((t) => t.id === id);
-      if (target?.kind === "terminal") {
-        toDispose = leafIds(target.paneTree);
-      }
-      const next = curr.filter((t) => t.id !== id);
-      setActiveId((active) => (id === active ? fallback : active));
-      return next;
-    });
-    for (const lid of toDispose) disposeSession(lid);
+    // Snapshot-based: updaters run lazily under a pending update, so the
+    // dispose below must be decided now, not inside the updater.
+    const curr = tabsRef.current;
+    const target = curr.find((t) => t.id === id);
+    if (!target) return;
+    const fallback = nextActiveInSpace(curr, id);
+    if (fallback === null) return;
+    const next = curr.filter((t) => t.id !== id);
+    tabsRef.current = next;
+    setTabs(next);
+    setActiveId((active) => (id === active ? fallback : active));
+    if (target.kind === "terminal") {
+      for (const lid of leafIds(target.paneTree)) disposeSession(lid);
+    }
   }, []);
 
   const updateTab = useCallback((id: number, patch: TabPatch) => {
@@ -1109,66 +1109,35 @@ export function useTabs(initial?: Partial<TerminalTab>) {
   );
 
   const closePaneByLeaf = useCallback((leafId: number): void => {
-    let didRemove = false;
-    setTabs((curr) => {
-      const tab = curr.find(
-        (t) => t.kind === "terminal" && hasLeaf(t.paneTree, leafId),
-      );
-      if (tab?.kind !== "terminal") return curr;
-      const newTree = removeLeaf(tab.paneTree, leafId);
-      if (newTree === null) {
-        const fallback = nextActiveInSpace(curr, tab.id);
-        if (fallback === null) return curr;
-        const next = curr.filter((x) => x.id !== tab.id);
-        setActiveId((active) => (active === tab.id ? fallback : active));
-        didRemove = true;
-        return next;
-      }
-      const remaining = leafIds(newTree);
-      let newActive = tab.activeLeafId;
-      if (tab.activeLeafId === leafId) {
-        const sib = siblingLeafOf(tab.paneTree, leafId);
-        newActive = sib && remaining.includes(sib) ? sib : remaining[0];
-      }
-      didRemove = true;
-      return curr.map((x) =>
-        x.id === tab.id
-          ? { ...x, paneTree: newTree, activeLeafId: newActive }
-          : x,
-      );
-    });
-    if (didRemove) disposeSession(leafId);
-  }, []);
-
-  const closeActivePane = useCallback((tabId: number): boolean => {
-    let closedTab = false;
-    let removedLeaf: number | null = null;
-    setTabs((curr) => {
-      const t = curr.find((x) => x.id === tabId);
-      if (t?.kind !== "terminal") return curr;
-      const target = t.activeLeafId;
-      const newTree = removeLeaf(t.paneTree, target);
-      if (newTree === null) {
-        const fallback = nextActiveInSpace(curr, tabId);
-        if (fallback === null) return curr;
-        const next = curr.filter((x) => x.id !== tabId);
-        setActiveId((active) => (active === tabId ? fallback : active));
-        closedTab = true;
-        removedLeaf = target;
-        return next;
-      }
-      const remaining = leafIds(newTree);
-      const sib = siblingLeafOf(t.paneTree, target);
-      const newActive = sib && remaining.includes(sib) ? sib : remaining[0];
-      removedLeaf = target;
-      return curr.map((x) =>
-        x.id === tabId
-          ? { ...x, paneTree: newTree, activeLeafId: newActive }
-          : x,
-      );
-    });
-    if (removedLeaf !== null) disposeSession(removedLeaf);
-    return closedTab;
+    // Snapshot-based, same rationale as closeTab.
+    const curr = tabsRef.current;
+    const tab = curr.find(
+      (t) => t.kind === "terminal" && hasLeaf(t.paneTree, leafId),
+    );
+    if (tab?.kind !== "terminal") return;
+    const newTree = removeLeaf(tab.paneTree, leafId);
+    if (newTree === null) {
+      const fallback = nextActiveInSpace(curr, tab.id);
+      if (fallback === null) return;
+      const next = curr.filter((x) => x.id !== tab.id);
+      tabsRef.current = next;
+      setTabs(next);
+      setActiveId((active) => (active === tab.id ? fallback : active));
+      disposeSession(leafId);
+      return;
+    }
+    const remaining = leafIds(newTree);
+    let newActive = tab.activeLeafId;
+    if (tab.activeLeafId === leafId) {
+      const sib = siblingLeafOf(tab.paneTree, leafId);
+      newActive = sib && remaining.includes(sib) ? sib : remaining[0];
+    }
+    const next = curr.map((x) =>
+      x.id === tab.id ? { ...x, paneTree: newTree, activeLeafId: newActive } : x,
+    );
+    tabsRef.current = next;
+    setTabs(next);
+    disposeSession(leafId);
   }, []);
 
   const resetWorkspace = useCallback((cwd?: string) => {
@@ -1236,7 +1205,6 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     focusNextPaneInTab,
     swapActivePaneInDirection,
     splitActivePane,
-    closeActivePane,
     closePaneByLeaf,
     resetWorkspace,
   };
