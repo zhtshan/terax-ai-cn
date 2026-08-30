@@ -944,11 +944,15 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     const target = curr.find((t) => t.id === id);
     if (!target) return;
     const fallback = nextActiveInSpace(curr, id);
-    if (fallback === null) return;
+    // Preview tabs have no OS lifecycle to protect: they close even as the
+    // sole tab of their space (issue #659). Every other kind keeps it.
+    if (fallback === null && target.kind !== "preview") return;
     const next = curr.filter((t) => t.id !== id);
+    if (next.length === 0) return;
+    const nextActive = fallback ?? next[next.length - 1].id;
     tabsRef.current = next;
     setTabs(next);
-    setActiveId((active) => (id === active ? fallback : active));
+    setActiveId((active) => (id === active ? nextActive : active));
     if (target.kind === "terminal") {
       for (const lid of leafIds(target.paneTree)) disposeSession(lid);
     }
