@@ -70,18 +70,20 @@ async function proxyFetchImpl(
   const body = await bodyToBytes(init?.body);
 
   const signal = init?.signal;
-  if (signal?.aborted) {
-    throw makeAbortError();
-  }
 
   return new Promise<Response>((resolve, reject) => {
     let resolved = false;
     let streamController: ReadableStreamDefaultController<Uint8Array> | null =
       null;
     let cancelled = false;
+    const requestId = crypto.randomUUID();
+    const cancelUpstream = () => {
+      void invoke("ai_http_cancel", { requestId }).catch(() => {});
+    };
 
     const onAbort = () => {
       cancelled = true;
+      cancelUpstream();
       if (!resolved) {
         reject(makeAbortError());
       } else if (streamController) {
@@ -93,6 +95,7 @@ async function proxyFetchImpl(
       }
     };
     signal?.addEventListener("abort", onAbort, { once: true });
+    if (signal?.aborted) onAbort();
 
     const channel = new Channel<AiStreamEvent>();
     channel.onmessage = (event) => {
@@ -105,6 +108,7 @@ async function proxyFetchImpl(
             },
             cancel() {
               cancelled = true;
+              cancelUpstream();
             },
           });
           resolved = true;
@@ -141,6 +145,7 @@ async function proxyFetchImpl(
       headers,
       body,
       allowPrivateNetwork,
+      requestId,
       onEvent: channel,
     }).catch((e) => {
       if (resolved) return; // headers already arrived; chunk-side error wins
