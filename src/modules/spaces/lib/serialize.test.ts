@@ -170,7 +170,7 @@ describe("hydrateTabs", () => {
             { kind: "leaf", cwd: "/a" },
             {
               kind: "split",
-              dir: "column",
+              dir: "col",
               children: [
                 { kind: "leaf", cwd: "/b" },
                 { kind: "leaf", cwd: "/c", active: true },
