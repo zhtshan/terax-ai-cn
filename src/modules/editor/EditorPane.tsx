@@ -34,6 +34,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import {
   inlineCompletion,
@@ -136,6 +137,8 @@ export const EditorPane = memo(
       onOutlineLoading,
       onActiveHeadingChange,
     } = props;
+
+    const { t } = useTranslation();
 
     const { doc, onChange, save, reload, adoptDiskText, openAnyway } =
       useDocument({
@@ -300,22 +303,20 @@ export const EditorPane = memo(
           try {
             res = await lspFormatDocument(view);
           } catch (e) {
-            toast.error("Language server format failed", {
+            toast.error(t("editor.lspFormatFailed"), {
               description: String(e),
             });
           }
           if (res === "unsupported" && !warnedNoFormatRef.current) {
             warnedNoFormatRef.current = true;
-            toast.warning("Format on save skipped", {
-              description:
-                "The active language server has no formatter. Pick an external one in Settings (Ruff for Python, Prettier, rustfmt, ...).",
+            toast.warning(t("editor.formatSkipped"), {
+              description: t("editor.formatSkippedNoFormatterDesc"),
             });
           }
         } else if (!warnedNoLspRef.current) {
           warnedNoLspRef.current = true;
-          toast.warning("Format on save skipped", {
-            description:
-              "No active language server for this file. Enable one in the statusbar, or pick an external formatter in Settings.",
+          toast.warning(t("editor.formatSkipped"), {
+            description: t("editor.formatSkippedNoLspDesc"),
           });
         }
       }
@@ -347,7 +348,7 @@ export const EditorPane = memo(
         }
       }
       onSavedRef.current?.();
-    }, [refreshCodeOutline]);
+    }, [refreshCodeOutline, t]);
     const performSaveRef = useRef(performSave);
     performSaveRef.current = performSave;
 

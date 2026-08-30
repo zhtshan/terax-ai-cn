@@ -2,6 +2,7 @@ import { cn, isMarkdownPath } from "@/lib/utils";
 import { MarkdownViewToggle } from "@/modules/markdown";
 import type { EditorTab, Tab } from "@/modules/tabs";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { EditorPane, type EditorPaneHandle } from "./EditorPane";
 import type { OutlineItem, OutlineUnavailableReason } from "./lib/outline";
 
@@ -32,6 +33,8 @@ export function EditorStack({
   onActiveHeadingChange,
   onJumpToHeading,
 }: Props) {
+  const { t } = useTranslation();
+
   const editors = tabs.filter(
     (t): t is EditorTab => t.kind === "editor" && !t.cold,
   );
@@ -102,11 +105,11 @@ export function EditorStack({
   if (editors.length === 0) return null;
   return (
     <div className="relative h-full w-full">
-      {editors.map((t) => {
-        const visible = t.id === activeId;
+      {editors.map((tab) => {
+        const visible = tab.id === activeId;
         return (
           <div
-            key={t.id}
+            key={tab.id}
             className={cn(
               "absolute inset-0",
               !visible && "invisible pointer-events-none",
@@ -114,20 +117,20 @@ export function EditorStack({
             aria-hidden={!visible}
           >
             <div className="relative h-full overflow-hidden rounded-md border border-border/60 bg-background">
-              {isMarkdownPath(t.path) && (
+              {isMarkdownPath(tab.path) && (
                 <MarkdownViewToggle
                   mode="raw"
-                  onChange={(mode) => onSetMarkdownView(t.id, mode)}
-                  renderedDisabled={t.dirty}
-                  renderedHint="Save to preview"
+                  onChange={(mode) => onSetMarkdownView(tab.id, mode)}
+                  renderedDisabled={tab.dirty}
+                  renderedHint={t("editor.saveToPreview")}
                 />
               )}
               <EditorPane
-                ref={getRefCallback(t.id)}
-                path={t.path}
-                overrideLanguage={t.overrideLanguage}
-                onDirtyChange={getDirtyCallback(t.id)}
-                onClose={getCloseCallback(t.id)}
+                ref={getRefCallback(tab.id)}
+                path={tab.path}
+                overrideLanguage={tab.overrideLanguage}
+                onDirtyChange={getDirtyCallback(tab.id)}
+                onClose={getCloseCallback(tab.id)}
                 {...(visible
                   ? {
                       onOutlineChange,
