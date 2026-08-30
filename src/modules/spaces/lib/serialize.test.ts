@@ -156,4 +156,39 @@ describe("hydrateTabs", () => {
       "README.md",
     ]);
   });
+
+  it("collapses oversized pane trees to the active single leaf on restore", () => {
+    // Persisted trees above MAX_PANES_PER_TAB only occur via corrupted or
+    // hand-edited stores; restore trusts the active leaf, not the layout.
+    const serialized: SerializedTab[] = [
+      {
+        kind: "terminal",
+        tree: {
+          kind: "split",
+          dir: "row",
+          children: [
+            { kind: "leaf", cwd: "/a" },
+            {
+              kind: "split",
+              dir: "column",
+              children: [
+                { kind: "leaf", cwd: "/b" },
+                { kind: "leaf", cwd: "/c", active: true },
+                { kind: "leaf", cwd: "/d" },
+              ],
+            },
+            { kind: "leaf", cwd: "/e" },
+            { kind: "leaf", cwd: "/f" },
+          ],
+        },
+      },
+    ];
+    const restored = hydrateTabs(serialized, "s1", counter());
+    expect(restored).toHaveLength(1);
+    const terminal = restored[0] as Extract<Tab, { kind: "terminal" }>;
+    const leaves = leafIdsOf(terminal.paneTree);
+    expect(leaves).toHaveLength(1);
+    expect(leaves).toContain(terminal.activeLeafId);
+    expect(terminal.cwd).toBe("/c");
+  });
 });
