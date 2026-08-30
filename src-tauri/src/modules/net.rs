@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::net::{IpAddr, SocketAddr};
+use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use bytes::Bytes;
@@ -7,7 +8,7 @@ use futures_util::StreamExt;
 use reqwest::header::{HeaderMap, HeaderName, HeaderValue};
 use reqwest::Method;
 use serde::{Deserialize, Serialize};
-use tauri::ipc::Channel;
+use tauri::{ipc::Channel, State};
 
 const HEADER_BLOCKLIST: &[&str] = &[
     "host",
@@ -356,13 +357,43 @@ pub enum AiStreamEvent {
     },
 }
 
+#[derive(Default)]
+pub struct AiStreamCancelState {
+    inner: Arc<Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>>,
+}
+
+struct CancelGuard {
+    inner: Arc<Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>>,
+    id: String,
+}
+
+impl Drop for CancelGuard {
+    fn drop(&mut self) {
+        self.inner.lock().unwrap().remove(&self.id);
+    }
+}
+
+#[tauri::command]
+pub fn ai_http_cancel(
+    state: State<'_, AiStreamCancelState>,
+    request_id: String,
+) -> Result<(), String> {
+    if let Some(tx) = state.inner.lock().unwrap().get(&request_id) {
+        let _ = tx.send(true);
+    }
+    Ok(())
+}
+
+#[allow(clippy::too_many_arguments)]
 #[tauri::command]
 pub async fn ai_http_stream(
+    state: State<'_, AiStreamCancelState>,
     url: String,
     method: String,
     headers: Option<HashMap<String, String>>,
     body: Option<Vec<u8>>,
     allow_private_network: Option<bool>,
+    request_id: String,
     on_event: Channel<AiStreamEvent>,
 ) -> Result<(), String> {
     let allow_private = allow_private_network.unwrap_or(false);
@@ -389,17 +420,31 @@ pub async fn ai_http_stream(
         }
     };
 
+    let (cancel_tx, mut cancel_rx) = tokio::sync::watch::channel(false);
+    state
+        .inner
+        .lock()
+        .unwrap()
+        .insert(request_id.clone(), cancel_tx);
+    let _guard = CancelGuard {
+        inner: Arc::clone(&state.inner),
+        id: request_id,
+    };
+
     let client = build_safe_client(allow_private, &[(host, safe_ips)])?;
 
     let req = build_request(&client, &method, parsed, headers, body)?;
-    let resp = match req.send().await {
-        Ok(r) => r,
-        Err(e) => {
-            let _ = on_event.send(AiStreamEvent::Error {
-                message: e.to_string(),
-            });
-            return Err(e.to_string());
-        }
+    let resp = tokio::select! {
+        r = req.send() => match r {
+            Ok(r) => r,
+            Err(e) => {
+                let _ = on_event.send(AiStreamEvent::Error {
+                    message: e.to_string(),
+                });
+                return Err(e.to_string());
+            }
+        },
+        _ = cancel_rx.wait_for(|c| *c) => return Ok(()),
     };
 
     let status = resp.status().as_u16();
@@ -407,25 +452,29 @@ pub async fn ai_http_stream(
     let _ = on_event.send(AiStreamEvent::Headers { status, headers });
 
     let mut stream = resp.bytes_stream();
-    while let Some(item) = stream.next().await {
-        match item {
-            Ok(chunk) => {
-                let bytes: Bytes = chunk;
-                if on_event
-                    .send(AiStreamEvent::Chunk {
-                        bytes: bytes.to_vec(),
-                    })
-                    .is_err()
-                {
-                    // Channel dropped (frontend aborted) — stop streaming.
-                    return Ok(());
+    loop {
+        tokio::select! {
+            _ = cancel_rx.wait_for(|c| *c) => return Ok(()),
+            item = stream.next() => match item {
+                Some(Ok(chunk)) => {
+                    let bytes: Bytes = chunk;
+                    if on_event
+                        .send(AiStreamEvent::Chunk {
+                            bytes: bytes.to_vec(),
+                        })
+                        .is_err()
+                    {
+                        // Channel dropped (frontend closed) — stop streaming.
+                        return Ok(());
+                    }
                 }
-            }
-            Err(e) => {
-                let _ = on_event.send(AiStreamEvent::Error {
-                    message: e.to_string(),
-                });
-                return Err(e.to_string());
+                Some(Err(e)) => {
+                    let _ = on_event.send(AiStreamEvent::Error {
+                        message: e.to_string(),
+                    });
+                    return Err(e.to_string());
+                }
+                None => break,
             }
         }
     }
@@ -544,5 +593,25 @@ mod tests {
                 "expected {hop} to be rejected"
             );
         }
+    }
+
+    #[test]
+    fn cancel_registry_insert_send_and_guard_drop() {
+        let state = AiStreamCancelState::default();
+        let (tx, mut rx) = tokio::sync::watch::channel(false);
+        state.inner.lock().unwrap().insert("r1".to_string(), tx);
+        assert!(state.inner.lock().unwrap().contains_key("r1"));
+
+        let guard = CancelGuard {
+            inner: Arc::clone(&state.inner),
+            id: "r1".to_string(),
+        };
+        if let Some(tx) = state.inner.lock().unwrap().get("r1") {
+            let _ = tx.send(true);
+        }
+        assert!(*rx.borrow_and_update(), "cancel flag visible to receiver");
+
+        drop(guard);
+        assert!(!state.inner.lock().unwrap().contains_key("r1"));
     }
 }
