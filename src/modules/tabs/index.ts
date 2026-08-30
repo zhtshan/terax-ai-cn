@@ -4,7 +4,7 @@ export {
   useTabSwitcher,
   type TabSwitcherState,
 } from "./lib/useTabSwitcher";
-export { labelFor } from "./lib/tabLabel";
+export { labelFor, subtitleFor } from "./lib/tabLabel";
 export {
   MAX_PANES_PER_TAB,
   DEFAULT_SPACE_ID,

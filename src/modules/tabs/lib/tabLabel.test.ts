@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { labelFor } from "./tabLabel";
-import type { TerminalTab } from "./useTabs";
+import { labelFor, subtitleFor } from "./tabLabel";
+import type { EditorTab, MarkdownTab, PreviewTab, TerminalTab } from "./useTabs";
 
 function terminalTab(over: Partial<TerminalTab> = {}): TerminalTab {
   return {
@@ -39,5 +39,58 @@ describe("labelFor (terminal tabs)", () => {
 
   it("handles Windows-style cwd separators", () => {
     expect(labelFor(terminalTab({ cwd: "C:\\Users\\me\\proj" }))).toBe("proj");
+  });
+});
+
+describe("subtitleFor", () => {
+  it("returns the last two cwd segments for terminal tabs", () => {
+    expect(
+      subtitleFor(terminalTab({ cwd: "/Users/me/projects/terax-ai" })),
+    ).toBe("projects/terax-ai");
+  });
+
+  it("returns null for terminal tabs without cwd", () => {
+    expect(subtitleFor(terminalTab())).toBeNull();
+  });
+
+  it("handles Windows-style cwd separators", () => {
+    expect(subtitleFor(terminalTab({ cwd: "C:\\Users\\me\\proj" }))).toBe(
+      "me/proj",
+    );
+  });
+
+  it("returns the parent directory for editor tabs", () => {
+    const editor: EditorTab = {
+      id: 3,
+      kind: "editor",
+      spaceId: "default",
+      title: "a.ts",
+      path: "/Users/me/proj/src/a.ts",
+      dirty: false,
+      preview: false,
+    };
+    expect(subtitleFor(editor)).toBe("src");
+  });
+
+  it("returns the parent directory for markdown tabs", () => {
+    const markdown: MarkdownTab = {
+      id: 5,
+      kind: "markdown",
+      spaceId: "default",
+      title: "notes.md",
+      path: "/Users/me/proj/docs/notes.md",
+    };
+    expect(subtitleFor(markdown)).toBe("docs");
+  });
+
+  it("returns null for tab kinds without a path", () => {
+    const preview: PreviewTab = {
+      id: 4,
+      kind: "preview",
+      spaceId: "default",
+      title: "localhost",
+      url: "http://localhost:5173",
+    };
+    expect(subtitleFor(preview)).toBeNull();
   });
 });

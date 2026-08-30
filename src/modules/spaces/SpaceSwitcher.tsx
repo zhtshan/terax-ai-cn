@@ -6,7 +6,7 @@ import {
 } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
 import { useShortcutLabel } from "@/modules/shortcuts";
-import { labelFor, type Tab, TabIcon } from "@/modules/tabs";
+import { labelFor, subtitleFor, type Tab, TabIcon } from "@/modules/tabs";
 import {
   ArrowDown01Icon,
   ArrowRight01Icon,
@@ -58,19 +58,6 @@ type DropTarget =
   | { kind: "space"; spaceId: string; edge: Edge }
   | { kind: "tab"; tabId: number; edge: Edge }
   | { kind: "into-space"; spaceId: string };
-
-function subtitleFor(tab: Tab): string | null {
-  if (tab.kind === "terminal") {
-    if (!tab.cwd) return null;
-    const segs = tab.cwd.split(/[\\/]/).filter(Boolean);
-    return segs.slice(-2).join("/") || tab.cwd;
-  }
-  if (tab.kind === "editor" || tab.kind === "markdown") {
-    const segs = tab.path.split(/[\\/]/).filter(Boolean);
-    return segs.slice(-2, -1)[0] ?? null;
-  }
-  return null;
-}
 
 export function SpaceSwitcher({
   open,
