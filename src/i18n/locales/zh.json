@@ -137,6 +137,7 @@
       "removeEndpoint": "移除端点",
       "removeKey": "移除密钥",
       "context": "上下文",
+      "maxOutput": "最大输出",
       "tokens": "tokens",
       "name": "名称",
       "endpointNamePlaceholder": "我的端点",

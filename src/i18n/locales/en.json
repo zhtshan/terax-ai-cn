@@ -137,6 +137,7 @@
       "removeEndpoint": "Remove endpoint",
       "removeKey": "Remove key",
       "context": "Context",
+      "maxOutput": "Max output",
       "tokens": "tokens",
       "name": "Name",
       "endpointNamePlaceholder": "My endpoint",

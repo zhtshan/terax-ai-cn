@@ -7,6 +7,7 @@ import {
   endpointIdFromCompatModel,
   expandCompatModelInfos,
   getModelContextLimit,
+  getModelOutputLimit,
   isCompatModelId,
   isOrphanCompatModel,
   MODEL_PRICING,
@@ -275,6 +276,28 @@ describe("getModelContextLimit", () => {
     ["grok-4.5", 500_000],
   ] as const)("uses the published context limit for %s", (modelId, limit) => {
     expect(getModelContextLimit(modelId)).toBe(limit);
+  });
+});
+
+describe("getModelOutputLimit", () => {
+  it("uses the per-endpoint override when positive", () => {
+    expect(getModelOutputLimit("openai-compatible", 32_000)).toBe(32_000);
+  });
+
+  it("ignores non-positive overrides", () => {
+    expect(getModelOutputLimit("openai-compatible", 0)).toBe(16_384);
+    expect(getModelOutputLimit("openai-compatible", undefined)).toBe(16_384);
+  });
+
+  it("caps providers with known 8K output ceilings at 8192", () => {
+    expect(getModelOutputLimit("anthropic")).toBe(8_192);
+    expect(getModelOutputLimit("deepseek")).toBe(8_192);
+    expect(getModelOutputLimit("google")).toBe(8_192);
+  });
+
+  it("gives openai-family and relay providers 16K", () => {
+    expect(getModelOutputLimit("openai")).toBe(16_384);
+    expect(getModelOutputLimit("openrouter")).toBe(16_384);
   });
 });
 

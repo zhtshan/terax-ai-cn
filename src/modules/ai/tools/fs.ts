@@ -21,7 +21,7 @@ export function buildFsTools(ctx: ToolContext) {
   return {
     read_file: tool({
       description:
-        "Read a UTF-8 text file. Defaults to the first 2000 lines (capped at 25KB). Pass `offset`/`limit` for line-based windowing of large files. Refuses binary, oversized, or sensitive files (.env, keys, credentials). If you call this on the same path twice in a session without edits in between, the second call returns `unchanged: true` instead of re-emitting the content — re-read the prior tool result.",
+        "Read a UTF-8 text file. Defaults to the first 2000 lines (capped at 25KB, cut at a line boundary). Pass `offset`/`limit` for line-based windowing of large files. When the result has `truncated: true`, continue with the exact `offset` given in `next_offset`. Reading past the end returns `eof: true`. Refuses binary, oversized, or sensitive files (.env, keys, credentials). If you call this on the same path twice in a session without edits in between, the second call returns `unchanged: true` instead of re-emitting the content — re-read the prior tool result.",
       inputSchema: z.object({
         path: z
           .string()
@@ -57,50 +57,69 @@ export function buildFsTools(ctx: ToolContext) {
 
           const hash = djb2(r.content);
           const isFullRead = offset === undefined && limit === undefined;
+          const lines = r.content.split("\n");
+
           const prior = ctx.readCache.get(abs);
-          if (isFullRead && prior && prior.size === r.size && prior.hash === hash) {
+          if (
+            isFullRead &&
+            prior &&
+            !prior.truncated &&
+            prior.size === r.size &&
+            prior.hash === hash
+          ) {
             return { path: abs, unchanged: true, size: r.size };
           }
-          ctx.readCache.set(abs, { size: r.size, hash });
 
-          if (isFullRead) {
-            const lines = r.content.split("\n");
-            const sliceEnd = Math.min(lines.length, READ_LINE_CAP);
-            let content = lines.slice(0, sliceEnd).join("\n");
-            let truncated = sliceEnd < lines.length;
-            if (content.length > READ_BYTE_CAP) {
-              content = content.slice(0, READ_BYTE_CAP);
-              truncated = true;
-            }
+          if (offset !== undefined && offset >= lines.length) {
             return {
               path: abs,
-              content,
-              size: r.size,
+              eof: true,
               total_lines: lines.length,
-              ...(truncated
-                ? { truncated: true, hint: "call read_file with offset to continue" }
-                : {}),
+              hint: `no more lines: the file ends at line ${lines.length}.`,
             };
           }
 
-          const lines = r.content.split("\n");
-          const start = offset ?? 0;
-          const requested = limit ?? READ_LINE_CAP;
-          const end = Math.min(lines.length, start + requested);
-          let content = lines.slice(start, end).join("\n");
-          let truncated = end < lines.length;
+          let start = 0;
+          let endLine: number;
+          let content: string;
+          let truncated: boolean;
+          if (isFullRead) {
+            endLine = Math.min(lines.length, READ_LINE_CAP);
+            content = lines.slice(0, endLine).join("\n");
+            truncated = endLine < lines.length;
+          } else {
+            start = offset ?? 0;
+            const requested = limit ?? READ_LINE_CAP;
+            endLine = Math.min(lines.length, start + requested);
+            content = lines.slice(start, endLine).join("\n");
+            truncated = endLine < lines.length;
+          }
+
           if (content.length > READ_BYTE_CAP) {
             content = content.slice(0, READ_BYTE_CAP);
+            // 字节切点可能落在行中间；回退到最后一个完整行，让 offset 分页行号对齐。
+            // 单行超过 cap 时不回退（lastIndexOf === -1），保底仍返回 cap 内容。
+            const lastNewline = content.lastIndexOf("\n");
+            if (lastNewline !== -1) content = content.slice(0, lastNewline);
+            endLine = start + content.split("\n").length;
             truncated = true;
           }
+
+          ctx.readCache.set(abs, { size: r.size, hash, truncated });
+
           return {
             path: abs,
             content,
             size: r.size,
             total_lines: lines.length,
-            start_line: start,
-            end_line: end,
-            ...(truncated ? { truncated: true } : {}),
+            ...(isFullRead ? {} : { start_line: start, end_line: endLine }),
+            ...(truncated
+              ? {
+                  truncated: true,
+                  next_offset: endLine,
+                  hint: `call read_file with offset=${endLine} to continue`,
+                }
+              : {}),
           };
         } catch (e) {
           return { error: String(e), path: abs };

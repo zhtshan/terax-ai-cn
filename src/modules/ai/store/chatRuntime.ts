@@ -71,6 +71,8 @@ function makeChat(sessionId: string): Chat<UIMessage> {
       usePreferencesStore.getState().openaiCompatibleModelId,
     getOpenaiCompatibleContextLimit: () =>
       usePreferencesStore.getState().openaiCompatibleContextLimit,
+    getOpenaiCompatibleMaxOutputTokens: () =>
+      usePreferencesStore.getState().openaiCompatibleMaxOutputTokens,
     getOpenrouterModelId: () =>
       usePreferencesStore.getState().openrouterModelId,
     getCustomEndpoints: () => usePreferencesStore.getState().customEndpoints,

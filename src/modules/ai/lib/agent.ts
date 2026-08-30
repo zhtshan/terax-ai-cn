@@ -11,6 +11,7 @@ import {
   compatWireModel,
   endpointIdFromCompatModel,
   getModelContextLimit,
+  getModelOutputLimit,
   isCompatModelId,
   LMSTUDIO_DEFAULT_BASE_URL,
   MAX_AGENT_STEPS,
@@ -26,6 +27,7 @@ import {
 import { buildTools, type ToolContext } from "../tools/tools";
 import { compactModelMessagesDetailed } from "./compact";
 import type { ProviderKeys, CustomEndpointKeys } from "./keyring";
+import { normalizeToolInputsForHistory } from "./history";
 import { prepareAgentPrompt } from "./prompt";
 import { createProxyFetch } from "./proxyFetch";
 
@@ -359,6 +361,7 @@ export type RunAgentOptions = {
   openaiCompatibleBaseURL?: string;
   openaiCompatibleModelId?: string;
   openaiCompatibleContextLimit?: number;
+  openaiCompatibleMaxOutputTokens?: number;
   openrouterModelId?: string;
   customEndpoints?: readonly CustomEndpoint[];
   customEndpointKeys?: CustomEndpointKeys;
@@ -394,7 +397,14 @@ export async function runAgentStream(opts: RunAgentOptions) {
     opts.projectMemory ?? null,
   );
 
-  const history = await convertToModelMessages(opts.uiMessages);
+  const history = await convertToModelMessages(
+    opts.uiMessages.map((msg) => ({
+      ...msg,
+      parts: normalizeToolInputsForHistory(msg.parts),
+    })),
+    // 未完成（流中断/审批挂起）的 tool call 不回传，避免 result 配对断裂。
+    { ignoreIncompleteToolCalls: true },
+  );
   const keepsReasoning = modelKeepsReasoning(info);
   const prunedHistory = pruneMessages({
     messages: history,
@@ -405,6 +415,10 @@ export async function runAgentStream(opts: RunAgentOptions) {
     ? endpoints.find((e) => e.id === endpointIdFromCompatModel(modelId))
         ?.contextLimit
     : opts.openaiCompatibleContextLimit;
+  const compatMaxOutputOverride = isCompatModelId(modelId)
+    ? endpoints.find((e) => e.id === endpointIdFromCompatModel(modelId))
+        ?.maxOutputTokens
+    : opts.openaiCompatibleMaxOutputTokens;
   const compact = compactModelMessagesDetailed(
     prunedHistory,
     getModelContextLimit(modelId, compatCtxOverride),
@@ -428,6 +442,7 @@ export async function runAgentStream(opts: RunAgentOptions) {
     messages: prompt.messages,
     allowSystemInMessages: false,
     tools: buildTools(opts.toolContext),
+    maxOutputTokens: getModelOutputLimit(provider, compatMaxOutputOverride),
     stopWhen: stepCountIs(MAX_AGENT_STEPS),
     abortSignal: opts.abortSignal,
     onStepFinish: (step) => {

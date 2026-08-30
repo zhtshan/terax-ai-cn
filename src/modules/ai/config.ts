@@ -127,6 +127,9 @@ export type CustomEndpoint = {
   baseURL: string;
   modelId: string;
   contextLimit: number;
+  /** Per-endpoint output cap. Relays with small server-side defaults cut
+   *  long tool-call arguments mid-JSON when this is unset. */
+  maxOutputTokens?: number;
 };
 
 const COMPAT_MODEL_PREFIX = "compat-";
@@ -861,6 +864,34 @@ export function getModelContextLimit(
   if (modelId === "openai-compatible-custom" && compatOverride)
     return compatOverride;
   return MODEL_CONTEXT_LIMITS[modelId] ?? 128_000;
+}
+
+// Without an explicit cap the request carries no max_tokens and the server
+// default (often 4K on relays) truncates long tool-call arguments mid-JSON.
+// Floors are conservative values every model on the provider accepts; larger
+// caps come from per-endpoint configuration.
+const PROVIDER_OUTPUT_FLOOR: Record<ProviderId, number> = {
+  openai: 16_384,
+  anthropic: 8_192,
+  google: 8_192,
+  xai: 8_192,
+  cerebras: 8_192,
+  groq: 8_192,
+  deepseek: 8_192,
+  mistral: 8_192,
+  openrouter: 16_384,
+  "openai-compatible": 16_384,
+  lmstudio: 8_192,
+  mlx: 8_192,
+  ollama: 8_192,
+};
+
+export function getModelOutputLimit(
+  provider: ProviderId,
+  compatOverride?: number,
+): number {
+  if (compatOverride && compatOverride > 0) return compatOverride;
+  return PROVIDER_OUTPUT_FLOOR[provider] ?? 16_384;
 }
 
 export type ModelPricing = {
