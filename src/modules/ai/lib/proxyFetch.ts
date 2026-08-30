@@ -42,7 +42,7 @@ async function bodyToBytes(
   }
   if (body instanceof Blob)
     return Array.from(new Uint8Array(await body.arrayBuffer()));
-  // FormData / URLSearchParams / ReadableStream — uncommon for AI SDK calls.
+  // FormData / URLSearchParams / ReadableStream, uncommon for AI SDK calls.
   const text = await new Response(body as BodyInit).text();
   return Array.from(new TextEncoder().encode(text));
 }
@@ -54,7 +54,7 @@ export function createProxyFetch(
   return async (input, init) => proxyFetchImpl(input, init, allowPrivate);
 }
 
-/** Backwards-compatible default — refuses private networks unless the caller
+/** Backwards-compatible default. Refuses private networks unless the caller
  *  explicitly opts in via {@link createProxyFetch}. */
 export const proxyFetch: typeof fetch = (input, init) =>
   proxyFetchImpl(input, init, false);

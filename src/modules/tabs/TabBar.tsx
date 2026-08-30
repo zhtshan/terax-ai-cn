@@ -527,7 +527,7 @@ export function TabBar({
                             role="button"
                             tabIndex={-1}
                             data-no-drag
-                            aria-label={tr("tabs.externalChange")}
+                            aria-label={tr('tabs.externalChange')}
                             className="inline-flex shrink-0 cursor-pointer items-center rounded-sm p-0.5 -m-0.5 text-amber-500 transition-colors hover:text-amber-400"
                           >
                             <HugeiconsIcon
@@ -550,13 +550,13 @@ export function TabBar({
                             onSelect={() => onExternalReload?.(t.id)}
                             className="flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg cursor-default focus:bg-accent focus:text-accent-foreground"
                           >
-                            {tr("tabs.externalReload")}
+                            {tr('tabs.externalReload')}
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onSelect={() => onExternalKeep?.(t.id)}
                             className="flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg cursor-default focus:bg-accent focus:text-accent-foreground"
                           >
-                            {tr("tabs.externalKeep")}
+                            {tr('tabs.externalKeep')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
