@@ -464,7 +464,7 @@ pub async fn ai_http_stream(
                         })
                         .is_err()
                     {
-                        // Channel dropped (frontend closed) — stop streaming.
+                        // Channel dropped (frontend closed), stop streaming.
                         return Ok(());
                     }
                 }
