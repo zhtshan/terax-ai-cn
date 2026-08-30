@@ -751,7 +751,10 @@
     "mode": "Mode: {{name}}",
     "fewerLanguages": "↑ Fewer languages",
     "allLanguages": "↓ All languages",
-    "renameTab": "Rename tab"
+    "renameTab": "Rename tab",
+    "externalChange": "Changed on disk",
+    "externalReload": "Reload (discard local changes)",
+    "externalKeep": "Keep my version"
   },
   "explorer": {
     "noCurrentDir": "No current directory",

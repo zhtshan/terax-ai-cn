@@ -83,8 +83,13 @@ export type EditorPaneHandle = {
   focus: () => void;
   getSelection: () => string | null;
   getPath: () => string;
-  /** Re-read the file from disk. Skips silently if the buffer is dirty. */
+  /** Re-read the file from disk. Returns false when skipped for a dirty
+   * buffer, which then flags the tab when the disk copy diverged. */
   reload: () => boolean;
+  /** Discard the local buffer and adopt the on-disk version. */
+  forceReload: () => void;
+  /** Hook-side clear of the external-change flag (keeps the local buffer). */
+  acknowledgeExternalChange: () => void;
   /** Move the cursor to a 1-based line and center it, once content is ready. */
   gotoLine: (line: number) => void;
   /** Apply CodeMirror's undo/redo commands. */
@@ -102,6 +107,7 @@ type Props = {
   path: string;
   overrideLanguage?: string | null;
   onDirtyChange?: (dirty: boolean) => void;
+  onExternalChange?: (changed: boolean) => void;
   onSaved?: () => void;
   onClose?: () => void;
   onOutlineChange?: (items: OutlineItem[] | null) => void;
@@ -130,6 +136,7 @@ export const EditorPane = memo(
       path,
       overrideLanguage,
       onDirtyChange,
+      onExternalChange,
       onSaved,
       onClose,
       onOutlineChange,
@@ -140,13 +147,26 @@ export const EditorPane = memo(
 
     const { t } = useTranslation();
 
-    const { doc, onChange, save, reload, adoptDiskText, openAnyway } =
-      useDocument({
-        path,
-        onDirtyChange,
-      });
+    const {
+      doc,
+      onChange,
+      save,
+      reload,
+      discardAndReload,
+      acknowledgeExternalChange,
+      adoptDiskText,
+      openAnyway,
+    } = useDocument({
+      path,
+      onDirtyChange,
+      onExternalChange,
+    });
     const reloadRef = useRef(reload);
     reloadRef.current = reload;
+    const discardReloadRef = useRef(discardAndReload);
+    discardReloadRef.current = discardAndReload;
+    const ackRef = useRef(acknowledgeExternalChange);
+    ackRef.current = acknowledgeExternalChange;
     const adoptDiskTextRef = useRef(adoptDiskText);
     adoptDiskTextRef.current = adoptDiskText;
     const cmRef = useRef<ReactCodeMirrorRef>(null);
@@ -624,6 +644,8 @@ export const EditorPane = memo(
         },
         getPath: () => path,
         reload: () => reloadRef.current(),
+        forceReload: () => discardReloadRef.current(),
+        acknowledgeExternalChange: () => ackRef.current(),
         gotoLine: (line: number) => {
           pendingLineRef.current = line;
           applyPendingGoto();

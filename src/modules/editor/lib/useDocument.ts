@@ -78,6 +78,13 @@ export function useDocument({
     onExternalChangeRef.current?.(changed);
   }, []);
 
+  // Hook-side clear for the tab badge's "keep my version" action: resets the
+  // edge trigger so later disk changes re-raise the flag.
+  const acknowledgeExternalChange = useCallback(
+    () => setExternal(false),
+    [setExternal],
+  );
+
   const writeToDisk = useCallback(async () => {
     const content = bufferRef.current;
     const mtime = await invoke<number>("fs_write_file", {
@@ -288,6 +295,7 @@ export function useDocument({
     save,
     reload,
     discardAndReload,
+    acknowledgeExternalChange,
     adoptDiskText,
     openAnyway,
   };

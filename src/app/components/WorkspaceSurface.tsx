@@ -31,6 +31,7 @@ type Props = {
   onClosePane?: TerminalStackProps["onClosePane"];
   registerEditorHandle: EditorStackProps["registerHandle"];
   onEditorDirtyChange: EditorStackProps["onDirtyChange"];
+  onEditorExternalChange: EditorStackProps["onExternalChange"];
   onEditorCloseTab: EditorStackProps["onCloseTab"];
   registerPreviewHandle: PreviewStackProps["registerHandle"];
   onPreviewUrlChange: PreviewStackProps["onUrlChange"];
@@ -63,6 +64,7 @@ export function WorkspaceSurface({
   onClosePane,
   registerEditorHandle,
   onEditorDirtyChange,
+  onEditorExternalChange,
   onEditorCloseTab,
   registerPreviewHandle,
   onPreviewUrlChange,
@@ -118,6 +120,7 @@ export function WorkspaceSurface({
           activeId={activeId}
           registerHandle={registerEditorHandle}
           onDirtyChange={onEditorDirtyChange}
+          onExternalChange={onEditorExternalChange}
           onCloseTab={onEditorCloseTab}
           onSetMarkdownView={onSetMarkdownView}
           onOutlineChange={onOutlineChange}

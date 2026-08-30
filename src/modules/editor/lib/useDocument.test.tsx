@@ -225,4 +225,29 @@ describe("useDocument 外部变更检测", () => {
     expect(ok).toBe(true);
     await waitFor(() => expect(onExternal).toHaveBeenCalledWith(false));
   });
+
+  it("acknowledgeExternalChange 清除标记且后续变更可重新上抛", async () => {
+    mockDisk(text("A"));
+    const onExternal = vi.fn();
+    const h = setup(onExternal);
+    await untilReady(h);
+    mockDisk(text("B", 200));
+    act(() => {
+      h.result.current.onChange("local edit");
+    });
+    await act(async () => {
+      h.result.current.reload();
+    });
+    await waitFor(() => expect(onExternal).toHaveBeenCalledWith(true));
+    await act(async () => {
+      h.result.current.acknowledgeExternalChange();
+    });
+    await waitFor(() => expect(onExternal).toHaveBeenCalledWith(false));
+    mockDisk(text("C", 300));
+    await act(async () => {
+      h.result.current.reload();
+    });
+    await waitFor(() => expect(onExternal).toHaveBeenCalledTimes(3));
+    expect(onExternal).toHaveBeenLastCalledWith(true);
+  });
 });

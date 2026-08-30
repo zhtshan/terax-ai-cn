@@ -52,6 +52,8 @@ export type EditorTab = TabBase & {
    * is replaced by the next single-click rather than accumulating.
    */
   preview: boolean;
+  /** Disk copy diverged from the saved baseline while the buffer was dirty. */
+  externalChange?: boolean;
   overrideLanguage?: string | null;
 };
 
@@ -136,6 +138,7 @@ export type TabPatch = Partial<{
   /** Empty string resets a terminal tab to its cwd-derived name. */
   customTitle: string;
   overrideLanguage: string | null;
+  externalChange: boolean;
 }>;
 
 function basename(path: string): string {
@@ -1006,6 +1009,9 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           ...(patch.path !== undefined && { path: patch.path }),
           ...(patch.overrideLanguage !== undefined && {
             overrideLanguage: patch.overrideLanguage,
+          }),
+          ...(patch.externalChange !== undefined && {
+            externalChange: patch.externalChange,
           }),
         };
       }),

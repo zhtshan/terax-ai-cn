@@ -746,7 +746,10 @@
     "mode": "模式:{{name}}",
     "fewerLanguages": "↑ 收起语言",
     "allLanguages": "↓ 全部语言",
-    "renameTab": "重命名标签"
+    "renameTab": "重命名标签",
+    "externalChange": "磁盘已修改",
+    "externalReload": "重新加载（放弃本地修改）",
+    "externalKeep": "保留我的版本"
   },
   "explorer": {
     "noCurrentDir": "没有当前目录",
