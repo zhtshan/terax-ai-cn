@@ -46,7 +46,7 @@ pnpm lint && pnpm check-types && pnpm test && cd src-tauri && cargo clippy --all
 
 1. **纯函数核心 + 命令式外壳**：业务逻辑在轻量纯函数中（易测试），Tauri 命令和 React 组件保持精简。
 2. **零成本抽象**：已禁用的功能不占资源（无 LSP 进程、无多余 re-render）。
-3. **渲染器池**：xterm 最多 12 个实例，后台标签页流式传输到 DormantRing 缓冲（1 MiB），避免重排。
+3. **渲染器池**：xterm 最多 5 个实例（`POOL_MAX_SIZE`，只限渲染器，不限 PTY/agent 并发），后台标签页流式传输到 DormantRing 缓冲（1 MiB），避免重排。
 4. **标签页不卸载**：`invisible pointer-events-none` 隐藏而非销毁，PTY/dev-server 持续流式。
 5. **跨平台路径规范**：前端使用 forward-slash，Windows 路径在边界规范化。
 
