@@ -11,7 +11,7 @@ fn interrupt_kills_active_child_and_flags_output() {
     let session = Arc::new(ShellSession::new("/tmp".into(), WorkspaceEnv::Local));
     let runner = Arc::clone(&session);
     let handle = std::thread::spawn(move || {
-        runner.run("sleep 30".into(), None, None, Duration::from_secs(60))
+        runner.run("sleep 2".into(), None, None, Duration::from_secs(60))
     });
 
     // 等 child 注册进 active 表（最长 5s，20ms 步进）
@@ -28,6 +28,8 @@ fn interrupt_kills_active_child_and_flags_output() {
     let out = handle.join().unwrap().expect("run");
     assert!(out.interrupted);
     assert!(!out.timed_out);
+    // kill 生效时信号终止 exit_code 为 None; kill 失效则自然退出 Some(0)
+    assert!(out.exit_code.is_none());
 }
 
 #[test]
