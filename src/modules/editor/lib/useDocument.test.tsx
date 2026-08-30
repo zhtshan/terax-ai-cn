@@ -250,4 +250,32 @@ describe("useDocument 外部变更检测", () => {
     await waitFor(() => expect(onExternal).toHaveBeenCalledTimes(3));
     expect(onExternal).toHaveBeenLastCalledWith(true);
   });
+
+  it("dirty 时 reload 读取失败补 warn 日志且不破坏文档状态", async () => {
+    mockDisk(text("A"));
+    const h = setup();
+    await untilReady(h);
+    act(() => {
+      h.result.current.onChange("local edit");
+    });
+    invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "fs_read_file") throw new Error("ENOENT");
+      return null;
+    });
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    let skipped = true;
+    await act(async () => {
+      skipped = h.result.current.reload();
+    });
+    expect(skipped).toBe(false);
+    await waitFor(() =>
+      expect(warn).toHaveBeenCalledWith(
+        "[editor] reload failed",
+        "/w/a.txt",
+        expect.any(Error),
+      ),
+    );
+    warn.mockRestore();
+    expect(h.result.current.doc).toMatchObject({ status: "ready" });
+  });
 });

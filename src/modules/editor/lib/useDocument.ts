@@ -215,7 +215,7 @@ export function useDocument({
         .then((res) => {
           if (diverged(res)) setExternal(true);
         })
-        .catch(() => {});
+        .catch((e) => console.warn("[editor] reload failed", path, e));
       return false;
     }
     void readFromDisk(forceRef.current)
