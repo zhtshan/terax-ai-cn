@@ -507,12 +507,10 @@ function renderToolOutput(toolName: string, output: unknown, t?: (key: string, o
 
   if (toolName === "glob") {
     const translate = t || ((key: string) => key);
-    const matches = Array.isArray(o.matches)
-      ? (o.matches as string[])
-      : Array.isArray(o.paths)
-        ? (o.paths as string[])
-        : [];
-    if (matches.length === 0) {
+    const hits = Array.isArray(o.hits)
+      ? (o.hits as Array<{ rel?: string; path?: string }>)
+      : [];
+    if (hits.length === 0) {
       return (
         <div className="text-[11px] italic text-muted-foreground">
           {translate("ai.tools.noMatches")}
@@ -521,11 +519,21 @@ function renderToolOutput(toolName: string, output: unknown, t?: (key: string, o
     }
     return (
       <div className="max-h-60 overflow-auto rounded bg-muted/30 px-2 py-1 font-mono text-[11px]">
-        {matches.slice(0, 300).map((p) => (
-          <div key={p} className="truncate text-muted-foreground">
-            {p}
+        {hits.slice(0, 300).map((h) => {
+          const p = h.rel ?? h.path;
+          return p ? (
+            <div key={p} className="truncate text-muted-foreground">
+              {p}
+            </div>
+          ) : null;
+        })}
+        {o.truncated === true ? (
+          <div className="mt-1">
+            <span className="rounded bg-amber-500/15 px-1.5 py-0.5 text-amber-700 dark:text-amber-400">
+              {translate("ai.tools.truncated")}
+            </span>
           </div>
-        ))}
+        ) : null}
       </div>
     );
   }
