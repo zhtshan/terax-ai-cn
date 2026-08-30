@@ -18,7 +18,10 @@ import { DEFAULT_SUBAGENT_MODEL, runSubagent } from "./runSubagent";
 
 describe("runSubagent abort signal", () => {
   it("passes abortSignal through to generateText", async () => {
-    generateText.mockResolvedValue({ text: "done", steps: [{ toolCalls: [] }] });
+    generateText.mockResolvedValue({
+      text: "done",
+      steps: [{ toolCalls: [] }],
+    });
     const controller = new AbortController();
     await runSubagent({
       type: "explore",

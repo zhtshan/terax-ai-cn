@@ -96,6 +96,7 @@ async function proxyFetchImpl(
     };
     signal?.addEventListener("abort", onAbort, { once: true });
     if (signal?.aborted) onAbort();
+    if (cancelled) return;
 
     const channel = new Channel<AiStreamEvent>();
     channel.onmessage = (event) => {

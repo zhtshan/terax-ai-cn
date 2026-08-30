@@ -396,6 +396,16 @@ pub async fn ai_http_stream(
     request_id: String,
     on_event: Channel<AiStreamEvent>,
 ) -> Result<(), String> {
+    let (cancel_tx, mut cancel_rx) = tokio::sync::watch::channel(false);
+    state
+        .inner
+        .lock()
+        .unwrap()
+        .insert(request_id.clone(), cancel_tx);
+    let _guard = CancelGuard {
+        inner: Arc::clone(&state.inner),
+        id: request_id,
+    };
     let allow_private = allow_private_network.unwrap_or(false);
     let parsed = match validate_url(&url, allow_private) {
         Ok(p) => p,
@@ -418,17 +428,6 @@ pub async fn ai_http_stream(
             let _ = on_event.send(AiStreamEvent::Error { message: e.clone() });
             return Err(e);
         }
-    };
-
-    let (cancel_tx, mut cancel_rx) = tokio::sync::watch::channel(false);
-    state
-        .inner
-        .lock()
-        .unwrap()
-        .insert(request_id.clone(), cancel_tx);
-    let _guard = CancelGuard {
-        inner: Arc::clone(&state.inner),
-        id: request_id,
     };
 
     let client = build_safe_client(allow_private, &[(host, safe_ips)])?;

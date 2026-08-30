@@ -48,6 +48,8 @@ describe("proxyFetch cancel channel", () => {
     const p = createProxyFetch()("https://example.com", {
       signal: controller.signal,
     });
+    // let the executor send upstream before aborting
+    await Promise.resolve();
     controller.abort();
     await expect(p).rejects.toMatchObject({ name: "AbortError" });
     expect(invoke).toHaveBeenCalledWith("ai_http_cancel", {
@@ -58,6 +60,29 @@ describe("proxyFetch cancel channel", () => {
     )?.[1] as StreamArgs;
     expect(typeof (streamArgs as { requestId?: string }).requestId).toBe(
       "string",
+    );
+    const cancelArgs = invoke.mock.calls.find(
+      (c) => c[0] === "ai_http_cancel",
+    )?.[1] as { requestId: string };
+    expect(cancelArgs.requestId).toBe(
+      (streamArgs as { requestId: string }).requestId,
+    );
+  });
+
+  it("pre-abort sends no upstream request", async () => {
+    streamSends(HEADERS);
+    const controller = new AbortController();
+    controller.abort();
+    const p = createProxyFetch()("https://example.com", {
+      signal: controller.signal,
+    });
+    await expect(p).rejects.toMatchObject({ name: "AbortError" });
+    expect(invoke).toHaveBeenCalledWith("ai_http_cancel", {
+      requestId: expect.any(String),
+    });
+    expect(invoke).not.toHaveBeenCalledWith(
+      "ai_http_stream",
+      expect.anything(),
     );
   });
 
