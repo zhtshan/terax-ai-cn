@@ -91,4 +91,13 @@ describe("createCommandItems split disable reasons", () => {
       );
     }
   });
+
+  it("resolves the disabled-reason i18n keys from locale resources", () => {
+    expect(i18next.t("commandPalette.disabled.blocksTab")).not.toBe(
+      "commandPalette.disabled.blocksTab",
+    );
+    expect(i18next.t("commandPalette.disabled.noTerminalTab")).not.toBe(
+      "commandPalette.disabled.noTerminalTab",
+    );
+  });
 });

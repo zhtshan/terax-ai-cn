@@ -93,4 +93,21 @@ describe("subtitleFor", () => {
     };
     expect(subtitleFor(preview)).toBeNull();
   });
+
+  it("falls back to the raw cwd when it has only separators", () => {
+    expect(subtitleFor(terminalTab({ cwd: "/" }))).toBe("/");
+  });
+
+  it("returns null for a root-level file path", () => {
+    const editor: EditorTab = {
+      id: 6,
+      kind: "editor",
+      spaceId: "default",
+      title: "a.ts",
+      path: "/a.ts",
+      dirty: false,
+      preview: false,
+    };
+    expect(subtitleFor(editor)).toBeNull();
+  });
 });
