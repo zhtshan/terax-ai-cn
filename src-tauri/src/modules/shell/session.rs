@@ -1,14 +1,22 @@
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc;
-use std::sync::Mutex;
+use std::sync::{Arc, Mutex};
 use std::thread;
 use std::time::Duration;
 
 use serde::Serialize;
+use shared_child::SharedChild;
 
 use super::run_blocking_inner;
 use crate::modules::fs::to_canon;
 use crate::modules::workspace::{resolve_path, WorkspaceEnv};
+
+pub struct ActiveChild {
+    pub child: Arc<SharedChild>,
+    pub interrupted: Arc<AtomicBool>,
+}
+
+pub type ActiveRegistry = Arc<Mutex<Vec<ActiveChild>>>;
 
 pub struct ShellSession {
     pub cwd: Mutex<String>,
@@ -17,6 +25,7 @@ pub struct ShellSession {
     #[allow(dead_code)]
     pub started_at_ms: u64,
     sentinel: String,
+    active: ActiveRegistry,
 }
 
 #[derive(Serialize)]
@@ -26,6 +35,7 @@ pub struct SessionRunOutput {
     pub exit_code: Option<i32>,
     pub timed_out: bool,
     pub truncated: bool,
+    pub interrupted: bool,
     pub cwd_after: String,
 }
 
@@ -56,11 +66,22 @@ impl ShellSession {
             pristine: AtomicBool::new(true),
             started_at_ms,
             sentinel: generate_sentinel(),
+            active: Arc::new(Mutex::new(Vec::new())),
         }
     }
 
     pub fn current_cwd(&self) -> String {
         self.cwd.lock().unwrap().clone()
+    }
+
+    pub fn interrupt(&self) -> bool {
+        let guard = self.active.lock().unwrap();
+        let any = !guard.is_empty();
+        for a in guard.iter() {
+            a.interrupted.store(true, Ordering::Release);
+            let _ = a.child.kill();
+        }
+        any
     }
 
     pub fn run(
@@ -87,17 +108,22 @@ impl ShellSession {
         let effective_workspace = workspace_hint.unwrap_or_else(|| self.workspace.clone());
         let wrapped = wrap_with_sentinel(&trimmed, &effective_workspace, &self.sentinel);
 
+        let flag = Arc::new(AtomicBool::new(false));
         let (tx, rx) = mpsc::channel::<Result<super::CommandOutput, String>>();
         let cwd_for_thread = cwd.clone();
+        let registry = Arc::clone(&self.active);
+        let flag_for_thread = Arc::clone(&flag);
         thread::spawn(move || {
             let _ = tx.send(run_blocking_inner(
                 wrapped,
                 Some(cwd_for_thread),
                 effective_workspace,
                 timeout,
+                Some((registry, flag_for_thread)),
             ));
         });
         let raw = rx.recv().map_err(|e| e.to_string())??;
+        let was_interrupted = flag.load(Ordering::Acquire);
         self.pristine.store(false, Ordering::Release);
 
         let (stdout_clean, cwd_after) = strip_cwd_sentinel(&raw.stdout, &cwd, &self.sentinel);
@@ -115,6 +141,7 @@ impl ShellSession {
             exit_code: raw.exit_code,
             timed_out: raw.timed_out,
             truncated: raw.truncated,
+            interrupted: was_interrupted,
             cwd_after: resolved_cwd,
         })
     }

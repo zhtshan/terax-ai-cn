@@ -6,7 +6,7 @@ use std::collections::HashMap;
 use std::io::Read;
 use std::path::PathBuf;
 use std::process::{Command, Stdio};
-use std::sync::atomic::{AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::sync::{mpsc, Arc, RwLock};
 use std::thread;
 use std::time::Duration;
@@ -19,7 +19,7 @@ use crate::modules::workspace::{authorize_spawn_cwd, WorkspaceEnv, WorkspaceRegi
 use crate::modules::workspace::validate_wsl_distro_name;
 
 use background::{BackgroundLogResponse, BackgroundProc, BackgroundProcInfo};
-use session::{SessionRunOutput, ShellSession};
+use session::{ActiveChild, ActiveRegistry, SessionRunOutput, ShellSession};
 
 const DEFAULT_TIMEOUT_SECS: u64 = 30;
 const MAX_TIMEOUT_SECS: u64 = 300;
@@ -69,7 +69,7 @@ pub async fn shell_run_command(
     // runtime stays unblocked.
     let (tx, rx) = mpsc::channel::<Result<CommandOutput, String>>();
     thread::spawn(move || {
-        let _ = tx.send(run_blocking(trimmed, cwd_path, workspace, dur));
+        let _ = tx.send(run_blocking(trimmed, cwd_path, workspace, dur, None));
     });
 
     rx.recv().map_err(|e| e.to_string())?
@@ -80,8 +80,33 @@ pub(crate) fn run_blocking_inner(
     cwd: Option<String>,
     workspace: WorkspaceEnv,
     dur: Duration,
+    active: Option<(ActiveRegistry, Arc<AtomicBool>)>,
 ) -> Result<CommandOutput, String> {
-    run_blocking(command, cwd, workspace, dur)
+    run_blocking(command, cwd, workspace, dur, active)
+}
+
+struct ActiveGuard {
+    registry: ActiveRegistry,
+    child: Arc<SharedChild>,
+    flag: Arc<AtomicBool>,
+}
+
+impl ActiveGuard {
+    fn register(&self) {
+        self.registry.lock().unwrap().push(ActiveChild {
+            child: Arc::clone(&self.child),
+            interrupted: Arc::clone(&self.flag),
+        });
+    }
+}
+
+impl Drop for ActiveGuard {
+    fn drop(&mut self) {
+        self.registry
+            .lock()
+            .unwrap()
+            .retain(|a| !Arc::ptr_eq(&a.child, &self.child));
+    }
 }
 
 fn run_blocking(
@@ -89,6 +114,7 @@ fn run_blocking(
     cwd: Option<String>,
     workspace: WorkspaceEnv,
     dur: Duration,
+    active: Option<(ActiveRegistry, Arc<AtomicBool>)>,
 ) -> Result<CommandOutput, String> {
     let mut cmd = build_oneshot_command(&command, &workspace, cwd.as_deref())?;
     if let (WorkspaceEnv::Local, Some(dir)) = (&workspace, cwd) {
@@ -103,6 +129,15 @@ fn run_blocking(
         log::warn!("shell_run_command spawn failed: {e}");
         e.to_string()
     })?);
+    let _active_guard = active.map(|(registry, flag)| {
+        let guard = ActiveGuard {
+            registry,
+            child: Arc::clone(&child),
+            flag,
+        };
+        guard.register();
+        guard
+    });
     let mut stdout_pipe = child.take_stdout().ok_or_else(|| {
         let _ = child.kill();
         "no stdout pipe".to_string()
@@ -228,6 +263,18 @@ pub async fn shell_session_run(
 pub fn shell_session_close(state: tauri::State<ShellState>, id: u32) -> Result<(), String> {
     state.sessions.write().unwrap().remove(&id);
     Ok(())
+}
+
+#[tauri::command]
+pub fn shell_session_interrupt(state: tauri::State<ShellState>, id: u32) -> Result<bool, String> {
+    let session = state
+        .sessions
+        .read()
+        .unwrap()
+        .get(&id)
+        .cloned()
+        .ok_or_else(|| "no shell session".to_string())?;
+    Ok(session.interrupt())
 }
 
 #[tauri::command]
@@ -365,6 +412,7 @@ mod tests {
             None,
             WorkspaceEnv::Local,
             Duration::from_secs(timeout_secs),
+            None,
         )
         .expect("run")
     }
