@@ -232,8 +232,8 @@ export function planSpaceRemoval(
   const removed = tabs.filter((t) => t.spaceId === spaceId);
   if (removed.length === 0) return null;
   const disposeLeafIds = removed
-    .filter((t) => t.kind === "terminal")
-    .flatMap((t) => leafIds((t as TerminalTab).paneTree));
+    .filter((t): t is TerminalTab => t.kind === "terminal")
+    .flatMap((t) => leafIds(t.paneTree));
   let next = tabs.filter((t) => t.spaceId !== spaceId);
   let activeId = currentActiveId;
   if (!next.some((t) => t.spaceId === fallbackSpaceId)) {
