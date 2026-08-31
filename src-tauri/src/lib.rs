@@ -221,6 +221,7 @@ pub fn run() {
         })
         .manage(pty::PtyState::default())
         .manage(shell::ShellState::default())
+        .manage(net::AiStreamCancelState::default())
         .manage(secrets::SecretsState::default())
         .manage(fs::watch::FsWatchState::default())
         .manage(history::HistoryState::default())
@@ -300,6 +301,7 @@ pub fn run() {
             shell::shell_session_open,
             shell::shell_session_run,
             shell::shell_session_close,
+            shell::shell_session_interrupt,
             shell::shell_bg_spawn,
             shell::shell_bg_logs,
             shell::shell_bg_kill,
@@ -321,6 +323,7 @@ pub fn run() {
             net::lm_ping,
             net::ai_http_request,
             net::ai_http_stream,
+            net::ai_http_cancel,
             history::history_suggest,
             history::history_commands,
             history::history_record,

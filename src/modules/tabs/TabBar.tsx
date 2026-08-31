@@ -31,6 +31,7 @@ import {
   useAgentActivityStore,
 } from "@/modules/terminal";
 import {
+  Alert02Icon,
   Cancel01Icon,
   CheckmarkCircle01Icon,
   Clock01Icon,
@@ -77,6 +78,10 @@ type Props = {
   onRename: (id: number, title: string) => void;
   /** Move a dragged tab to a new position (insertion gap index 0..tabs.length). */
   onReorder: (fromId: number, toGapIndex: number) => void;
+  /** Discard the local buffer and load the on-disk version. */
+  onExternalReload?: (id: number) => void;
+  /** Keep the local version and clear the external-change badge. */
+  onExternalKeep?: (id: number) => void;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
   compact?: boolean;
 };
@@ -95,6 +100,8 @@ export function TabBar({
   onPin,
   onRename,
   onReorder,
+  onExternalReload,
+  onExternalKeep,
   onOverrideLanguage,
   compact,
 }: Props) {
@@ -513,6 +520,47 @@ export function TabBar({
                     <span className={cn("truncate", isPreview && "italic")}>
                       {labelFor(t)}
                     </span>
+                    {t.kind === "editor" && t.externalChange ? (
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <span
+                            role="button"
+                            tabIndex={-1}
+                            data-no-drag
+                            aria-label={tr('tabs.externalChange')}
+                            className="inline-flex shrink-0 cursor-pointer items-center rounded-sm p-0.5 -m-0.5 text-amber-500 transition-colors hover:text-amber-400"
+                          >
+                            <HugeiconsIcon
+                              icon={Alert02Icon}
+                              size={12}
+                              strokeWidth={2}
+                            />
+                          </span>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="start"
+                          side="bottom"
+                          sideOffset={6}
+                          className="w-56 rounded-xl border border-border/40 bg-popover/90 p-1 backdrop-blur-md shadow-lg"
+                          onClick={(e) => e.stopPropagation()}
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onPointerUp={(e) => e.stopPropagation()}
+                        >
+                          <DropdownMenuItem
+                            onSelect={() => onExternalReload?.(t.id)}
+                            className="flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg cursor-default focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {tr('tabs.externalReload')}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onSelect={() => onExternalKeep?.(t.id)}
+                            className="flex items-center gap-2 px-2.5 py-1.5 text-xs rounded-lg cursor-default focus:bg-accent focus:text-accent-foreground"
+                          >
+                            {tr('tabs.externalKeep')}
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    ) : null}
                     {t.kind === "editor" && t.dirty ? (
                       <span
                         aria-label={tr('tabs.unsavedChanges')}

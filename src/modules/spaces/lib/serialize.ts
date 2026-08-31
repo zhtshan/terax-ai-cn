@@ -3,6 +3,7 @@ import {
   type PaneNode,
   type SplitDir,
 } from "@/modules/terminal/lib/panes";
+import { MAX_PANES_PER_TAB } from "@/modules/tabs/lib/useTabs";
 import type {
   EditorTab,
   MarkdownTab,
@@ -128,11 +129,24 @@ function hydrateTree(
   allocId: () => number,
 ): HydratedTree {
   const acc: { activeLeafId: number | null } = { activeLeafId: null };
-  const paneTree = hydrateNode(tree, allocId, acc);
+  let paneTree = hydrateNode(tree, allocId, acc);
   const leaves = collectLeaves(paneTree);
-  const activeLeafId = acc.activeLeafId ?? leaves[0]?.id ?? allocId();
+  let activeLeafId = acc.activeLeafId ?? leaves[0]?.id ?? allocId();
+  // Split entry points are capped by MAX_PANES_PER_TAB, so oversized persisted
+  // trees only come from corrupted or hand-edited stores. Clamp to the active
+  // leaf instead of trusting the layout.
+  if (leaves.length > MAX_PANES_PER_TAB) {
+    const keep = leaves.find((l) => l.id === activeLeafId) ?? leaves[0];
+    paneTree = {
+      kind: "leaf",
+      id: keep.id,
+      ...(keep.cwd !== undefined && { cwd: keep.cwd }),
+    };
+    activeLeafId = keep.id;
+  }
+  const clamped = collectLeaves(paneTree);
   const firstLeafCwd =
-    leaves.find((l) => l.id === activeLeafId)?.cwd ?? leaves[0]?.cwd;
+    clamped.find((l) => l.id === activeLeafId)?.cwd ?? clamped[0]?.cwd;
   return { tree: paneTree, activeLeafId, firstLeafCwd };
 }
 

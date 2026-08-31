@@ -2,6 +2,7 @@ import { cn, isMarkdownPath } from "@/lib/utils";
 import { MarkdownViewToggle } from "@/modules/markdown";
 import type { EditorTab, Tab } from "@/modules/tabs";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { EditorPane, type EditorPaneHandle } from "./EditorPane";
 import type { OutlineItem, OutlineUnavailableReason } from "./lib/outline";
 
@@ -9,6 +10,7 @@ type Props = {
   tabs: Tab[];
   activeId: number;
   onDirtyChange: (id: number, dirty: boolean) => void;
+  onExternalChange: (id: number, changed: boolean) => void;
   registerHandle: (id: number, handle: EditorPaneHandle | null) => void;
   onCloseTab: (id: number) => void;
   onSetMarkdownView: (id: number, mode: "rendered" | "raw") => void;
@@ -23,6 +25,7 @@ export function EditorStack({
   tabs,
   activeId,
   onDirtyChange,
+  onExternalChange,
   registerHandle,
   onCloseTab,
   onSetMarkdownView,
@@ -32,6 +35,8 @@ export function EditorStack({
   onActiveHeadingChange,
   onJumpToHeading,
 }: Props) {
+  const { t } = useTranslation();
+
   const editors = tabs.filter(
     (t): t is EditorTab => t.kind === "editor" && !t.cold,
   );
@@ -42,6 +47,7 @@ export function EditorStack({
   // the parent. Memoizing per id keeps each callback's identity stable.
   const registerRef = useRef(registerHandle);
   const dirtyRef = useRef(onDirtyChange);
+  const externalRef = useRef(onExternalChange);
   const closeRef = useRef(onCloseTab);
 
   useEffect(() => {
@@ -51,6 +57,9 @@ export function EditorStack({
     dirtyRef.current = onDirtyChange;
   }, [onDirtyChange]);
   useEffect(() => {
+    externalRef.current = onExternalChange;
+  }, [onExternalChange]);
+  useEffect(() => {
     closeRef.current = onCloseTab;
   }, [onCloseTab]);
 
@@ -58,6 +67,9 @@ export function EditorStack({
     new Map<number, (h: EditorPaneHandle | null) => void>(),
   );
   const dirtyCallbacks = useRef(new Map<number, (dirty: boolean) => void>());
+  const externalCallbacks = useRef(
+    new Map<number, (changed: boolean) => void>(),
+  );
   const closeCallbacks = useRef(new Map<number, () => void>());
 
   const getRefCallback = (id: number) => {
@@ -73,6 +85,14 @@ export function EditorStack({
     if (!cb) {
       cb = (dirty: boolean) => dirtyRef.current(id, dirty);
       dirtyCallbacks.current.set(id, cb);
+    }
+    return cb;
+  };
+  const getExternalCallback = (id: number) => {
+    let cb = externalCallbacks.current.get(id);
+    if (!cb) {
+      cb = (changed: boolean) => externalRef.current(id, changed);
+      externalCallbacks.current.set(id, cb);
     }
     return cb;
   };
@@ -94,6 +114,9 @@ export function EditorStack({
     for (const id of dirtyCallbacks.current.keys()) {
       if (!live.has(id)) dirtyCallbacks.current.delete(id);
     }
+    for (const id of externalCallbacks.current.keys()) {
+      if (!live.has(id)) externalCallbacks.current.delete(id);
+    }
     for (const id of closeCallbacks.current.keys()) {
       if (!live.has(id)) closeCallbacks.current.delete(id);
     }
@@ -102,11 +125,11 @@ export function EditorStack({
   if (editors.length === 0) return null;
   return (
     <div className="relative h-full w-full">
-      {editors.map((t) => {
-        const visible = t.id === activeId;
+      {editors.map((tab) => {
+        const visible = tab.id === activeId;
         return (
           <div
-            key={t.id}
+            key={tab.id}
             className={cn(
               "absolute inset-0",
               !visible && "invisible pointer-events-none",
@@ -114,20 +137,21 @@ export function EditorStack({
             aria-hidden={!visible}
           >
             <div className="relative h-full overflow-hidden rounded-md border border-border/60 bg-background">
-              {isMarkdownPath(t.path) && (
+              {isMarkdownPath(tab.path) && (
                 <MarkdownViewToggle
                   mode="raw"
-                  onChange={(mode) => onSetMarkdownView(t.id, mode)}
-                  renderedDisabled={t.dirty}
-                  renderedHint="Save to preview"
+                  onChange={(mode) => onSetMarkdownView(tab.id, mode)}
+                  renderedDisabled={tab.dirty}
+                  renderedHint={t("editor.saveToPreview")}
                 />
               )}
               <EditorPane
-                ref={getRefCallback(t.id)}
-                path={t.path}
-                overrideLanguage={t.overrideLanguage}
-                onDirtyChange={getDirtyCallback(t.id)}
-                onClose={getCloseCallback(t.id)}
+                ref={getRefCallback(tab.id)}
+                path={tab.path}
+                overrideLanguage={tab.overrideLanguage}
+                onDirtyChange={getDirtyCallback(tab.id)}
+                onExternalChange={getExternalCallback(tab.id)}
+                onClose={getCloseCallback(tab.id)}
                 {...(visible
                   ? {
                       onOutlineChange,

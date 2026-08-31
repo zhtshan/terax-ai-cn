@@ -19,3 +19,21 @@ export function labelFor(t: Tab): string {
   const parts = t.cwd.split(/[\\/]/).filter(Boolean);
   return parts.length ? parts[parts.length - 1] : "/";
 }
+
+/**
+ * Secondary hint shown next to a label in switcher surfaces (HUD rows, space
+ * overview). One shared copy so TabSwitcherHud and SpaceSwitcher stay in
+ * lockstep.
+ */
+export function subtitleFor(t: Tab): string | null {
+  if (t.kind === "terminal") {
+    if (!t.cwd) return null;
+    const segs = t.cwd.split(/[\\/]/).filter(Boolean);
+    return segs.slice(-2).join("/") || t.cwd;
+  }
+  if (t.kind === "editor" || t.kind === "markdown") {
+    const segs = t.path.split(/[\\/]/).filter(Boolean);
+    return segs.slice(-2, -1)[0] ?? null;
+  }
+  return null;
+}

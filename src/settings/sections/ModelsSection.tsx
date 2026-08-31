@@ -66,6 +66,7 @@ import {
   setOllamaModelId,
   setOpenaiCompatibleBaseURL,
   setOpenaiCompatibleContextLimit,
+  setOpenaiCompatibleMaxOutputTokens,
   setOpenaiCompatibleModelId,
   setOpenrouterModelId,
   setRecentModelIds,
@@ -163,6 +164,9 @@ export function ModelsSection() {
   const compatModelId = usePreferencesStore((s) => s.openaiCompatibleModelId);
   const compatContextLimit = usePreferencesStore(
     (s) => s.openaiCompatibleContextLimit,
+  );
+  const compatMaxOutputTokens = usePreferencesStore(
+    (s) => s.openaiCompatibleMaxOutputTokens,
   );
   const openrouterModelId = usePreferencesStore((s) => s.openrouterModelId);
   const customEndpoints = usePreferencesStore((s) => s.customEndpoints);
@@ -300,6 +304,8 @@ export function ModelsSection() {
           setModelId: setOpenaiCompatibleModelId,
           contextLimit: compatContextLimit,
           setContextLimit: setOpenaiCompatibleContextLimit,
+          maxOutputTokens: compatMaxOutputTokens,
+          setMaxOutputTokens: setOpenaiCompatibleMaxOutputTokens,
         };
       case "openrouter":
         return {
@@ -466,6 +472,8 @@ type LocalConfig = {
   setModelId: (v: string) => Promise<void>;
   contextLimit?: number;
   setContextLimit?: (v: number) => Promise<void>;
+  maxOutputTokens?: number;
+  setMaxOutputTokens?: (v: number) => Promise<void>;
   noBaseURL?: boolean;
 };
 
@@ -905,11 +913,16 @@ function LocalProviderCard({
     setModelId,
     contextLimit,
     setContextLimit,
+    maxOutputTokens,
+    setMaxOutputTokens,
     noBaseURL,
   } = config;
   const [urlDraft, setUrlDraft] = useState(baseURL);
   const [modelDraft, setModelDraft] = useState(modelId);
   const [contextDraft, setContextDraft] = useState(String(contextLimit ?? ""));
+  const [maxOutputDraft, setMaxOutputDraft] = useState(
+    String(maxOutputTokens ?? ""),
+  );
   const [keyDraft, setKeyDraft] = useState("");
   const [testStatus, setTestStatus] = useState<
     "idle" | "testing" | "ok" | "fail"
@@ -918,6 +931,10 @@ function LocalProviderCard({
   useEffect(() => setUrlDraft(baseURL), [baseURL]);
   useEffect(() => setModelDraft(modelId), [modelId]);
   useEffect(() => setContextDraft(String(contextLimit ?? "")), [contextLimit]);
+  useEffect(
+    () => setMaxOutputDraft(String(maxOutputTokens ?? "")),
+    [maxOutputTokens],
+  );
 
   const supportsKey =
     provider.id === "openai-compatible" || provider.id === "openrouter";
@@ -1041,6 +1058,29 @@ function LocalProviderCard({
           </FieldRow>
         ) : null}
 
+        {setMaxOutputTokens ? (
+          <FieldRow label={t("settings.models.maxOutput")}>
+            <div className="flex flex-1 items-center gap-1.5">
+              <Input
+                value={maxOutputDraft}
+                onChange={(e) => setMaxOutputDraft(e.target.value)}
+                onBlur={() => {
+                  const v = parseInt(maxOutputDraft);
+                  if (Number.isFinite(v) && v >= 256)
+                    void setMaxOutputTokens(v);
+                  else setMaxOutputDraft(String(maxOutputTokens ?? ""));
+                }}
+                placeholder="16384"
+                spellCheck={false}
+                className="h-8 w-28 font-mono text-[11.5px]"
+              />
+              <span className="text-[10.5px] text-muted-foreground">
+                {t("settings.models.tokens")}
+              </span>
+            </div>
+          </FieldRow>
+        ) : null}
+
         {supportsKey ? (
           <FieldRow label={t("settings.models.apiKey")}>
             {compatKey ? (
@@ -1125,6 +1165,9 @@ function CustomEndpointCard({
   const [contextDraft, setContextDraft] = useState(
     String(endpoint.contextLimit ?? ""),
   );
+  const [maxOutputDraft, setMaxOutputDraft] = useState(
+    String(endpoint.maxOutputTokens ?? ""),
+  );
   const [keyDraft, setKeyDraft] = useState("");
   const [testStatus, setTestStatus] = useState<
     "idle" | "testing" | "ok" | "fail"
@@ -1136,6 +1179,10 @@ function CustomEndpointCard({
   useEffect(
     () => setContextDraft(String(endpoint.contextLimit ?? "")),
     [endpoint.contextLimit],
+  );
+  useEffect(
+    () => setMaxOutputDraft(String(endpoint.maxOutputTokens ?? "")),
+    [endpoint.maxOutputTokens],
   );
 
   const configured = !!endpoint.baseURL.trim() && !!endpoint.modelId.trim();
@@ -1269,6 +1316,27 @@ function CustomEndpointCard({
                   else setContextDraft(String(endpoint.contextLimit ?? ""));
                 }}
                 placeholder="128000"
+                spellCheck={false}
+                className="h-8 w-28 font-mono text-[11.5px]"
+              />
+              <span className="text-[10.5px] text-muted-foreground">
+                {t("settings.models.tokens")}
+              </span>
+            </div>
+          </FieldRow>
+
+          <FieldRow label={t("settings.models.maxOutput")}>
+            <div className="flex flex-1 items-center gap-1.5">
+              <Input
+                value={maxOutputDraft}
+                onChange={(e) => setMaxOutputDraft(e.target.value)}
+                onBlur={() => {
+                  const v = parseInt(maxOutputDraft);
+                  if (Number.isFinite(v) && v >= 256)
+                    void onUpdate({ maxOutputTokens: v });
+                  else setMaxOutputDraft(String(endpoint.maxOutputTokens ?? ""));
+                }}
+                placeholder="16384"
                 spellCheck={false}
                 className="h-8 w-28 font-mono text-[11.5px]"
               />

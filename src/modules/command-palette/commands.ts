@@ -77,9 +77,11 @@ export function createCommandItems(
   const noWorkspaceRoot = !ctx.explorerRoot && !ctx.home;
   const splitDisabled = !activeTerminalTab
     ? i18next.t("commandPalette.disabled.noTerminalTab")
-    : activePaneCount >= MAX_PANES_PER_TAB
-      ? i18next.t("commandPalette.disabled.paneLimit")
-      : undefined;
+    : activeTerminalTab.blocks
+      ? i18next.t("commandPalette.disabled.blocksTab")
+      : activePaneCount >= MAX_PANES_PER_TAB
+        ? i18next.t("commandPalette.disabled.paneLimit")
+        : undefined;
   const activePreviewTab = activeTab?.kind === "preview" ? activeTab : null;
   const closeDisabled =
     onlyOneTab &&

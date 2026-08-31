@@ -5,6 +5,7 @@ import { listen } from "@tauri-apps/api/event";
 import { useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { displayAgent } from "../lib/format";
+import { isPrivateTab } from "../lib/privateTab";
 import { maybeTriggerManagedReview } from "../lib/review";
 import { routeAgentNotification } from "../lib/route";
 import type { AgentSession, AgentSignal } from "../lib/types";
@@ -39,6 +40,7 @@ function route(
   ctx: Ctx,
   t: T,
 ): void {
+  if (isPrivateTab(ctx.tabs, session.tabId)) return;
   const info = tabInfo(ctx.tabs, session.leafId);
   const name = displayAgent(session.agent);
   const heading =

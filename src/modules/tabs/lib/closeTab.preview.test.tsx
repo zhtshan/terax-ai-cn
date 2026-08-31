@@ -15,20 +15,26 @@ describe("closeTab with preview tab as sole tab in space", () => {
 
   it("allows closing the only preview tab (issue #659)", () => {
     const { result } = renderHook(() => useTabs());
-    let previewId: number | null = null;
     act(() => {
-      previewId = result.current.newPreviewTab("http://localhost:3000");
+      // The initial terminal owns the default space; give the preview its
+      // own space so it is really the sole tab there.
+      result.current.setActiveSpaceForNewTabs("s2");
+      result.current.newPreviewTab("http://localhost:3000");
     });
-    expect(previewId).not.toBeNull();
+    const previewId = result.current.tabs.find(
+      (t) => t.kind === "preview",
+    )!.id;
 
-    // Before fix: closeTab returns null for the only preview tab, keeping it.
-    // After fix: preview tabs can be closed even when sole tab in space.
+    // Before fix: closeTab refuses because the preview is the only tab of
+    // its space. After fix: preview tabs can close even when sole in space.
     act(() => {
-      result.current.closeTab(previewId!);
+      result.current.closeTab(previewId);
     });
 
-    // Tab should be gone after close.
+    // Tab should be gone after close, active moved to a surviving tab.
     expect(result.current.tabs.some((t) => t.id === previewId)).toBe(false);
+    expect(result.current.tabs).toHaveLength(1);
+    expect(result.current.activeId).toBe(1);
   });
 
   it("still refuses to close the last terminal tab in a space", () => {

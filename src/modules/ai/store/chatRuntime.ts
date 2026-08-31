@@ -1,15 +1,14 @@
+import { usePreferencesStore } from "@/modules/settings/preferences";
 import { Chat, type UIMessage } from "@ai-sdk/react";
 import {
   type ChatTransport,
   lastAssistantMessageIsCompleteWithApprovalResponses,
 } from "ai";
-import { getModel, providerNeedsKey, type ModelId } from "../config";
-import { usePreferencesStore } from "@/modules/settings/preferences";
+import { providerNeedsKey, resolveModel } from "../config";
 import { BUILTIN_AGENTS } from "../lib/agents";
-import { useAgentsStore } from "./agentsStore";
-import { usePlanStore } from "./planStore";
 import { createContextAwareTransport } from "../lib/transport";
 import type { ToolContext } from "../tools/tools";
+import { useAgentsStore } from "./agentsStore";
 import {
   chats,
   getActiveProviderKey,
@@ -17,6 +16,7 @@ import {
   touchChat,
   useChatStore,
 } from "./chatStore";
+import { usePlanStore } from "./planStore";
 
 function makeChat(sessionId: string): Chat<UIMessage> {
   const readCache = new Map<string, { size: number; hash: number }>();
@@ -71,6 +71,8 @@ function makeChat(sessionId: string): Chat<UIMessage> {
       usePreferencesStore.getState().openaiCompatibleModelId,
     getOpenaiCompatibleContextLimit: () =>
       usePreferencesStore.getState().openaiCompatibleContextLimit,
+    getOpenaiCompatibleMaxOutputTokens: () =>
+      usePreferencesStore.getState().openaiCompatibleMaxOutputTokens,
     getOpenrouterModelId: () =>
       usePreferencesStore.getState().openrouterModelId,
     getCustomEndpoints: () => usePreferencesStore.getState().customEndpoints,
@@ -133,7 +135,12 @@ export async function sendMessage(text: string): Promise<boolean> {
   const sessionId = state.activeSessionId;
   if (!sessionId) return false;
   if (
-    providerNeedsKey(getModel(state.selectedModelId as ModelId).provider) &&
+    providerNeedsKey(
+      resolveModel(
+        state.selectedModelId,
+        usePreferencesStore.getState().customEndpoints,
+      ).provider,
+    ) &&
     !getActiveProviderKey()
   )
     return false;

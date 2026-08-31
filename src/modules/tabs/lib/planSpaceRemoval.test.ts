@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planSpaceRemoval, type Tab, type TerminalTab } from "./useTabs";
+import { planSpaceRemoval, type EditorTab, type Tab, type TerminalTab } from "./useTabs";
 
 function term(id: number, spaceId: string): Tab {
   return {
@@ -55,5 +55,21 @@ describe("planSpaceRemoval", () => {
     expect(spawned.title).toBe("work");
     expect(plan?.activeId).toBe(100);
     expect(plan?.disposeLeafIds).toEqual([10, 20]);
+  });
+
+  it("disposes only terminal leaves when the space mixes tab kinds", () => {
+    const editor: EditorTab = {
+      id: 2,
+      kind: "editor",
+      spaceId: "a",
+      title: "a.ts",
+      path: "/tmp/a.ts",
+      dirty: false,
+      preview: false,
+    };
+    const tabs: Tab[] = [term(1, "a"), editor, term(3, "b")];
+    const plan = planSpaceRemoval(tabs, 1, "a", "b", undefined, counterFrom(100));
+    expect(plan?.disposeLeafIds).toEqual([10]);
+    expect(plan?.tabs.map((t) => t.id)).toEqual([3]);
   });
 });

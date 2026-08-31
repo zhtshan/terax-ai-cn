@@ -17,7 +17,7 @@ export type ToolContext = {
   spawnAgent: (prompt: string) => { tabId: number; leafId: number } | null;
   /** Read the terminal scrollback tail of a managed agent's leaf. */
   readAgentOutput: (leafId: number) => string | null;
-  readCache: Map<string, { size: number; hash: number }>;
+  readCache: Map<string, { size: number; hash: number; truncated?: boolean }>;
   /** Active chat session id — used by tools that persist per-session state (todos). */
   getSessionId: () => string | null;
 };

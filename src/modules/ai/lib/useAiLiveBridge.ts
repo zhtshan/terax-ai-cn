@@ -3,11 +3,12 @@ import { invoke } from "@tauri-apps/api/core";
 import { useManagedAgentsStore } from "@/modules/agents/store/managedAgentsStore";
 import {
   findLeafCwd,
+  hasLeaf,
   type TerminalPaneHandle,
   whenSessionReady,
   writeToSession,
 } from "@/modules/terminal";
-import type { Tab } from "@/modules/tabs";
+import type { Tab, TerminalTab } from "@/modules/tabs";
 import type { Live } from "../store/chatStore";
 import { redactSensitive } from "./redact";
 
@@ -161,6 +162,12 @@ export function useAiLiveBridge(params: Params) {
         return { tabId, leafId };
       },
       readLeafBuffer: (leafId: number) => {
+        // Reverse-lookup the owning tab: leaf ids reach the tool layer, so a
+        // private tab must stay unreadable no matter who calls in.
+        const owner = ref.current.tabs.find(
+          (t): t is TerminalTab => t.kind === "terminal" && hasLeaf(t.paneTree, leafId),
+        );
+        if (owner?.private) return null;
         const buf = terminalRefs.current.get(leafId)?.getBuffer(300);
         return buf ? redactSensitive(buf) : null;
       },

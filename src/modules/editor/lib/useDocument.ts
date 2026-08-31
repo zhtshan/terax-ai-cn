@@ -3,6 +3,7 @@ import { usePreferencesStore } from "@/modules/settings/preferences";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { detectEol, type Eol, normalizeToLf, restoreEol } from "./eol";
 
@@ -26,9 +27,15 @@ export type DocumentState =
 type Options = {
   path: string;
   onDirtyChange?: (dirty: boolean) => void;
+  onExternalChange?: (changed: boolean) => void;
 };
 
-export function useDocument({ path, onDirtyChange }: Options) {
+export function useDocument({
+  path,
+  onDirtyChange,
+  onExternalChange,
+}: Options) {
+  const { t } = useTranslation();
   const [doc, setDoc] = useState<DocumentState>({ status: "loading" });
   const [dirty, setDirty] = useState(false);
 
@@ -58,6 +65,26 @@ export function useDocument({ path, onDirtyChange }: Options) {
 
   const diskMtimeRef = useRef<number | null>(null);
 
+  // Edge-triggered: only fires on false <-> true transitions so repeated fs
+  // events while dirty do not spam updateTab.
+  const onExternalChangeRef = useRef(onExternalChange);
+  useEffect(() => {
+    onExternalChangeRef.current = onExternalChange;
+  }, [onExternalChange]);
+  const externalRef = useRef(false);
+  const setExternal = useCallback((changed: boolean) => {
+    if (externalRef.current === changed) return;
+    externalRef.current = changed;
+    onExternalChangeRef.current?.(changed);
+  }, []);
+
+  // Hook-side clear for the tab badge's "keep my version" action: resets the
+  // edge trigger so later disk changes re-raise the flag.
+  const acknowledgeExternalChange = useCallback(
+    () => setExternal(false),
+    [setExternal],
+  );
+
   const writeToDisk = useCallback(async () => {
     const content = bufferRef.current;
     const mtime = await invoke<number>("fs_write_file", {
@@ -70,8 +97,9 @@ export function useDocument({ path, onDirtyChange }: Options) {
     savedRef.current = content;
     // Edits typed while the write was in flight must stay dirty.
     setDirty(bufferRef.current !== content);
+    setExternal(false);
     notifyDocumentSaved(path);
-  }, [path]);
+  }, [path, setExternal]);
 
   // False when the write was withheld because the file changed on disk
   // since load; overwriting is an explicit user action from the toast.
@@ -84,17 +112,20 @@ export function useDocument({ path, onDirtyChange }: Options) {
       }).catch(() => null);
       if (stat && stat.mtime !== known) {
         const name = path.split(/[\\/]/).pop() ?? path;
-        toast.warning("File changed on disk", {
+        toast.warning(t("editor.fileChangedOnDisk"), {
           id: `save-conflict:${path}`,
-          description: `${name} was modified by another program while you had unsaved changes. Overwrite to keep your version.`,
-          action: { label: "Overwrite", onClick: () => void writeToDisk() },
+          description: t("editor.fileChangedOnDiskDesc", { name }),
+          action: {
+            label: t("editor.overwrite"),
+            onClick: () => void writeToDisk(),
+          },
         });
         return false;
       }
     }
     await writeToDisk();
     return true;
-  }, [path, writeToDisk]);
+  }, [path, writeToDisk, t]);
 
   // Notify parent of dirty transitions.
   const onDirtyChangeRef = useRef(onDirtyChange);
@@ -110,22 +141,26 @@ export function useDocument({ path, onDirtyChange }: Options) {
   // Adopts a read result as the new saved baseline. `skipIfUnchanged` avoids
   // the re-render when disk already matches the buffer (self-save / duplicate
   // watcher event); initial loads must always publish a state.
-  const adoptRead = useCallback((res: ReadResult, skipIfUnchanged = false) => {
-    if (res.kind === "text") {
-      eolRef.current = detectEol(res.content);
-      diskMtimeRef.current = res.mtime;
-      const content = normalizeToLf(res.content);
-      if (skipIfUnchanged && content === savedRef.current) return;
-      savedRef.current = content;
-      bufferRef.current = content;
-      setDirty(false);
-      setDoc({ status: "ready", content, size: res.size });
-    } else if (res.kind === "binary") {
-      setDoc({ status: "binary", size: res.size });
-    } else if (res.kind === "toolarge") {
-      setDoc({ status: "toolarge", size: res.size, limit: res.limit });
-    }
-  }, []);
+  const adoptRead = useCallback(
+    (res: ReadResult, skipIfUnchanged = false) => {
+      if (res.kind === "text") {
+        eolRef.current = detectEol(res.content);
+        diskMtimeRef.current = res.mtime;
+        const content = normalizeToLf(res.content);
+        if (skipIfUnchanged && content === savedRef.current) return;
+        savedRef.current = content;
+        bufferRef.current = content;
+        setDirty(false);
+        setDoc({ status: "ready", content, size: res.size });
+        setExternal(false);
+      } else if (res.kind === "binary") {
+        setDoc({ status: "binary", size: res.size });
+      } else if (res.kind === "toolarge") {
+        setDoc({ status: "toolarge", size: res.size, limit: res.limit });
+      }
+    },
+    [setExternal],
+  );
 
   const readFromDisk = useCallback(
     (force: boolean) =>
@@ -166,25 +201,55 @@ export function useDocument({ path, onDirtyChange }: Options) {
       .catch((e) => setDoc({ status: "error", message: String(e) }));
   }, [readFromDisk, adoptRead]);
 
-  // Skipped while dirty: never clobber unsaved edits. Re-checked when the
-  // read resolves, since typing can start while it is in flight.
+  // Dirty reads resolve against the saved baseline to decide whether the disk
+  // copy actually diverged; a skip with identical disk content stays silent.
+  // Re-checked when the read resolves, since typing can start while it is in
+  // flight. Never clobbers the buffer.
   const reload = useCallback((): boolean => {
-    if (dirtyRef.current) return false;
+    const diverged = (res: ReadResult) =>
+      dirtyRef.current &&
+      res.kind === "text" &&
+      normalizeToLf(res.content) !== savedRef.current;
+    if (dirtyRef.current) {
+      void readFromDisk(forceRef.current)
+        .then((res) => {
+          if (diverged(res)) setExternal(true);
+        })
+        .catch((e) => console.warn("[editor] reload failed", path, e));
+      return false;
+    }
     void readFromDisk(forceRef.current)
       .then((res) => {
-        if (!dirtyRef.current) adoptRead(res, true);
+        if (dirtyRef.current) {
+          if (diverged(res)) setExternal(true);
+          return;
+        }
+        adoptRead(res, true);
+        setExternal(false);
       })
       // Transient failures (e.g. ENOENT mid atomic-rename) must not replace
       // a healthy buffer with an error screen.
       .catch((e) => console.warn("[editor] reload failed", path, e));
     return true;
-  }, [readFromDisk, adoptRead, path]);
+  }, [readFromDisk, adoptRead, path, setExternal]);
 
   const save = useCallback(async (): Promise<boolean> => {
     clearAutoSaveTimer();
     if (bufferRef.current === savedRef.current) return true;
     return saveNow();
   }, [clearAutoSaveTimer, saveNow]);
+
+  // Explicit user action from the tab badge: drop the local buffer and adopt
+  // the on-disk version.
+  const discardAndReload = useCallback(() => {
+    clearAutoSaveTimer();
+    void readFromDisk(forceRef.current)
+      .then((res) => {
+        adoptRead(res);
+        setExternal(false);
+      })
+      .catch((e) => console.warn("[editor] discardAndReload failed", path, e));
+  }, [clearAutoSaveTimer, readFromDisk, adoptRead, path, setExternal]);
 
   // Adopt externally formatted disk content as the saved baseline before the
   // matching editor dispatch lands, so the buffer never flashes dirty. The
@@ -223,5 +288,15 @@ export function useDocument({ path, onDirtyChange }: Options) {
 
   useEffect(() => clearAutoSaveTimer, [path, clearAutoSaveTimer]);
 
-  return { doc, dirty, onChange, save, reload, adoptDiskText, openAnyway };
+  return {
+    doc,
+    dirty,
+    onChange,
+    save,
+    reload,
+    discardAndReload,
+    acknowledgeExternalChange,
+    adoptDiskText,
+    openAnyway,
+  };
 }

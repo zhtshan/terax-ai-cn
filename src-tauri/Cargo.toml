@@ -1,6 +1,6 @@
 [package]
 name = "terax"
-version = "0.8.8"
+version = "0.8.9"
 description = "Terax — an open-source AI-native terminal emulator"
 authors = ["crynta"]
 license = "Apache-2.0"
@@ -44,7 +44,7 @@ reqwest = { version = "0.12", default-features = false, features = [
 ] }
 bytes = "1"
 futures-util = "0.3"
-tokio = { version = "1", default-features = false, features = ["rt", "time", "macros"] }
+tokio = { version = "1", default-features = false, features = ["rt", "time", "macros", "sync"] }
 tempfile = "3"
 notify = "8.2.0"
 which = "8.0.4"

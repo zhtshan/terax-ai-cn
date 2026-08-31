@@ -137,6 +137,7 @@ export type Preferences = {
   openaiCompatibleBaseURL: string;
   openaiCompatibleModelId: string;
   openaiCompatibleContextLimit: number;
+  openaiCompatibleMaxOutputTokens: number;
   customEndpoints: CustomEndpoint[];
   openrouterModelId: string;
   sttProvider: SttProvider;
@@ -225,6 +226,7 @@ const KEY_OLLAMA_MODEL_ID = "ollamaModelId";
 const KEY_OPENAI_COMPAT_BASE_URL = "openaiCompatibleBaseURL";
 const KEY_OPENAI_COMPAT_MODEL_ID = "openaiCompatibleModelId";
 const KEY_OPENAI_COMPAT_CONTEXT_LIMIT = "openaiCompatibleContextLimit";
+const KEY_OPENAI_COMPAT_MAX_OUTPUT = "openaiCompatibleMaxOutputTokens";
 const KEY_CUSTOM_ENDPOINTS = "customEndpoints";
 const KEY_OPENROUTER_MODEL_ID = "openrouterModelId";
 const KEY_STT_PROVIDER = "sttProvider";
@@ -307,6 +309,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   openaiCompatibleBaseURL: OPENAI_COMPATIBLE_DEFAULT_BASE_URL,
   openaiCompatibleModelId: "",
   openaiCompatibleContextLimit: 128_000,
+  openaiCompatibleMaxOutputTokens: 16_384,
   customEndpoints: [],
   openrouterModelId: "",
   sttProvider: DEFAULT_STT_PROVIDER,
@@ -427,6 +430,9 @@ export async function loadPreferences(): Promise<Preferences> {
     openaiCompatibleContextLimit:
       get<number>(KEY_OPENAI_COMPAT_CONTEXT_LIMIT) ??
       DEFAULT_PREFERENCES.openaiCompatibleContextLimit,
+    openaiCompatibleMaxOutputTokens:
+      get<number>(KEY_OPENAI_COMPAT_MAX_OUTPUT) ??
+      DEFAULT_PREFERENCES.openaiCompatibleMaxOutputTokens,
     customEndpoints: (() => {
       const stored = get<CustomEndpoint[]>(KEY_CUSTOM_ENDPOINTS);
       if (stored && stored.length > 0) return stored;
@@ -680,6 +686,15 @@ export async function setOpenaiCompatibleContextLimit(
   await writePref(KEY_OPENAI_COMPAT_CONTEXT_LIMIT, clamped);
 }
 
+export async function setOpenaiCompatibleMaxOutputTokens(
+  value: number,
+): Promise<void> {
+  const clamped = Number.isFinite(value) && value > 0
+    ? Math.round(value)
+    : DEFAULT_PREFERENCES.openaiCompatibleMaxOutputTokens;
+  await writePref(KEY_OPENAI_COMPAT_MAX_OUTPUT, clamped);
+}
+
 export async function setCustomEndpoints(
   value: CustomEndpoint[],
 ): Promise<void> {
@@ -897,6 +912,7 @@ export async function onPreferencesChange(
     [KEY_OPENAI_COMPAT_BASE_URL]: "openaiCompatibleBaseURL",
     [KEY_OPENAI_COMPAT_MODEL_ID]: "openaiCompatibleModelId",
     [KEY_OPENAI_COMPAT_CONTEXT_LIMIT]: "openaiCompatibleContextLimit",
+    [KEY_OPENAI_COMPAT_MAX_OUTPUT]: "openaiCompatibleMaxOutputTokens",
     [KEY_CUSTOM_ENDPOINTS]: "customEndpoints",
     [KEY_OPENROUTER_MODEL_ID]: "openrouterModelId",
     [KEY_STT_PROVIDER]: "sttProvider",
