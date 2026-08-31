@@ -2,6 +2,60 @@
 
 All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
+## [0.8.9] - 2026-08-31
+
+### Added
+- AI HTTP 流接入 `request_id` 取消通道，proxyFetch 中止时同步取消上游请求（CR-03）
+- Shell 会话中断命令与 `interrupted` 标记（Rust 侧）
+- `bash_run` 响应停止信号中断命令执行（CR-04）
+- `run_subagent` 透传停止信号，终止时同步向子 agent 传递中断（CR-04）
+- bash_run 输出补中断徽章（interrupted 状态可视觉识别）
+- Editor tab 徽标提示外部磁盘变更，并提供重载与保留两个动作入口
+- dirty 缓冲下检测外部磁盘变更并支持放弃重载
+- 外部内容变更后显式同步 CodeMirror 视图，修复 #988
+- 全局 JS 错误转发至 Tauri 日志（#933）
+- 新增 ErrorBoundary 兜底渲染崩溃（#933）
+- 启动时探测 WebGL2 context 可用性并置运行时标志（#933）
+
+### Changed
+- subagent 取消判定改按 `AbortError` 名称，更可靠
+- AI 工具调用长内容不再被中转截断，read_file 分页空内容问题一并修复
+- 编辑器补全与设置下拉按 slug 拆分自定义端点多模型选项
+- 自定义端点逗号分隔多模型拆分为独立可选项，修复 #1107
+- 内置代理名称与描述接入 i18n，中文环境显示中文文案
+- 保存冲突与格式化提示接入 i18n 中文化
+- `planSpaceRemoval` 用类型谓词替换 `as` 强转，`subtitleFor` 提取到 tabLabel 消除双写
+- source-control fs 触发刷新复用最小间隔节流并加上限
+- 订阅文件写入与变更事件防抖刷新状态面板
+
+### Fixed
+- 修复 glob 工具卡片恒显「无匹配」（CR-02）
+- 修复自定义端点模型下「继续」按钮静默失效（CR-01）
+- ContinueRow 继续按钮接入 #514 待审批守卫
+- 待处理 approval 未响应时阻止发送新消息，修复 #514
+- 删除端点后清理孤儿 compat 引用并自愈跨窗口选中模型
+- readLeafBuffer 按 leaf 反查归属并拒绝 private 终端
+- 预中止短路上游请求并前置取消注册（终审修复）
+- 崩溃日志保留堆栈并留档终审后续项（终审修复）
+- ErrorBoundary 与全局错误上报上移到两个窗口入口
+- pty：shell override 白名单校验移入 blocking 线程并加 3s 超时回退
+- pty：cwd 解析移入 blocking 线程并加 3s 超时回退 home（#449）
+- terminal：命令结束时重置残留鼠标跟踪模式，修复终端无法选中文字
+- terminal：WebGL 探测失败时跳过 addon 加载并提示一次（#933）
+- terminal：启用 rescaleOverlappingGlyphs 缓解 WebGL 渲染 CJK 重叠（#1168）
+- terminal：WebGL 初始化失败时清除残留 canvas 并阻止重试风暴
+- tabs：boot 前 newTab 系列补 cold 标记
+- closeTab 允许关闭空间唯一 preview 并修正失真测试
+- spaces：hydrate 超限 pane 树截断为 active 单叶
+- agents：private 终端抑制 agent 通知对齐图标抑制
+- command-palette：blocks 标签页 split 命令显示禁用理由
+- git：stage 过滤已消失的 untracked 路径避免整批失败
+- editor：dirty 检测路径读盘失败补 warn 日志
+- preview：本地预览被 X-Frame-Options/frame-ancestors 拦截时显示嵌入提示，修复 #807
+- ui：boundary 捕获的崩溃落 tauri 持久化日志（审查发现）
+
+---
+
 ## [0.8.8] - 2026-08-28
 
 ### Added
