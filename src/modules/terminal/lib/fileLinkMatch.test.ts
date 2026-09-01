@@ -74,6 +74,52 @@ describe("matchFileLinks", () => {
     expect(result[0]!.start).toBe(4);
     expect(result[0]!.end).toBe(15);
   });
+
+  it("matches a path immediately followed by a fullwidth comma", () => {
+    const result = matchFileLinks(
+      "docs/2026-08-27-upstream-issues.md，请查看",
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe("docs/2026-08-27-upstream-issues.md");
+  });
+
+  it("matches a path immediately followed by a halfwidth comma", () => {
+    const result = matchFileLinks(
+      "docs/2026-08-27-upstream-issues.md,请查看",
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe("docs/2026-08-27-upstream-issues.md");
+  });
+
+  it("matches a path immediately followed by other fullwidth punctuation", () => {
+    for (const punct of ["。", "、", "；", "：", "）", "】", "」", "』", "》"]) {
+      const result = matchFileLinks(`docs/README.md${punct}`);
+      expect(result, `punctuation: ${punct}`).toHaveLength(1);
+      expect(result[0]!.path).toBe("docs/README.md");
+    }
+  });
+
+  it("matches an absolute path wrapped in halfwidth parentheses", () => {
+    const result = matchFileLinks(
+      "(/Users/startiasoft/work/terax-ai-cn/src/modules/terminal/lib/fileLinkMatch.test.ts)",
+    );
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe(
+      "/Users/startiasoft/work/terax-ai-cn/src/modules/terminal/lib/fileLinkMatch.test.ts",
+    );
+  });
+
+  it("matches a path wrapped in fullwidth parentheses", () => {
+    const result = matchFileLinks("（docs/README.md）");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe("docs/README.md");
+  });
+
+  it("matches a path wrapped in square brackets", () => {
+    const result = matchFileLinks("[src/app.tsx]");
+    expect(result).toHaveLength(1);
+    expect(result[0]!.path).toBe("src/app.tsx");
+  });
 });
 
 describe("resolvePath", () => {

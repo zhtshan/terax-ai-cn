@@ -32,10 +32,11 @@ function normalizePosix(p: string): string {
  * Supports: `path`, `path:line`, `path:line:col`, plus grep/compiler
  * output where the location is followed by a trailing colon:
  * `path:line: message` and `path:line:col: message`.
+ * Paths may be wrapped in quotes or half/full-width brackets.
  * Requires at least one `/` and a recognized code-file extension.
  */
 const LINK_RE =
-  /(?<![^\s])(['"]?([^\s\t\n\r()<>\[\]{}=:]*\/[^\s\t\n\r()<>\[\]{}=:]*\.[a-zA-Z]{2,5}))(?::(\d+)(?::(\d+))?)?(?=[\s,;)\]>"'":]|$)/g;
+  /(?<![^\s([（【「『《<])(['"]?([^\s\t\n\r()<>\[\]{}=:（）【】「」『』《》，。、；：]*\/[^\s\t\n\r()<>\[\]{}=:（）【】「」『』《》，。、；：]*\.[a-zA-Z]{2,5}))(?::(\d+)(?::(\d+))?)?(?=[\s,;)\]>"'":，。、；：）】」』》]|$)/g;
 
 export function matchFileLinks(line: string): FileLinkCandidate[] {
   const results: FileLinkCandidate[] = [];
