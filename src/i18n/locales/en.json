@@ -812,6 +812,7 @@
     "placeholder": "http://localhost:3000",
     "openInBrowser": "Open in system browser",
     "embedWarning": "The site's response headers (X-Frame-Options / frame-ancestors) block embedding. If the page is blank, open it externally or relax the headers on your dev server.",
+    "cookieHint": "Cookie-based sign-in may not work in preview.",
     "suspended": "Preview suspended",
     "suspendedDesc": "Released to free memory after sitting in the background.",
     "nothingToPreview": "Nothing to preview yet"

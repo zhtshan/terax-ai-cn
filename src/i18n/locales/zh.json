@@ -807,6 +807,7 @@
     "placeholder": "http://localhost:3000",
     "openInBrowser": "在系统浏览器中打开",
     "embedWarning": "站点响应头（X-Frame-Options / frame-ancestors）禁止嵌入。页面为空时，可在外部打开，或放宽开发服务器的响应头。",
+    "cookieHint": "沙箱预览中，基于 Cookie 的登录可能无法使用。",
     "suspended": "预览已暂停",
     "suspendedDesc": "在后台闲置后释放以节省内存。",
     "nothingToPreview": "暂无内容可预览"

@@ -28,7 +28,7 @@
 |-------|---------|------|
 | #1009 Option+Arrow/Backspace macOS 失效 | [pr/1215](https://github.com/crynta/terax-ai/pull/1215) | 窄化 IME keyCode 229 守卫 |
 | #857 Windows 首键吞没 | [pr/962](https://github.com/crynta/terax-ai/pull/962) | 新 terminal 打开后首 keystroke 丢失 |
-| #1148 preview iframe cookie 被拦 | [pr/1228](https://github.com/crynta/terax-ai/pull/1228) | 仅加提示 hint，不修 sandbox |
+| #1148 preview iframe cookie 被拦 | [pr/1228](https://github.com/crynta/terax-ai/pull/1228) | 仅加提示 hint，不修 sandbox。✅ 上游 2026-08-30 合并，本仓库 2026-09-03 手动移植（`loopbackPreviewOrigin` + cookie hint 条，i18n 化并保留 #807 的 probeBlocked 行为） |
 
 **行动**：跟踪这三个 PR，上游合并后 cherry-pick 到中文版。
 
@@ -232,5 +232,5 @@ Windows 机器上：
 
 ---
 
-*上次更新：2026-08-29（#566 关闭：盘符切换器 `b0fd4e2` 已于 2026-08-19 落地，原备注过时；#814 修复：stage 过滤已消失 untracked 路径，根因为快照漂移非解析竞态。上游三 PR 仍 OPEN）*
+*上次更新：2026-09-03（#1148 移植完成：上游 pr/1228 已于 08-30 合并，本仓库手动移植 cookie hint——PreviewPane 直接 cherry-pick 会因 embedPolicy/i18n 分叉冲突，改为适配移植；上游 PR #1215、#962 仍 OPEN）*
 *原始 issue 明细：docs/2026-08-27-upstream-issues.md*
