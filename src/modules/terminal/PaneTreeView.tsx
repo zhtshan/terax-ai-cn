@@ -93,7 +93,9 @@ export function PaneTreeView(props: Props) {
         const slotId = firstLeafSlotId(child);
         return (
           <Fragment key={slotId}>
-            {i > 0 && <ResizableHandle />}
+            {i > 0 && (
+              <ResizableHandle className="transition-colors hover:bg-foreground/25 dark:bg-foreground/25 dark:hover:bg-foreground/40" />
+            )}
             <ResizablePanel id={`pane-slot-${slotId}`} minSize="10%">
               <PaneTreeView {...props} node={child} />
             </ResizablePanel>
