@@ -33,24 +33,24 @@ import { useTranslation } from "react-i18next";
 
 export type ToolPart = ToolUIPart | DynamicToolUIPart;
 
-const TOOL_META: Record<string, { label: string; icon: typeof File01Icon }> = {
-  read_file: { label: "Read", icon: File01Icon },
-  list_directory: { label: "List", icon: FolderOpenIcon },
-  write_file: { label: "Write", icon: FilePlusIcon },
-  create_directory: { label: "Create dir", icon: FolderAddIcon },
-  edit: { label: "Edit", icon: FileEditIcon },
-  multi_edit: { label: "Edit", icon: Edit02Icon },
-  bash_run: { label: "Run", icon: TerminalIcon },
-  bash_background: { label: "Spawn", icon: TerminalIcon },
-  bash_logs: { label: "Logs", icon: TerminalIcon },
-  bash_list: { label: "Jobs", icon: TerminalIcon },
-  bash_kill: { label: "Kill", icon: TerminalIcon },
-  grep: { label: "Search", icon: GlobalSearchIcon },
-  glob: { label: "Glob", icon: Folder01Icon },
-  suggest_command: { label: "Suggest", icon: SparklesIcon },
-  open_preview: { label: "Preview", icon: EyeIcon },
-  run_subagent: { label: "Subagent", icon: RobotIcon },
-  todo_write: { label: "Todos", icon: CheckListIcon },
+export const TOOL_META: Record<string, { label: string; icon: typeof File01Icon }> = {
+  read_file: { label: "read", icon: File01Icon },
+  list_directory: { label: "list", icon: FolderOpenIcon },
+  write_file: { label: "write", icon: FilePlusIcon },
+  create_directory: { label: "createDir", icon: FolderAddIcon },
+  edit: { label: "edit", icon: FileEditIcon },
+  multi_edit: { label: "edit", icon: Edit02Icon },
+  bash_run: { label: "run", icon: TerminalIcon },
+  bash_background: { label: "spawn", icon: TerminalIcon },
+  bash_logs: { label: "logs", icon: TerminalIcon },
+  bash_list: { label: "jobs", icon: TerminalIcon },
+  bash_kill: { label: "kill", icon: TerminalIcon },
+  grep: { label: "search", icon: GlobalSearchIcon },
+  glob: { label: "glob", icon: Folder01Icon },
+  suggest_command: { label: "suggest", icon: SparklesIcon },
+  open_preview: { label: "preview", icon: EyeIcon },
+  run_subagent: { label: "subagent", icon: RobotIcon },
+  todo_write: { label: "todos", icon: CheckListIcon },
 };
 
 const STATUS_DOT: Record<ToolPart["state"], string> = {
@@ -63,14 +63,14 @@ const STATUS_DOT: Record<ToolPart["state"], string> = {
   "output-error": "bg-destructive",
 };
 
-const STATUS_LABEL: Record<ToolPart["state"], string> = {
-  "approval-requested": "awaiting approval",
+export const STATUS_LABEL: Record<ToolPart["state"], string> = {
+  "approval-requested": "awaitingApproval",
   "approval-responded": "responded",
   "input-streaming": "preparing",
   "input-available": "running",
   "output-available": "done",
   "output-denied": "denied",
-  "output-error": "error",
+  "output-error": "toolError",
 };
 
 function deriveSummary(toolName: string, input: unknown): string | null {
