@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import type { ProviderKeys } from "./keyring";
 
 const GROQ_BASE_URL = "https://api.groq.com/openai/v1";
@@ -128,14 +129,14 @@ function assertLoopbackUrl(baseURL: string): void {
   try {
     url = new URL(baseURL);
   } catch {
-    throw new Error(`Invalid Whisper.cpp URL: ${baseURL}`);
+    throw new Error(i18n.t("ai.stt.invalidWhisperUrl", { url: baseURL }));
   }
   const host = url.hostname.toLowerCase().replace(/^\[|\]$/g, "");
   const loopback =
     host === "localhost" || host === "::1" || /^127(\.\d{1,3}){3}$/.test(host);
   if (!loopback) {
     throw new Error(
-      "Whisper.cpp must run on a loopback address (localhost or 127.x.x.x) to keep transcription local.",
+      i18n.t("ai.stt.whisperLoopbackOnly"),
     );
   }
 }
@@ -154,12 +155,12 @@ export async function transcribeAudio(
   switch (provider) {
     case "openai": {
       const key = apiKeys.openai;
-      if (!key) throw new Error("OpenAI API key is not configured");
+      if (!key) throw new Error(i18n.t("ai.stt.openaiKeyMissing"));
       return transcribeOpenAI(blob, key);
     }
     case "groq": {
       const key = apiKeys.groq;
-      if (!key) throw new Error("Groq API key is not configured");
+      if (!key) throw new Error(i18n.t("ai.stt.groqKeyMissing"));
       const model = options.groqSttModel || "whisper-large-v3-turbo";
       return transcribeViaRest(GROQ_BASE_URL, blob, key, model);
     }

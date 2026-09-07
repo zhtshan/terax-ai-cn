@@ -521,8 +521,29 @@
     "slashCommands": {
       "initWorkspace": "Initialize workspace",
       "planMode": "Plan mode",
+      "delegateToClaude": "Delegate to Claude Code",
       "planModeOff": "Plan mode off",
       "planModeOn": "Plan mode on"
+    },
+    "composer": {
+      "editorSelection": "Editor selection",
+      "terminalSelection": "Terminal selection"
+    },
+    "customEndpoint": "Custom endpoint",
+    "errors": {
+      "modelUnavailable": "Model unavailable",
+      "authFailed": "Authentication failed",
+      "quotaExceeded": "Quota exceeded",
+      "rateLimited": "Rate limit reached",
+      "fallback": "The AI provider rejected the request. Check the selected model and provider settings, then try again.",
+      "transcriptionFailed": "Transcription failed",
+      "micDenied": "Microphone access failed"
+    },
+    "stt": {
+      "invalidWhisperUrl": "Invalid Whisper.cpp URL: {{url}}",
+      "whisperLoopbackOnly": "Whisper.cpp must run on a loopback address (localhost or 127.x.x.x) to keep transcription local.",
+      "openaiKeyMissing": "OpenAI API key is not configured",
+      "groqKeyMissing": "Groq API key is not configured"
     },
     "sessions": {
       "newChat": "New chat"

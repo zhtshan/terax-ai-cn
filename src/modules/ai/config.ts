@@ -1,3 +1,5 @@
+import i18n from "@/i18n";
+
 export const KEYRING_SERVICE = "terax-ai";
 
 export type ProviderId =
@@ -224,7 +226,9 @@ export function migrateLegacyCompatEndpoint(
   id: string,
 ): CustomEndpoint[] {
   if (!baseURL.trim() || !modelId.trim()) return [];
-  return [{ id, name: "Custom endpoint", baseURL, modelId, contextLimit }];
+  return [
+    { id, name: i18n.t("ai.customEndpoint"), baseURL, modelId, contextLimit },
+  ];
 }
 
 export function getProvider(id: ProviderId): ProviderInfo {

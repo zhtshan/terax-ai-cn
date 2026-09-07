@@ -521,8 +521,29 @@
     "slashCommands": {
       "initWorkspace": "初始化工作区",
       "planMode": "计划模式",
+      "delegateToClaude": "委派给 Claude Code",
       "planModeOff": "计划模式已关闭",
       "planModeOn": "计划模式已开启"
+    },
+    "composer": {
+      "editorSelection": "编辑器选区",
+      "terminalSelection": "终端选区"
+    },
+    "customEndpoint": "自定义端点",
+    "errors": {
+      "modelUnavailable": "模型不可用",
+      "authFailed": "认证失败",
+      "quotaExceeded": "配额已用尽",
+      "rateLimited": "请求过于频繁",
+      "fallback": "AI 服务商拒绝了请求。请检查所选模型与服务商设置后重试。",
+      "transcriptionFailed": "转录失败",
+      "micDenied": "无法访问麦克风"
+    },
+    "stt": {
+      "invalidWhisperUrl": "Whisper.cpp 地址无效：{{url}}",
+      "whisperLoopbackOnly": "Whisper.cpp 必须运行在本地回环地址（localhost 或 127.x.x.x）上，以保证转录不出本机。",
+      "openaiKeyMissing": "未配置 OpenAI API Key",
+      "groqKeyMissing": "未配置 Groq API Key"
     },
     "sessions": {
       "newChat": "新对话"

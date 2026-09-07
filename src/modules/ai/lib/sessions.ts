@@ -61,6 +61,18 @@ export function newSessionId(): string {
   return `s-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
 }
 
+// Stored sentinel for untitled sessions; rendered via displaySessionTitle.
+export const UNTITLED_SESSION_TITLE = "New chat";
+
+export function displaySessionTitle(
+  t: (key: string) => string,
+  title: string | null,
+): string {
+  return !title || title === UNTITLED_SESSION_TITLE
+    ? t("ai.sessions.newChat")
+    : title;
+}
+
 export function deriveTitle(messages: UIMessage[]): string {
   for (const m of messages) {
     if (m.role !== "user") continue;
@@ -76,5 +88,5 @@ export function deriveTitle(messages: UIMessage[]): string {
       return first.length > 40 ? `${first.slice(0, 40)}…` : first;
     }
   }
-  return "New chat";
+  return UNTITLED_SESSION_TITLE;
 }

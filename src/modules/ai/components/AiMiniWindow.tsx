@@ -33,6 +33,7 @@ import { useTranslation } from "react-i18next";
 import { estimateCost, getModel, getModelContextLimit, type ModelId } from "../config";
 import type { ResizeDir } from "../lib/miniWindowGeometry";
 import type { SessionMeta } from "../lib/sessions";
+import { displaySessionTitle } from "../lib/sessions";
 import { useMiniWindowGeometry } from "../lib/useMiniWindowGeometry";
 import { useAgentsStore } from "../store/agentsStore";
 import { useChatStore } from "../store/chatStore";
@@ -449,7 +450,7 @@ function SessionPicker() {
           )}
           title={t("ai.miniWindow.switchSession")}
         >
-          <span className="truncate">{active.title || t("ai.miniWindow.newChat")}</span>
+          <span className="truncate">{displaySessionTitle(t, active.title)}</span>
           <HugeiconsIcon
             icon={ArrowDown01Icon}
             size={10}
@@ -510,7 +511,7 @@ function SessionRow({
       )}
     >
       <span className="min-w-0 flex-1 truncate">
-        {session.title || t("ai.miniWindow.newChat")}
+        {displaySessionTitle(t, session.title)}
       </span>
       <button
         type="button"

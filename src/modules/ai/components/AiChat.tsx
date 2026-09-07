@@ -47,6 +47,7 @@ import { useTranslation } from "react-i18next";
 import { AiToolApproval } from "./AiToolApproval";
 
 function CommandSnippet({ name }: { name: string }) {
+  const { t } = useTranslation();
   const meta = SLASH_COMMANDS[name];
   if (!meta) {
     return (
@@ -67,7 +68,7 @@ function CommandSnippet({ name }: { name: string }) {
         {meta.invocation}
       </span>
       <span className="truncate text-[11px] text-muted-foreground">
-        {meta.label}
+        {t(`ai.slashCommands.${meta.label}`)}
       </span>
     </div>
   );

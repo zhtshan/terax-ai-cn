@@ -71,3 +71,39 @@ describe("sourceControl keys", () => {
     expect(i18next.t("sourceControl.syncTitle")).toBe("获取远程更新。");
   });
 });
+
+describe("ai keys", () => {
+  it("covers slash command labels and plan toasts", () => {
+    expect(i18next.t("ai.slashCommands.initWorkspace")).toBe("初始化工作区");
+    expect(i18next.t("ai.slashCommands.planMode")).toBe("计划模式");
+    expect(i18next.t("ai.slashCommands.delegateToClaude")).toBe(
+      "委派给 Claude Code",
+    );
+    expect(i18next.t("ai.slashCommands.planModeOn")).toBe("计划模式已开启");
+    expect(i18next.t("ai.slashCommands.planModeOff")).toBe("计划模式已关闭");
+    expect(i18next.t("ai.sessions.newChat")).toBe("新对话");
+  });
+
+  it("covers attachment chips, stt errors and provider error prefixes", () => {
+    expect(i18next.t("ai.composer.editorSelection")).toBe("编辑器选区");
+    expect(i18next.t("ai.composer.terminalSelection")).toBe("终端选区");
+    expect(i18next.t("ai.customEndpoint")).toBe("自定义端点");
+    expect(i18next.t("ai.errors.modelUnavailable")).toBe("模型不可用");
+    expect(i18next.t("ai.errors.authFailed")).toBe("认证失败");
+    expect(i18next.t("ai.errors.quotaExceeded")).toBe("配额已用尽");
+    expect(i18next.t("ai.errors.rateLimited")).toBe("请求过于频繁");
+    expect(i18next.t("ai.errors.fallback")).toBe(
+      "AI 服务商拒绝了请求。请检查所选模型与服务商设置后重试。",
+    );
+    expect(i18next.t("ai.errors.transcriptionFailed")).toBe("转录失败");
+    expect(i18next.t("ai.errors.micDenied")).toBe("无法访问麦克风");
+    expect(
+      i18next.t("ai.stt.invalidWhisperUrl", { url: "http://x" }),
+    ).toBe("Whisper.cpp 地址无效：http://x");
+    expect(i18next.t("ai.stt.whisperLoopbackOnly")).toBe(
+      "Whisper.cpp 必须运行在本地回环地址（localhost 或 127.x.x.x）上，以保证转录不出本机。",
+    );
+    expect(i18next.t("ai.stt.openaiKeyMissing")).toBe("未配置 OpenAI API Key");
+    expect(i18next.t("ai.stt.groqKeyMissing")).toBe("未配置 Groq API Key");
+  });
+});
