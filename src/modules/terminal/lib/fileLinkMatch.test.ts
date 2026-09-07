@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   isInsideWorkspace,
   matchFileLinks,
+  resolveActivations,
   resolvePath,
 } from "./fileLinkMatch";
 
@@ -183,5 +184,40 @@ describe("isInsideWorkspace", () => {
 
   it("returns false when path is a prefix but not inside", () => {
     expect(isInsideWorkspace("/repo-extra/foo.ts", "/repo")).toBe(false);
+  });
+});
+
+describe("resolveActivations", () => {
+  it("lists the cwd-resolved path first and the workspace-root fallback second", () => {
+    expect(
+      resolveActivations("openspec/config.yaml", "/repo/sub", null, "/repo"),
+    ).toEqual([
+      "/repo/sub/openspec/config.yaml",
+      "/repo/openspec/config.yaml",
+    ]);
+  });
+
+  it("falls back to the root candidate alone when cwd is unknown", () => {
+    expect(
+      resolveActivations("openspec/config.yaml", null, null, "/repo"),
+    ).toEqual(["/repo/openspec/config.yaml"]);
+  });
+
+  it("dedupes when the cwd resolution already equals the root resolution", () => {
+    expect(
+      resolveActivations("/repo/x/app.ts", "/repo/sub", null, "/repo"),
+    ).toEqual(["/repo/x/app.ts"]);
+  });
+
+  it("drops candidates that normalize outside the workspace root", () => {
+    expect(
+      resolveActivations("../../evil/app.ts", "/repo/sub", null, "/repo"),
+    ).toEqual([]);
+  });
+
+  it("expands ~ paths against home without duplicating candidates", () => {
+    expect(
+      resolveActivations("~/w/app.ts", "/repo/sub", "/home/u", "/home/u/w"),
+    ).toEqual(["/home/u/w/app.ts"]);
   });
 });
