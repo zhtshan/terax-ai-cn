@@ -50,8 +50,11 @@ Auto-executes (no approval) — subagents are read-only by design.`,
             durationMs: r.durationMs,
           };
         } catch (e) {
-          if (e instanceof Error && e.name === "AbortError")
+          if (e instanceof Error && e.name === "AbortError") {
+            // 中断时 onStep 留下的本子代理标签已失效，清掉防 UI 残留。
+            patchAgentMeta({ step: null });
             return { type, aborted: true };
+          }
           return { error: String(e), type };
         }
       },
