@@ -107,3 +107,34 @@ describe("ai keys", () => {
     expect(i18next.t("ai.stt.groqKeyMissing")).toBe("未配置 Groq API Key");
   });
 });
+
+describe("editor and search keys", () => {
+  it("covers editor placeholder, formatter and diff status labels", () => {
+    expect(i18next.t("editor.formatFailed", { formatter: "Prettier" })).toBe(
+      "Prettier 格式化失败",
+    );
+    expect(i18next.t("editor.binaryFile")).toBe("二进制文件");
+    expect(i18next.t("editor.fileTooLarge")).toBe("文件过大");
+    expect(i18next.t("editor.syntaxDisabled")).toBe("语法功能已禁用");
+    expect(i18next.t("editor.previewNotSupported")).toBe("暂不支持预览");
+    expect(i18next.t("editor.openAnyway")).toBe("仍要打开");
+    expect(i18next.t("editor.plainText")).toBe("纯文本");
+    expect(i18next.t("editor.formatterLsp")).toBe("语言服务器");
+    expect(i18next.t("editor.formatterCustom")).toBe("自定义命令");
+    expect(i18next.t("editor.noFormatCommand")).toBe(
+      "未在设置中配置自定义格式化命令。",
+    );
+    expect(i18next.t("editor.cmdClickToOpen")).toBe(
+      "按住 Cmd/Ctrl 并点击打开链接",
+    );
+    expect(i18next.t("aiDiff.pending")).toBe("待审核");
+    expect(i18next.t("aiDiff.approved")).toBe("已应用");
+    expect(i18next.t("aiDiff.rejected")).toBe("已拒绝");
+  });
+
+  it("covers search panel empty states", () => {
+    expect(i18next.t("searchPanel.noResults")).toBe("无结果");
+    expect(i18next.t("searchPanel.truncated")).toBe("结果已截断");
+    expect(i18next.t("common.searching")).toBe("搜索中…");
+  });
+});

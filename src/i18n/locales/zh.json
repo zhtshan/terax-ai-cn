@@ -912,7 +912,24 @@
     "formatSkipped": "保存时已跳过格式化",
     "formatSkippedNoFormatterDesc": "当前语言服务器没有格式化器。请在设置中选择外部格式化器（Python 用 Ruff、Prettier、rustfmt 等）。",
     "formatSkippedNoLspDesc": "此文件没有活动的语言服务器。请在状态栏启用一个，或在设置中选择外部格式化器。",
-    "saveToPreview": "保存后可预览"
+    "saveToPreview": "保存后可预览",
+    "formatFailed": "{{formatter}} 格式化失败",
+    "binaryFile": "二进制文件",
+    "fileTooLarge": "文件过大",
+    "syntaxDisabled": "语法功能已禁用",
+    "previewNotSupported": "暂不支持预览",
+    "openAnyway": "仍要打开",
+    "plainText": "纯文本",
+    "formatterLsp": "语言服务器",
+    "formatterCustom": "自定义命令",
+    "noFormatCommand": "未在设置中配置自定义格式化命令。",
+    "cmdClickToOpen": "按住 Cmd/Ctrl 并点击打开链接"
+  },
+  "aiDiff": {
+    "pending": "待审核",
+    "approved": "已应用",
+    "rejected": "已拒绝",
+    "newFile": "新文件"
   },
   "sourceControl": {
     "title": "源代码管理",

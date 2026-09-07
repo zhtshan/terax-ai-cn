@@ -917,7 +917,24 @@
     "formatSkipped": "Format on save skipped",
     "formatSkippedNoFormatterDesc": "The active language server has no formatter. Pick an external one in Settings (Ruff for Python, Prettier, rustfmt, ...).",
     "formatSkippedNoLspDesc": "No active language server for this file. Enable one in the statusbar, or pick an external formatter in Settings.",
-    "saveToPreview": "Save to preview"
+    "saveToPreview": "Save to preview",
+    "formatFailed": "{{formatter}} format failed",
+    "binaryFile": "Binary file",
+    "fileTooLarge": "File too large",
+    "syntaxDisabled": "syntax features disabled",
+    "previewNotSupported": "preview not supported",
+    "openAnyway": "Open anyway",
+    "plainText": "Plain Text",
+    "formatterLsp": "Language server",
+    "formatterCustom": "Custom command",
+    "noFormatCommand": "No custom format command configured in Settings.",
+    "cmdClickToOpen": "Cmd/Ctrl+Click to open"
+  },
+  "aiDiff": {
+    "pending": "Pending review",
+    "approved": "Applied",
+    "rejected": "Rejected",
+    "newFile": "New file"
   },
   "sourceControl": {
     "title": "Source Control",

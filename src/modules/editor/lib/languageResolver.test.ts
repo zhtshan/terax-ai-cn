@@ -48,7 +48,7 @@ describe("resolveDisplayName", () => {
 
   it("falls back to a capitalized basename for unknown files", () => {
     expect(resolveDisplayName("notes")).toBe("Notes");
-    expect(resolveDisplayName(null)).toBe("Plain Text");
-    expect(resolveDisplayName("")).toBe("Plain Text");
+    expect(resolveDisplayName(null)).toBe("纯文本");
+    expect(resolveDisplayName("")).toBe("纯文本");
   });
 });

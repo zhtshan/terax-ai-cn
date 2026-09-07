@@ -14,9 +14,9 @@ export type SearchResultsProps = {
   hits: ContentHit[];
   pattern: string;
   options: HighlightOptions;
-  emptyLabel?: string;
+  emptyLabel: string;
   truncated?: boolean;
-  truncatedLabel?: string;
+  truncatedLabel: string;
   onOpenHit?: (path: string, line: number) => void;
 };
 
@@ -37,9 +37,9 @@ export function SearchResults({
   hits,
   pattern,
   options,
-  emptyLabel = "No results",
+  emptyLabel,
   truncated,
-  truncatedLabel = "Results truncated",
+  truncatedLabel,
   onOpenHit,
 }: SearchResultsProps) {
   const groups = useMemo(() => groupByRel(hits), [hits]);

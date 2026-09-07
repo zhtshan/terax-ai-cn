@@ -1,4 +1,5 @@
 import { forwardRef, useImperativeHandle, useMemo } from "react";
+import { useTranslation } from "react-i18next";
 import { SearchInput, type SearchInputOptions } from "./SearchInput";
 import { SearchResults } from "./SearchResults";
 import { ReplaceAffectedBar } from "./ReplaceAffectedBar";
@@ -35,6 +36,7 @@ export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(funct
   },
   ref,
 ) {
+  const { t } = useTranslation();
   useImperativeHandle(
     ref,
     () => ({
@@ -73,7 +75,9 @@ export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(funct
         <div className="px-3 py-2 text-[11px] text-destructive">{error}</div>
       ) : null}
       {loading ? (
-        <div className="px-3 py-1 text-[11px] text-muted-foreground">Searching…</div>
+        <div className="px-3 py-1 text-[11px] text-muted-foreground">
+          {t("common.searching")}
+        </div>
       ) : null}
       <SearchResults
         hits={results?.hits ?? []}
@@ -83,6 +87,8 @@ export const SearchPanel = forwardRef<SearchPanelHandle, SearchPanelProps>(funct
           caseSensitive: options.caseSensitive,
           wholeWord: options.wholeWord,
         }}
+        emptyLabel={t("searchPanel.noResults")}
+        truncatedLabel={t("searchPanel.truncated")}
         truncated={results?.truncated}
         onOpenHit={onOpenHit}
       />
