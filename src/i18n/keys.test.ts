@@ -138,3 +138,53 @@ describe("editor and search keys", () => {
     expect(i18next.t("common.searching")).toBe("搜索中…");
   });
 });
+
+describe("lsp and misc keys", () => {
+  it("covers lsp toasts and result panel titles", () => {
+    expect(i18next.t("lsp.definitionFailed")).toBe("跳转到定义失败");
+    expect(i18next.t("lsp.noDefinition")).toBe("未找到定义");
+    expect(i18next.t("lsp.referencesFailed")).toBe("查找引用失败");
+    expect(i18next.t("lsp.noReferences")).toBe("未找到引用");
+    expect(i18next.t("lsp.definitions")).toBe("定义");
+    expect(i18next.t("lsp.references")).toBe("引用");
+    expect(
+      i18next.t("lsp.spawnFailed", { name: "typescript" }),
+    ).toBe("typescript 语言服务器启动失败");
+    expect(i18next.t("lsp.stopped", { name: "rust" })).toBe(
+      "rust 语言服务器已停止",
+    );
+    expect(i18next.t("lsp.keepsCrashing", { name: "gopls" })).toBe(
+      "gopls 语言服务器反复崩溃",
+    );
+    expect(i18next.t("lsp.giveUp")).toBe("已放弃此工作区。");
+    expect(i18next.t("lsp.exited", { name: "pyright" })).toBe(
+      "pyright 语言服务器已退出",
+    );
+  });
+
+  it("covers chat code, context usage and misc labels", () => {
+    expect(i18next.t("ai.chatCode.generating")).toBe("正在生成代码…");
+    expect(i18next.t("ai.chatCode.generatingLang", { lang: "Python" })).toBe(
+      "正在生成 Python…",
+    );
+    expect(i18next.t("ai.chatCode.runInTerminal")).toBe("在活动终端运行");
+    expect(i18next.t("ai.context.input")).toBe("输入");
+    expect(i18next.t("ai.context.output")).toBe("输出");
+    expect(i18next.t("ai.context.reasoning")).toBe("推理");
+    expect(i18next.t("ai.context.cache")).toBe("缓存");
+    expect(i18next.t("gitHistory.viewOnHost", { host: "GitHub" })).toBe(
+      "在 GitHub 上查看",
+    );
+    expect(i18next.t("tabs.historyBranch", { branch: "main" })).toBe(
+      "历史 · main",
+    );
+    expect(i18next.t("tabs.gitHistory")).toBe("Git 历史");
+    expect(i18next.t("statusbar.noSubfolders")).toBe("无子文件夹");
+    expect(i18next.t("statusbar.showHiddenFolders")).toBe("显示隐藏文件夹");
+    expect(i18next.t("searchPanel.replaceEmpty")).toBe("替换内容为空");
+    expect(i18next.t("searchPanel.replaceFailed")).toBe("替换失败");
+    expect(
+      i18next.t("explorer.copyFailed", { detail: "denied" }),
+    ).toBe("复制失败：denied");
+  });
+});

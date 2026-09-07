@@ -1,4 +1,5 @@
 import { highlightingFor, indentUnit, language } from "@codemirror/language";
+import i18n from "@/i18n";
 import {
   type Extension,
   StateEffect,
@@ -339,15 +340,15 @@ export function lspInteractions(opts: {
         position: positionAt(view, pos),
       });
     } catch (e) {
-      toast.error("Go to definition failed", { description: String(e) });
+      toast.error(i18n.t("lsp.definitionFailed"), { description: String(e) });
       return;
     }
     const locs = normalizeLocations(result);
     if (locs.length === 0) {
-      toast.info("No definition found");
+      toast.info(i18n.t("lsp.noDefinition"));
       return;
     }
-    showResults(view, "Definitions", locs);
+    showResults(view, i18n.t("lsp.definitions"), locs);
   };
 
   const findReferences = async (
@@ -362,15 +363,15 @@ export function lspInteractions(opts: {
         context: { includeDeclaration: true },
       });
     } catch (e) {
-      toast.error("Find references failed", { description: String(e) });
+      toast.error(i18n.t("lsp.referencesFailed"), { description: String(e) });
       return;
     }
     const locs = result ?? [];
     if (locs.length === 0) {
-      toast.info("No references found");
+      toast.info(i18n.t("lsp.noReferences"));
       return;
     }
-    showResults(view, "References", locs);
+    showResults(view, i18n.t("lsp.references"), locs);
   };
 
   return [

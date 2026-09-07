@@ -1,4 +1,5 @@
 "use client";
+import i18n from "@/i18n";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -239,7 +240,7 @@ export const ContextInputUsage = ({
     return null;
   }
 
-  return <UsageRow label="Input" tokens={inputTokens} {...props} />;
+  return <UsageRow label={i18n.t("ai.context.input")} tokens={inputTokens} {...props} />;
 };
 
 export type ContextOutputUsageProps = ComponentProps<"div">;
@@ -259,7 +260,7 @@ export const ContextOutputUsage = ({
     return null;
   }
 
-  return <UsageRow label="Output" tokens={outputTokens} {...props} />;
+  return <UsageRow label={i18n.t("ai.context.output")} tokens={outputTokens} {...props} />;
 };
 
 export type ContextReasoningUsageProps = ComponentProps<"div">;
@@ -279,7 +280,7 @@ export const ContextReasoningUsage = ({
     return null;
   }
 
-  return <UsageRow label="Reasoning" tokens={reasoningTokens} {...props} />;
+  return <UsageRow label={i18n.t("ai.context.reasoning")} tokens={reasoningTokens} {...props} />;
 };
 
 export type ContextCacheUsageProps = ComponentProps<"div">;
@@ -299,5 +300,5 @@ export const ContextCacheUsage = ({
     return null;
   }
 
-  return <UsageRow label="Cache" tokens={cacheTokens} {...props} />;
+  return <UsageRow label={i18n.t("ai.context.cache")} tokens={cacheTokens} {...props} />;
 };

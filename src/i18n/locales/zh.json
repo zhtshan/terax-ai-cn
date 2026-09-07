@@ -530,6 +530,17 @@
       "terminalSelection": "终端选区"
     },
     "customEndpoint": "自定义端点",
+      "chatCode": {
+        "generating": "正在生成代码…",
+        "generatingLang": "正在生成 {{lang}}…",
+        "runInTerminal": "在活动终端运行"
+      },
+      "context": {
+        "input": "输入",
+        "output": "输出",
+        "reasoning": "推理",
+        "cache": "缓存"
+      },
     "errors": {
       "modelUnavailable": "模型不可用",
       "authFailed": "认证失败",
@@ -666,6 +677,44 @@
       "content": "在文件中查找文本"
     }
   },
+  "gitHistory": {
+    "loadingCommits": "加载提交中…",
+    "loadErrorTitle": "无法加载历史记录",
+    "retry": "重试",
+    "unknownError": "未知错误",
+    "noCommitsTitle": "暂无提交",
+    "noCommitsDesc": "此分支尚无提交。",
+    "header": {
+      "sha": "SHA",
+      "subject": "主题",
+      "author": "作者",
+      "date": "日期",
+      "changes": "更改"
+    },
+    "loadingMore": "加载更多中…",
+    "endReached": "已到达末尾",
+    "failedToLoadMore": "加载更多失败",
+    "noSubject": "（无主题）",
+    "unknown": "未知",
+    "filesChanged_one": "更改了 {{count}} 个文件",
+    "filesChanged_other": "更改了 {{count}} 个文件",
+    "loadingFiles": "加载文件列表中…",
+    "noFileChanges": "无文件更改。",
+    "files": "文件",
+    "binary": "二进制",
+    "copied": "已复制",
+    "copySha": "复制 SHA",
+    "viewOnHost": "在 {{host}} 上查看"
+  },
+  "spaces": {
+    "title": "空间",
+    "newSpace": "新建空间",
+    "renameSpace": "重命名空间",
+    "newTab": "新建标签",
+    "deleteSpace": "删除空间",
+    "dropToMoveHere": "拖到此移动",
+    "noTabs": "暂无标签"
+  },
   "lsp": {
     "startForWorkspace": "为此工作区启动 {{command}}",
     "enablePill": "启用 {{name}} LSP",
@@ -684,7 +733,18 @@
     "startingTitle": "语言服务器启动中",
     "activeTitle": "语言服务器已激活",
     "runningStarting": "<1>{{command}}</1> 正在为此工作区启动。",
-    "runningActive": "<1>{{command}}</1> 正在为此工作区运行。"
+    "runningActive": "<1>{{command}}</1> 正在为此工作区运行。",
+    "definitionFailed": "跳转到定义失败",
+    "noDefinition": "未找到定义",
+    "referencesFailed": "查找引用失败",
+    "noReferences": "未找到引用",
+    "definitions": "定义",
+    "references": "引用",
+    "spawnFailed": "{{name}} 语言服务器启动失败",
+    "stopped": "{{name}} 语言服务器已停止",
+    "keepsCrashing": "{{name}} 语言服务器反复崩溃",
+    "giveUp": "已放弃此工作区。",
+    "exited": "{{name}} 语言服务器已退出"
   },
   "markdown": {
     "failedToRead": "读取文件失败：{{message}}",
@@ -716,7 +776,9 @@
     "error": "错误：{{message}}",
     "truncated": "结果已截断",
     "noResults": "无结果",
-    "noWorkspace": "请先打开工作区"
+    "noWorkspace": "请先打开工作区",
+    "replaceEmpty": "替换内容为空",
+    "replaceFailed": "替换失败"
   },
   "terminal": {
     "watermark": {
@@ -748,6 +810,8 @@
     "private": "隐私：对 AI 隐藏",
     "privateTooltip": "AI 无法看到此终端的输出。适用于密钥、SSH 或任何你不想发送给模型的内容。",
     "windows": "Windows",
+    "noSubfolders": "无子文件夹",
+    "showHiddenFolders": "显示隐藏文件夹",
     "workspaceEnv": "工作区环境",
     "windowsLocal": "Windows 本地",
     "loadingWsl": "加载 WSL 发行版中…",
@@ -772,6 +836,8 @@
     "fewerLanguages": "↑ 收起语言",
     "allLanguages": "↓ 全部语言",
     "renameTab": "重命名标签",
+    "gitHistory": "Git 历史",
+    "historyBranch": "历史 · {{branch}}",
     "externalChange": "磁盘已修改",
     "externalReload": "重新加载（放弃本地修改）",
     "externalKeep": "保留我的版本"
@@ -791,6 +857,7 @@
     "copyRelativePath": "复制相对路径",
     "copyFile": "复制",
     "cutFile": "剪切",
+    "copyFailed": "复制失败：{{detail}}",
     "paste": "粘贴",
     "attachToAgent": "附加到代理",
     "rename": "重命名",

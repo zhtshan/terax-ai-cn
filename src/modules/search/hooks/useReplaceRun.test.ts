@@ -306,7 +306,7 @@ describe("useReplaceRun", () => {
 
     expect(result.current.state.kind).toBe("error");
     if (result.current.state.kind === "error") {
-      expect(result.current.state.message).toContain("empty");
+      expect(result.current.state.message).toBe("替换内容为空");
     }
     expect(checkWritableCanonical).not.toHaveBeenCalled();
     expect(replaceAll).not.toHaveBeenCalled();

@@ -530,6 +530,17 @@
       "terminalSelection": "Terminal selection"
     },
     "customEndpoint": "Custom endpoint",
+      "chatCode": {
+        "generating": "Generating code…",
+        "generatingLang": "Generating {{lang}}…",
+        "runInTerminal": "Run in active terminal"
+      },
+      "context": {
+        "input": "Input",
+        "output": "Output",
+        "reasoning": "Reasoning",
+        "cache": "Cache"
+      },
     "errors": {
       "modelUnavailable": "Model unavailable",
       "authFailed": "Authentication failed",
@@ -671,6 +682,44 @@
       "content": "Find text in files"
     }
   },
+  "gitHistory": {
+    "loadingCommits": "Loading commits…",
+    "loadErrorTitle": "Could not load history",
+    "retry": "Retry",
+    "unknownError": "Unknown error",
+    "noCommitsTitle": "No commits yet",
+    "noCommitsDesc": "This branch has no commits.",
+    "header": {
+      "sha": "SHA",
+      "subject": "Subject",
+      "author": "Author",
+      "date": "Date",
+      "changes": "Changes"
+    },
+    "loadingMore": "Loading more…",
+    "endReached": "End of history",
+    "failedToLoadMore": "Failed to load more",
+    "noSubject": "(no subject)",
+    "unknown": "Unknown",
+    "filesChanged_one": "{{count}} file changed",
+    "filesChanged_other": "{{count}} files changed",
+    "loadingFiles": "Loading files…",
+    "noFileChanges": "No file changes.",
+    "files": "Files",
+    "binary": "binary",
+    "copied": "Copied",
+    "copySha": "Copy SHA",
+    "viewOnHost": "View on {{host}}"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "newSpace": "New space",
+    "renameSpace": "Rename space",
+    "newTab": "New tab",
+    "deleteSpace": "Delete space",
+    "dropToMoveHere": "Drop to move here",
+    "noTabs": "No tabs"
+  },
   "lsp": {
     "startForWorkspace": "Start {{command}} for this workspace",
     "enablePill": "Enable {{name}} LSP",
@@ -689,7 +738,18 @@
     "startingTitle": "Language server starting",
     "activeTitle": "Language server active",
     "runningStarting": "<1>{{command}}</1> is starting for this workspace.",
-    "runningActive": "<1>{{command}}</1> is running for this workspace."
+    "runningActive": "<1>{{command}}</1> is running for this workspace.",
+    "definitionFailed": "Go to definition failed",
+    "noDefinition": "No definition found",
+    "referencesFailed": "Find references failed",
+    "noReferences": "No references found",
+    "definitions": "Definitions",
+    "references": "References",
+    "spawnFailed": "{{name}} language server failed to start",
+    "stopped": "{{name}} language server stopped",
+    "keepsCrashing": "{{name}} language server keeps crashing",
+    "giveUp": "Giving up for this workspace.",
+    "exited": "{{name}} language server exited"
   },
   "markdown": {
     "failedToRead": "Failed to read file: {{message}}",
@@ -721,7 +781,9 @@
     "error": "Error: {{message}}",
     "truncated": "Results truncated",
     "noResults": "No results found",
-    "noWorkspace": "Open a folder to search"
+    "noWorkspace": "Open a folder to search",
+    "replaceEmpty": "Replacement is empty",
+    "replaceFailed": "Replace failed"
   },
   "terminal": {
     "watermark": {
@@ -753,6 +815,8 @@
     "private": "Private: hidden from AI",
     "privateTooltip": "AI can't see this terminal's output. Use it for secrets, SSH, or anything you don't want sent to the model.",
     "windows": "Windows",
+    "noSubfolders": "No subfolders",
+    "showHiddenFolders": "Show hidden folders",
     "workspaceEnv": "Workspace environment",
     "windowsLocal": "Windows Local",
     "loadingWsl": "Loading WSL distros...",
@@ -777,6 +841,8 @@
     "fewerLanguages": "↑ Fewer languages",
     "allLanguages": "↓ All languages",
     "renameTab": "Rename tab",
+    "gitHistory": "Git History",
+    "historyBranch": "History · {{branch}}",
     "externalChange": "Changed on disk",
     "externalReload": "Reload (discard local changes)",
     "externalKeep": "Keep my version"
@@ -796,6 +862,7 @@
     "copyRelativePath": "Copy Relative Path",
     "copyFile": "Copy",
     "cutFile": "Cut",
+    "copyFailed": "Copy failed: {{detail}}",
     "paste": "Paste",
     "attachToAgent": "Attach to Agent",
     "rename": "Rename",

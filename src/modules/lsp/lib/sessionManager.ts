@@ -1,4 +1,5 @@
 import { usePreferencesStore } from "@/modules/settings/preferences";
+import i18n from "@/i18n";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import type { Extension } from "@codemirror/state";
 import type { EditorView } from "@codemirror/view";
@@ -204,7 +205,7 @@ async function createSession(
   } catch (e) {
     recordCrash(key);
     store.removeSession(key, preset.id);
-    toast.error(`${preset.name} language server failed to start`, {
+    toast.error(i18n.t("lsp.spawnFailed", { name: preset.name }), {
       description: String(e),
     });
     return null;
@@ -275,7 +276,7 @@ function handleServerExit(key: string): void {
       Array.from({ length: MAX_CRASHES }, () => Date.now()),
     );
     useLspRuntimeStore.getState().setFailed(managed.preset.id, info.reason);
-    toast.error(`${managed.preset.name} language server stopped`, {
+    toast.error(i18n.t("lsp.stopped", { name: managed.preset.name }), {
       description: info.reason,
     });
     return;
@@ -288,13 +289,13 @@ function handleServerExit(key: string): void {
         managed.preset.id,
         tail ? tail.slice(-300) : "The server kept crashing.",
       );
-    toast.error(`${managed.preset.name} language server keeps crashing`, {
-      description: tail ? tail.slice(-300) : "Giving up for this workspace.",
+    toast.error(i18n.t("lsp.keepsCrashing", { name: managed.preset.name }), {
+      description: tail ? tail.slice(-300) : i18n.t("lsp.giveUp"),
     });
     return;
   }
   if (tail) {
-    toast.error(`${managed.preset.name} language server exited`, {
+    toast.error(i18n.t("lsp.exited", { name: managed.preset.name }), {
       description: tail.slice(-300),
     });
   }

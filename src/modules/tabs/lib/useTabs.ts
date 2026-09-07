@@ -1,4 +1,5 @@
 import { isMarkdownPath } from "@/lib/utils";
+import i18n from "@/i18n";
 import {
   findLeafCwd,
   hasLeaf,
@@ -442,7 +443,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
         cold: true,
-        title: "shell",
+        title: i18n.t("tabs.terminal"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -462,7 +463,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
         cold: true,
-        title: "blocks",
+        title: i18n.t("tabs.blocks"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -510,7 +511,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
         cold: true,
-        title: "private",
+        title: i18n.t("tabs.privacy"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -850,7 +851,9 @@ export function useTabs(initial?: Partial<TerminalTab>) {
       const existing = curr.find(
         (t) => t.kind === "git-history" && t.repoRoot === input.repoRoot,
       );
-      const title = input.branch ? `History · ${input.branch}` : "Git History";
+      const title = input.branch
+        ? i18n.t("tabs.historyBranch", { branch: input.branch })
+        : i18n.t("tabs.gitHistory");
       if (existing) {
         const nextTabs = curr.map((t) =>
           t.id === existing.id ? { ...t, title } : t,
@@ -1167,7 +1170,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           id: tabId,
           kind: "terminal",
           spaceId: activeSpaceIdRef.current,
-          title: "shell",
+          title: i18n.t("tabs.terminal"),
           cwd,
           paneTree: { kind: "leaf", id: leafId, cwd },
           activeLeafId: leafId,

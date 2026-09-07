@@ -1,4 +1,5 @@
 import { useCallback, useMemo, useRef, useState } from "react";
+import i18n from "@/i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { checkWritableCanonical } from "@/modules/ai/lib/security";
 import { currentWorkspaceEnv } from "@/modules/workspace";
@@ -72,7 +73,7 @@ export function useReplaceRun(options: UseReplaceRunOptions): {
     if (!input || !results) return;
     if (inFlightRef.current) return;
     if (replacement.length === 0) {
-      setState({ kind: "error", message: "Replacement is empty" });
+      setState({ kind: "error", message: i18n.t("searchPanel.replaceEmpty") });
       return;
     }
     if (counts.matches === 0) {
@@ -117,7 +118,7 @@ export function useReplaceRun(options: UseReplaceRunOptions): {
         } else if (resp.files_changed.length === 0) {
           setState({
             kind: "error",
-            message: resp.errors[0]?.reason ?? "Replace failed",
+            message: resp.errors[0]?.reason ?? i18n.t("searchPanel.replaceFailed"),
           });
         } else {
           setState({
