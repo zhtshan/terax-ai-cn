@@ -2,6 +2,16 @@
 
 All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
+## [0.8.10] - 2026-09-07
+
+### Added
+- 预览窗格移植上游 #1148 cookie 登录提示条，loopback 预览提供外部浏览器回退
+
+### Fixed
+- 终端文件链接支持全角标点收尾与括号包裹路径，路径后紧跟全角逗号等不再匹配失败
+- 终端文件链接点击按工作区根回退解析，修复 shell 位于子目录时项目根相对路径误报「文件不存在」
+- 深色模式下分屏分隔线提升可见度（浅色保持原样）
+
 ## [0.8.9] - 2026-08-31
 
 ### Added
