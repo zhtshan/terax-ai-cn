@@ -119,3 +119,45 @@ describe("proxyFetch cancel channel", () => {
     );
   });
 });
+
+describe("proxyFetch abort listener cleanup", () => {
+  beforeEach(() => {
+    invoke.mockReset();
+  });
+
+  it("natural end removes the abort listener", async () => {
+    streamSends(HEADERS, { kind: "end" });
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+    const res = await createProxyFetch()("https://example.com", {
+      signal: controller.signal,
+    });
+    await res.body?.getReader().read();
+    expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+  });
+
+  it("invoke failure removes the abort listener", async () => {
+    invoke.mockImplementation(async (cmd: string) => {
+      if (cmd === "ai_http_stream") throw new Error("boom");
+      return undefined;
+    });
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+    const p = createProxyFetch()("https://example.com", {
+      signal: controller.signal,
+    });
+    await expect(p).rejects.toThrow("boom");
+    expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+  });
+
+  it("consumer cancel removes the abort listener", async () => {
+    streamSends(HEADERS);
+    const controller = new AbortController();
+    const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+    const res = await createProxyFetch()("https://example.com", {
+      signal: controller.signal,
+    });
+    await res.body?.cancel();
+    expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+  });
+});
