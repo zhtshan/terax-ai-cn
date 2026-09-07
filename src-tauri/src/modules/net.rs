@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -357,9 +357,71 @@ pub enum AiStreamEvent {
     },
 }
 
+const TOMBSTONE_CAP: usize = 1024;
+
 #[derive(Default)]
 pub struct AiStreamCancelState {
     inner: Arc<Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>>,
+    tombstones: Mutex<Tombstones>,
+}
+
+// 注册先于 cancel 到达时落空的孤儿取消：登记后让迟到的同 id stream 入口即短路。
+#[derive(Default)]
+struct Tombstones {
+    set: HashSet<String>,
+    queue: VecDeque<String>,
+}
+
+impl Tombstones {
+    fn add(&mut self, id: String) {
+        if self.set.insert(id.clone()) {
+            self.queue.push_back(id);
+        }
+        while self.queue.len() > TOMBSTONE_CAP {
+            if let Some(old) = self.queue.pop_front() {
+                self.set.remove(&old);
+            }
+        }
+    }
+
+    fn take(&mut self, id: &str) -> bool {
+        if self.set.remove(id) {
+            self.queue.retain(|x| x != id);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl AiStreamCancelState {
+    fn cancel(&self, request_id: &str) {
+        let hit = {
+            let inner = self.inner.lock().unwrap();
+            match inner.get(request_id) {
+                Some(tx) => {
+                    let _ = tx.send(true);
+                    true
+                }
+                None => false,
+            }
+        };
+        if !hit {
+            self.tombstones.lock().unwrap().add(request_id.to_string());
+        }
+    }
+
+    fn try_register(
+        &self,
+        request_id: String,
+        cancel_tx: tokio::sync::watch::Sender<bool>,
+    ) -> bool {
+        if self.tombstones.lock().unwrap().take(&request_id) {
+            return false;
+        }
+        self.inner.lock().unwrap().insert(request_id, cancel_tx);
+        true
+    }
 }
 
 struct CancelGuard {
@@ -378,9 +440,7 @@ pub fn ai_http_cancel(
     state: State<'_, AiStreamCancelState>,
     request_id: String,
 ) -> Result<(), String> {
-    if let Some(tx) = state.inner.lock().unwrap().get(&request_id) {
-        let _ = tx.send(true);
-    }
+    state.cancel(&request_id);
     Ok(())
 }
 
@@ -397,11 +457,10 @@ pub async fn ai_http_stream(
     on_event: Channel<AiStreamEvent>,
 ) -> Result<(), String> {
     let (cancel_tx, mut cancel_rx) = tokio::sync::watch::channel(false);
-    state
-        .inner
-        .lock()
-        .unwrap()
-        .insert(request_id.clone(), cancel_tx);
+    if !state.try_register(request_id.clone(), cancel_tx) {
+        // 同 id 孤儿 cancel 先到：该请求已被取消，静默短路且不发任何事件。
+        return Ok(());
+    }
     let _guard = CancelGuard {
         inner: Arc::clone(&state.inner),
         id: request_id,
@@ -612,5 +671,54 @@ mod tests {
 
         drop(guard);
         assert!(!state.inner.lock().unwrap().contains_key("r1"));
+    }
+
+    #[test]
+    fn orphan_cancel_tombstones_and_blocks_late_registration() {
+        let state = AiStreamCancelState::default();
+        state.cancel("r1");
+        let (tx, _rx) = tokio::sync::watch::channel(false);
+        assert!(!state.try_register("r1".to_string(), tx));
+        assert!(state.inner.lock().unwrap().is_empty());
+        assert!(!state.tombstones.lock().unwrap().set.contains("r1"));
+        let (tx2, _rx2) = tokio::sync::watch::channel(false);
+        assert!(state.try_register("r1".to_string(), tx2));
+    }
+
+    #[test]
+    fn registry_hit_cancel_sends_and_skips_tombstone() {
+        let state = AiStreamCancelState::default();
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        assert!(state.try_register("r1".to_string(), tx));
+        state.cancel("r1");
+        assert!(*rx.borrow(), "cancel flag visible to receiver");
+        assert!(state.tombstones.lock().unwrap().set.is_empty());
+    }
+
+    #[test]
+    fn tombstone_capacity_evicts_fifo() {
+        let state = AiStreamCancelState::default();
+        for i in 0..(TOMBSTONE_CAP + 8) {
+            state.cancel(&format!("r{i}"));
+        }
+        {
+            let t = state.tombstones.lock().unwrap();
+            assert_eq!(t.queue.len(), TOMBSTONE_CAP);
+            assert_eq!(t.set.len(), TOMBSTONE_CAP);
+            assert!(!t.set.contains("r0"), "oldest entry evicted");
+            assert!(t.set.contains(&format!("r{}", TOMBSTONE_CAP + 7)));
+        }
+        let (tx, _rx) = tokio::sync::watch::channel(false);
+        assert!(state.try_register("r0".to_string(), tx));
+    }
+
+    #[test]
+    fn duplicate_orphan_cancels_share_one_tombstone_entry() {
+        let state = AiStreamCancelState::default();
+        state.cancel("d");
+        state.cancel("d");
+        let t = state.tombstones.lock().unwrap();
+        assert_eq!(t.queue.len(), 1);
+        assert_eq!(t.set.len(), 1);
     }
 }
