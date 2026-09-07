@@ -4,6 +4,7 @@ import {
   type GitStatusSnapshot,
 } from "@/modules/ai/lib/native";
 import { useWorkspaceEnvStore, workspaceScopeKey } from "@/modules/workspace";
+import i18n from "@/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const AUTO_FETCH_THROTTLE_MS = 5 * 60_000;
@@ -73,7 +74,7 @@ function normalizeError(error: unknown): string {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string") return message;
   }
-  return "Unknown source control error";
+  return i18n.t("sourceControl.unknownError");
 }
 
 function getContextualAction(
@@ -99,8 +100,7 @@ export function getSourceControlRemoteIndicator(
     return {
       visible: true,
       label: `↑${summary.ahead} ↓${summary.behind}`,
-      title:
-        "Branch has diverged from upstream. Use Source Control or the terminal to resolve it.",
+      title: i18n.t("sourceControl.divergedTitle"),
       disabled: true,
       action: null,
     };
@@ -109,9 +109,7 @@ export function getSourceControlRemoteIndicator(
     return {
       visible: true,
       label: `↓${summary.behind}`,
-      title: `Pull ${summary.behind} remote ${
-        summary.behind === 1 ? "commit" : "commits"
-      } with fast-forward only.`,
+      title: i18n.t("sourceControl.pullTitle", { count: summary.behind }),
       disabled: summary.busyAction !== null,
       action: "pull",
     };
@@ -120,17 +118,15 @@ export function getSourceControlRemoteIndicator(
     return {
       visible: true,
       label: `↑${summary.ahead}`,
-      title: `Push ${summary.ahead} local ${
-        summary.ahead === 1 ? "commit" : "commits"
-      }.`,
+      title: i18n.t("sourceControl.pushTitle", { count: summary.ahead }),
       disabled: summary.busyAction !== null,
       action: "push",
     };
   }
   return {
     visible: true,
-    label: "Sync",
-    title: "Fetch remote updates.",
+    label: i18n.t("sourceControl.syncLabel"),
+    title: i18n.t("sourceControl.syncTitle"),
     disabled: summary.busyAction !== null,
     action: "fetch",
   };

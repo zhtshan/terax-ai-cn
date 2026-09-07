@@ -134,14 +134,14 @@ fn is_unstaged(index_status: char, worktree_status: char) -> bool {
 
 fn status_label(index_status: char, worktree_status: char) -> String {
     match (index_status, worktree_status) {
-        ('?', '?') => "Untracked".into(),
-        ('A', _) => "Added".into(),
-        ('M', _) | (_, 'M') => "Modified".into(),
-        ('D', _) | (_, 'D') => "Deleted".into(),
-        ('R', _) | (_, 'R') => "Renamed".into(),
-        ('C', _) | (_, 'C') => "Copied".into(),
-        ('U', _) | (_, 'U') => "Unmerged".into(),
-        _ => "Changed".into(),
+        ('?', '?') => "未跟踪".into(),
+        ('A', _) => "新增".into(),
+        ('M', _) | (_, 'M') => "已修改".into(),
+        ('D', _) | (_, 'D') => "已删除".into(),
+        ('R', _) | (_, 'R') => "已重命名".into(),
+        ('C', _) | (_, 'C') => "已复制".into(),
+        ('U', _) | (_, 'U') => "未合并".into(),
+        _ => "已更改".into(),
     }
 }
 
@@ -222,7 +222,7 @@ mod tests {
         assert_eq!(parsed.files.len(), 2);
         assert_eq!(parsed.files[0].path, "new.rs");
         assert_eq!(parsed.files[0].original_path.as_deref(), Some("old.rs"));
-        assert_eq!(parsed.files[0].status_label, "Renamed");
+        assert_eq!(parsed.files[0].status_label, "已重命名");
         assert_eq!(parsed.files[1].path, "after.rs");
         assert!(parsed.files[1].original_path.is_none());
     }
@@ -235,7 +235,7 @@ mod tests {
         assert_eq!(parsed.files.len(), 1);
         let f = &parsed.files[0];
         assert_eq!(f.path, "conflict.rs");
-        assert_eq!(f.status_label, "Unmerged");
+        assert_eq!(f.status_label, "未合并");
         assert!(f.staged);
         assert!(f.unstaged);
     }
@@ -244,12 +244,12 @@ mod tests {
     fn staged_unstaged_untracked_matrix() {
         // (XY, staged, unstaged, untracked, label)
         let cases = [
-            (".M", false, true, false, "Modified"), // unstaged edit
-            ("M.", true, false, false, "Modified"), // staged edit
-            ("MM", true, true, false, "Modified"),  // staged then edited again
-            ("A.", true, false, false, "Added"),
-            ("D.", true, false, false, "Deleted"),
-            (".D", false, true, false, "Deleted"),
+            (".M", false, true, false, "已修改"), // unstaged edit
+            ("M.", true, false, false, "已修改"), // staged edit
+            ("MM", true, true, false, "已修改"),  // staged then edited again
+            ("A.", true, false, false, "新增"),
+            ("D.", true, false, false, "已删除"),
+            (".D", false, true, false, "已删除"),
         ];
         for (xy, staged, unstaged, untracked, label) in cases {
             let parsed = parse_porcelain_v2(&ordinary(xy, "f.rs"));
@@ -268,7 +268,7 @@ mod tests {
         assert!(f.untracked);
         assert!(!f.staged);
         assert!(f.unstaged);
-        assert_eq!(f.status_label, "Untracked");
+        assert_eq!(f.status_label, "未跟踪");
         assert_eq!(f.index_status, "?");
         assert_eq!(f.worktree_status, "?");
     }

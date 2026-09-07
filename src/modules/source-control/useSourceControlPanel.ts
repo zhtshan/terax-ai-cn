@@ -19,7 +19,9 @@ import {
   workingDiffKey,
 } from "@/modules/editor/lib/diffCache";
 import { usePreferencesStore } from "@/modules/settings/preferences";
+import i18n from "@/i18n";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import type { SourceControlSummary } from "./useSourceControl";
 
 type PanelState = "closed" | "loading" | "no-repo" | "ready" | "error";
@@ -155,7 +157,7 @@ function normalizeError(error: unknown): string {
     const message = (error as { message?: unknown }).message;
     if (typeof message === "string") return message;
   }
-  return "Unknown source control error";
+  return i18n.t("sourceControl.unknownError");
 }
 
 function normalizeStatusCode(status: string): string {
@@ -339,7 +341,7 @@ function optimisticUnstage(
         staged: false,
         unstaged: true,
         untracked: false,
-        statusLabel: "Deleted",
+        statusLabel: i18n.t("sourceControl.statusDeleted"),
       });
       next.push({
         path: file.path,
@@ -349,7 +351,7 @@ function optimisticUnstage(
         staged: false,
         unstaged: true,
         untracked: true,
-        statusLabel: "Untracked",
+        statusLabel: i18n.t("sourceControl.statusUntracked"),
       });
       continue;
     }
@@ -426,6 +428,7 @@ export function useSourceControlPanel(
     (state) => state.openrouterModelId,
   );
   const [panelState, setPanelState] = useState<PanelState>("closed");
+  const { t } = useTranslation();
   const [repo, setRepo] = useState<GitRepoInfo | null>(null);
   const [status, setStatus] = useState<GitStatusSnapshot | null>(null);
   const [selected, setSelected] = useState<DiffSelection | null>(null);
@@ -512,28 +515,28 @@ export function useSourceControlPanel(
   const anyActionBusy = localActionBusy !== null || summary.busyAction !== null;
   const aiUnavailableReason = useMemo(() => {
     if (stagedEntries.length === 0) {
-      return "Stage changes to generate a commit message";
+      return t("sourceControl.generateNoStaged");
     }
     if (!hasApiKeyForSelected) {
-      return "Connect an AI provider to generate commit messages";
+      return t("sourceControl.generateNoProvider");
     }
     if (selectedModel.id === "lmstudio-local" && !lmstudioModelId.trim()) {
-      return "Connect an AI provider to generate commit messages";
+      return t("sourceControl.generateNoProvider");
     }
     if (selectedModel.id === "mlx-local" && !mlxModelId.trim()) {
-      return "Connect an AI provider to generate commit messages";
+      return t("sourceControl.generateNoProvider");
     }
     if (selectedModel.id === "ollama-local" && !ollamaModelId.trim()) {
-      return "Connect an AI provider to generate commit messages";
+      return t("sourceControl.generateNoProvider");
     }
     if (
       selectedModel.id === "openai-compatible-custom" &&
       (!openaiCompatibleBaseURL.trim() || !openaiCompatibleModelId.trim())
     ) {
-      return "Connect an AI provider to generate commit messages";
+      return t("sourceControl.generateNoProvider");
     }
     if (selectedModel.id === "openrouter-custom" && !openrouterModelId.trim()) {
-      return "Connect an AI provider to generate commit messages";
+      return t("sourceControl.generateNoProvider");
     }
     return null;
   }, [
@@ -546,29 +549,30 @@ export function useSourceControlPanel(
     openrouterModelId,
     selectedModel,
     stagedEntries.length,
+    t,
   ]);
   const canGenerateCommitMessage =
     stagedEntries.length > 0 && !anyActionBusy && !aiBusy && !!repo;
   const generateCommitMessageHint = aiUnavailableReason
     ? aiUnavailableReason
     : aiBusy
-      ? "Wait for the current AI action to finish"
-      : "Generate commit message";
+      ? t("sourceControl.generateBusy")
+      : t("sourceControl.generateReady");
   const pushHint = useMemo(() => {
     if (!status) return null;
     if (!status.upstream) {
-      return "Configure or publish this branch in the terminal to enable push in this iteration.";
+      return t("sourceControl.pushNoUpstream");
     }
     if (status.behind > 0) {
-      return "Pull remote changes before pushing local commits.";
+      return t("sourceControl.pushBehind");
     }
     if (status.ahead === 0) {
-      return `No local commits to push to ${status.upstream}.`;
+      return t("sourceControl.pushNoCommits", { upstream: status.upstream });
     }
-    return `Pushes to ${status.upstream}.`;
-  }, [status]);
-  const stagedEmptyText = "No staged changes";
-  const unstagedEmptyText = "No unstaged changes";
+    return t("sourceControl.pushWill", { upstream: status.upstream });
+  }, [status, t]);
+  const stagedEmptyText = t("sourceControl.stagedEmpty");
+  const unstagedEmptyText = t("sourceControl.unstagedEmpty");
 
   const cancelReconcile = useCallback(() => {
     if (reconcileTimerRef.current) {
@@ -902,7 +906,7 @@ export function useSourceControlPanel(
   const generateCommitMessage = useCallback(async () => {
     if (!repo || stagedEntries.length === 0) return;
     if (aiBusy) {
-      setActionError("Wait for the current AI action to finish");
+      setActionError(t("sourceControl.generateBusy"));
       return;
     }
     if (aiUnavailableReason) {
@@ -953,7 +957,7 @@ export function useSourceControlPanel(
       }
       if (!isValidCommitMessage(message)) {
         throw new Error(
-          "AI returned an invalid commit message. Try again or switch models.",
+          t("sourceControl.invalidCommitMessage"),
         );
       }
       setCommitMessage(message);
@@ -987,7 +991,10 @@ export function useSourceControlPanel(
       const result = await native.gitCommit(repo.repoRoot, commitMessage);
       setCommitMessage("");
       setActionMessage(
-        `Committed ${result.commitSha.slice(0, 7)} ${result.summary}`,
+        t("sourceControl.committed", {
+          sha: result.commitSha.slice(0, 7),
+          summary: result.summary,
+        }),
       );
       invalidateRepoDiffs(repo.repoRoot);
       await summary.refresh({ remote: "never" });
@@ -1005,14 +1012,16 @@ export function useSourceControlPanel(
     const result = await summary.runRemoteAction("push");
     if (result.ok) {
       setActionMessage(
-        status?.upstream ? `Pushed to ${status.upstream}` : "Push completed",
+        status?.upstream
+          ? t("sourceControl.pushedTo", { upstream: status.upstream })
+          : t("sourceControl.pushCompleted"),
       );
       return;
     }
     if (result.error) {
       setActionError(result.error);
     }
-  }, [repo, status?.upstream, summary]);
+  }, [repo, status?.upstream, summary, t]);
 
   const pendingDiscardView = useMemo<PendingDiscard | null>(() => {
     if (!pendingDiscard) return null;

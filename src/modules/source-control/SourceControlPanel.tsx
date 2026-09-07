@@ -850,8 +850,8 @@ export const SourceControlPanel = memo(function SourceControlPanel({
                 />
                 <span className="truncate font-medium text-foreground/85">
                   {stagedCount === 0
-                    ? "Nothing staged"
-                    : `${stagedCount} ${stagedCount === 1 ? "file" : "files"} staged`}
+                    ? t("sourceControl.nothingStaged")
+                    : t("sourceControl.stagedCount", { count: stagedCount })}
                 </span>
                 <span className="ml-auto shrink-0 truncate text-muted-foreground/65">
                   {pushStatusLabel}
