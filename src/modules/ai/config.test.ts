@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  MODELS,
   type CustomEndpoint,
   compatModelIdForEndpoint,
   compatWireModel,
@@ -389,5 +390,17 @@ describe("migrateLegacyCompatEndpoint", () => {
   it("skips migration when base URL or model id is missing", () => {
     expect(migrateLegacyCompatEndpoint("", "m", 1, "x")).toEqual([]);
     expect(migrateLegacyCompatEndpoint("u", "  ", 1, "x")).toEqual([]);
+  });
+});
+
+describe("model catalog localization", () => {
+  it("localizes every model description and hint", () => {
+    for (const m of MODELS) {
+      expect(m.description, `${m.id} description`).toMatch(/[一-鿿]/);
+      // "Max" 等产品档位名保留原文
+      if (m.hint !== "Max") {
+        expect(m.hint, `${m.id} hint`).toMatch(/[一-鿿]/);
+      }
+    }
   });
 });
