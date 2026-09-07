@@ -188,3 +188,64 @@ describe("lsp and misc keys", () => {
     ).toBe("复制失败：denied");
   });
 });
+
+describe("settings and theme keys", () => {
+  it("covers provider descriptions and model hints", () => {
+    expect(i18next.t("settings.models.mlxDesc")).toBe(
+      "通过 mlx_lm.server（pip install mlx-lm）在 Apple 芯片上本地推理。",
+    );
+    expect(i18next.t("settings.models.ollamaDesc")).toBe(
+      "通过 Ollama 内置的 OpenAI 兼容 API 使用本地模型。",
+    );
+    expect(i18next.t("settings.models.openrouterDesc")).toBe(
+      "OpenRouter 上的任意模型 — 输入完整的 provider/model id。",
+    );
+    expect(i18next.t("settings.models.localLmstudioDesc")).toContain("LM Studio");
+    expect(i18next.t("settings.models.openaiCompatDesc")).toContain("OpenAI");
+    expect(i18next.t("settings.models.lmstudioModelHint")).toContain(
+      "/v1/models",
+    );
+    expect(i18next.t("settings.models.mlxModelHint")).toContain("mlx_lm.server");
+    expect(i18next.t("settings.models.ollamaModelHint")).toContain("ollama list");
+    expect(i18next.t("settings.models.openrouterModelHint")).toContain(
+      "openrouter.ai/models",
+    );
+  });
+
+  it("covers shell descriptions and theme validation errors", () => {
+    expect(i18next.t("settings.general.shellNoBlocks")).toBe(
+      "此 Shell 不支持命令块与目录跟踪。",
+    );
+    expect(i18next.t("settings.general.shellWsl")).toContain("WSL");
+    expect(i18next.t("settings.general.shellDefault")).toContain("Shell");
+    expect(i18next.t("settings.themes.starterName")).toBe("我的主题");
+    expect(i18next.t("settings.themes.starterDesc")).toBe("自定义主题。");
+    expect(i18next.t("settings.themes.bgStorageFull")).toContain("存储空间不足");
+    expect(i18next.t("settings.themes.bgNotImage")).toBe("这不是图片文件。");
+    expect(
+      i18next.t("settings.themes.bgTooLargeAnimated", { limit: 8, size: "9 MB" }),
+    ).toContain("动图");
+    expect(i18next.t("settings.themes.bgTooLargeStatic", { limit: 8, size: "9 MB" })).toContain(
+      "图片最大",
+    );
+    expect(i18next.t("settings.themes.bgDecodeFailed")).toContain("无法解码");
+    expect(i18next.t("settings.themes.importNotObject")).toBe("主题必须是 JSON 对象");
+    expect(i18next.t("settings.themes.importIdInvalid")).toContain("kebab-case");
+    expect(i18next.t("settings.themes.importNameRequired")).toContain("name");
+    expect(i18next.t("settings.themes.importVariantsObject")).toContain("variants");
+    expect(i18next.t("settings.themes.importVariantsRequired")).toContain("light");
+    expect(i18next.t("settings.themes.vObject", { path: "variants.light" })).toBe(
+      "variants.light 必须是对象",
+    );
+    expect(i18next.t("settings.themes.vString", { path: "v.background" })).toBe(
+      "v.background 必须是字符串",
+    );
+    expect(i18next.t("settings.themes.vNonEmptyString", { path: "colors.bg" })).toBe(
+      "colors.bg 必须是非空字符串",
+    );
+    expect(
+      i18next.t("settings.themes.vColorKey", { path: "colors", key: "nope" }),
+    ).toContain("无法识别的颜色键");
+    expect(i18next.t("settings.themes.vAnsiArray", { path: "t.ansi" })).toContain("16");
+  });
+});

@@ -309,10 +309,10 @@ export function GeneralSection() {
           title={t("settings.general.integratedShell")}
           description={
             shells.find((s) => s.path === terminalShell)?.integrated === false
-              ? "Command blocks and directory tracking are unavailable for this shell."
+              ? t("settings.general.shellNoBlocks")
               : wslDistros.length > 0
-                ? "Shell for the integrated terminal. WSL spaces use the distro login shell. Existing tabs keep their shell."
-                : "Shell for new terminal tabs. Existing tabs keep their shell."
+                ? t("settings.general.shellWsl")
+                : t("settings.general.shellDefault")
           }
         >
           <Select

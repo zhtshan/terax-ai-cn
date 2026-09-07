@@ -1,4 +1,5 @@
 import { currentWorkspaceEnv } from "@/modules/workspace";
+import i18n from "@/i18n";
 import { invoke } from "@tauri-apps/api/core";
 import { emit, listen, type UnlistenFn } from "@tauri-apps/api/event";
 import { appConfigDir, join } from "@tauri-apps/api/path";
@@ -69,8 +70,8 @@ export function starterTheme(): Theme {
   const id = `my-theme-${crypto.randomUUID().slice(0, 8)}`;
   return {
     id,
-    name: "My Theme",
-    description: "Custom theme.",
+    name: i18n.t("settings.themes.starterName"),
+    description: i18n.t("settings.themes.starterDesc"),
     variants: {
       dark: {
         colors: {

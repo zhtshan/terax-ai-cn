@@ -89,7 +89,10 @@
       "letterSpacingDesc": "字符之间的额外水平间距(像素)。负值可用于收紧 Nerd Font。",
       "agents": "代理",
       "agentNotifications": "编码代理通知",
-      "agentNotificationsDesc": "当 Claude Code 或 Codex 等在终端中运行的编码代理需要你的输入或完成任务时进行提醒。Terax 未聚焦时使用系统通知,否则使用应用内提示。"
+      "agentNotificationsDesc": "当 Claude Code 或 Codex 等在终端中运行的编码代理需要你的输入或完成任务时进行提醒。Terax 未聚焦时使用系统通知,否则使用应用内提示。",
+      "shellNoBlocks": "此 Shell 不支持命令块与目录跟踪。",
+      "shellWsl": "集成终端使用的 Shell。WSL 空间使用发行版登录 Shell。已有标签页保持原 Shell。",
+      "shellDefault": "新建终端标签页使用的 Shell。已有标签页保持原 Shell。"
     },
     "shortcuts": {
       "title": "快捷键",
@@ -154,7 +157,14 @@
       "provider": "提供商",
       "sttOpenaiDesc": "使用你的官方 OpenAI API 密钥和 Whisper 模型进行转录。",
       "sttGroqDesc": "使用你的官方 Groq API 密钥和 Groq 的 Whisper 端点进行转录。",
-      "sttWhispercppDesc": "连接本地 Whisper.cpp 服务器以实现完全离线转录。"
+      "sttWhispercppDesc": "连接本地 Whisper.cpp 服务器以实现完全离线转录。",
+      "mlxDesc": "通过 mlx_lm.server（pip install mlx-lm）在 Apple 芯片上本地推理。",
+      "ollamaDesc": "通过 Ollama 内置的 OpenAI 兼容 API 使用本地模型。",
+      "openrouterDesc": "OpenRouter 上的任意模型 — 输入完整的 provider/model id。",
+      "lmstudioModelHint": "输入 LM Studio 中已加载的模型 ID — 即服务器 /v1/models 页面显示的名称。",
+      "mlxModelHint": "输入启动 mlx_lm.server 时使用的 Hugging Face 仓库路径。",
+      "ollamaModelHint": "输入 `ollama list` / `ollama pull` 中的模型名称。",
+      "openrouterModelHint": "在 openrouter.ai/models 浏览可用 id。"
     },
     "agents": {
       "title": "代理",
@@ -318,7 +328,24 @@
       "chooseImage": "选择图片",
       "opacity": "不透明度",
       "blur": "模糊",
-      "backgroundHint": "拖拽图片到此处或选择一张。本地存储,在设置前不影响默认外观。"
+      "backgroundHint": "拖拽图片到此处或选择一张。本地存储,在设置前不影响默认外观。",
+      "starterName": "我的主题",
+      "starterDesc": "自定义主题。",
+      "bgStorageFull": "存储空间不足，无法保存此图片。请移除不用的主题或背景后重试。",
+      "bgNotImage": "这不是图片文件。",
+      "bgTooLargeAnimated": "动图最大 {{limit}} MB，当前 {{size}}。",
+      "bgTooLargeStatic": "图片最大 {{limit}} MB，当前 {{size}}。",
+      "bgDecodeFailed": "无法解码此图片，请换一个文件试试。",
+      "importNotObject": "主题必须是 JSON 对象",
+      "importIdInvalid": "id 必须是 kebab-case 字符串（a-z、0-9、-）",
+      "importNameRequired": "name 必须是非空字符串",
+      "importVariantsObject": "variants 必须是对象",
+      "importVariantsRequired": "variants 至少需要 light 或 dark 之一",
+      "vObject": "{{path}} 必须是对象",
+      "vString": "{{path}} 必须是字符串",
+      "vNonEmptyString": "{{path}} 必须是非空字符串",
+      "vColorKey": "{{path}}：无法识别的颜色键 {{key}}",
+      "vAnsiArray": "{{path}} 必须是包含 16 个字符串的数组"
     }
   },
   "ai": {

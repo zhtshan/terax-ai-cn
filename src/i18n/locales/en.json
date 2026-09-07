@@ -89,7 +89,10 @@
       "autostart": "Launch at login",
       "autostartDesc": "Open Terax automatically when you sign in.",
       "restoreWindow": "Restore window position & size",
-      "restoreWindowDesc": "Reopen the main window where you left it. Applies on next launch."
+      "restoreWindowDesc": "Reopen the main window where you left it. Applies on next launch.",
+      "shellNoBlocks": "Command blocks and directory tracking are unavailable for this shell.",
+      "shellWsl": "Shell for the integrated terminal. WSL spaces use the distro login shell. Existing tabs keep their shell.",
+      "shellDefault": "Shell for new terminal tabs. Existing tabs keep their shell."
     },
     "shortcuts": {
       "title": "Shortcuts",
@@ -154,7 +157,14 @@
       "provider": "Provider",
       "sttOpenaiDesc": "Uses your official OpenAI API key and the Whisper model for transcription.",
       "sttGroqDesc": "Uses your official Groq API key and Groq's Whisper endpoint for transcription.",
-      "sttWhispercppDesc": "Connects to a local Whisper.cpp server for fully offline transcription."
+      "sttWhispercppDesc": "Connects to a local Whisper.cpp server for fully offline transcription.",
+      "mlxDesc": "Apple-silicon inference via mlx_lm.server (pip install mlx-lm).",
+      "ollamaDesc": "Local models via Ollama's built-in OpenAI-compatible API.",
+      "openrouterDesc": "Any model on OpenRouter — type its full provider/model id.",
+      "lmstudioModelHint": "Enter the model id loaded in LM Studio — the one shown on the server's /v1/models page.",
+      "mlxModelHint": "The Hugging Face repo path you launched mlx_lm.server with.",
+      "ollamaModelHint": "The model name from `ollama list` / `ollama pull`.",
+      "openrouterModelHint": "Browse ids at openrouter.ai/models."
     },
     "agents": {
       "title": "Agents",
@@ -318,7 +328,24 @@
       "chooseImage": "Choose image",
       "opacity": "Opacity",
       "blur": "Blur",
-      "backgroundHint": "Drop an image here or pick one. Stored locally; doesn't affect the default look until set."
+      "backgroundHint": "Drop an image here or pick one. Stored locally; doesn't affect the default look until set.",
+      "starterName": "My Theme",
+      "starterDesc": "Custom theme.",
+      "bgStorageFull": "Not enough storage to save this image. Remove unused themes or backgrounds and try again.",
+      "bgNotImage": "This file isn't an image.",
+      "bgTooLargeAnimated": "Animated images are limited to {{limit}} MB. This one is {{size}}.",
+      "bgTooLargeStatic": "Images are limited to {{limit}} MB. This one is {{size}}.",
+      "bgDecodeFailed": "This image couldn't be decoded. Try a different file.",
+      "importNotObject": "Theme must be a JSON object",
+      "importIdInvalid": "id must be a kebab-case string (a-z, 0-9, -)",
+      "importNameRequired": "name must be a non-empty string",
+      "importVariantsObject": "variants must be an object",
+      "importVariantsRequired": "variants must contain at least one of: light, dark",
+      "vObject": "{{path}} must be an object",
+      "vString": "{{path}} must be a string",
+      "vNonEmptyString": "{{path}} must be a non-empty string",
+      "vColorKey": "{{path}}: not a recognized color key {{key}}",
+      "vAnsiArray": "{{path}} must be an array of 16 strings"
     }
   },
   "ai": {
