@@ -868,6 +868,8 @@
     "nameRequired": "名称为必填项",
     "pathRelative": "路径必须为相对路径",
     "noWorkspaceRoot": "没有工作区根目录",
+    "clearFind": "清空查找",
+    "clearReplace": "清空替换内容",
     "newFile": "新建文件",
     "newFileDesc": "文件名（相对于工作区根目录）。扩展名决定语言模式。",
     "exampleTs": "example.ts",

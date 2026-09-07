@@ -873,6 +873,8 @@
     "nameRequired": "Name is required",
     "pathRelative": "Path must be relative",
     "noWorkspaceRoot": "No workspace root",
+    "clearFind": "Clear find",
+    "clearReplace": "Clear replace",
     "newFile": "New file",
     "newFileDesc": "Filename (relative to workspace root). The extension determines the language mode.",
     "exampleTs": "example.ts",

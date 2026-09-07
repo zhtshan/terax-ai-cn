@@ -6,6 +6,7 @@ import { search } from "@codemirror/search";
 import { Compartment, EditorState, type Extension } from "@codemirror/state";
 import { EditorView } from "@codemirror/view";
 import { chromeTheme } from "./chromeTheme";
+import { searchPanelClear } from "./searchPanelClear";
 
 // 检索/替换面板文案走 EditorState.phrases，缺省英文；仅补中文，英文即默认值
 const ZH_PHRASES: Record<string, string> = {
@@ -52,6 +53,7 @@ export const DEFAULT_INDENT: Extension = indentExtension("  ");
 // Singleton: per-pane instances would inject duplicate style modules.
 const SHARED_EXTENSIONS: readonly Extension[] = Object.freeze([
   search({ top: true }),
+  searchPanelClear(),
   ...(i18n.language.startsWith("zh")
     ? [EditorState.phrases.of(ZH_PHRASES)]
     : []),

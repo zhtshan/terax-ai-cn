@@ -1,3 +1,8 @@
+import i18n from "@/i18n";
+import { searchPanelOpen } from "@codemirror/search";
+import type { Extension } from "@codemirror/state";
+import { type EditorView, ViewPlugin, type ViewUpdate } from "@codemirror/view";
+
 const CLEAR_ICON =
   '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" width="10" height="10" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round"><path d="m4 4 8 8m0-8-8 8"/></svg>';
 
@@ -43,4 +48,49 @@ export function augmentSearchField(
   field.addEventListener("change", () => syncClearVisibility(field, button));
   syncClearVisibility(field, button);
   return button;
+}
+
+const PANEL_SELECTOR = ".cm-panel.cm-search";
+const FIELD_NAMES = ["search", "replace"] as const;
+
+function augmentPanelFields(panel: ParentNode): void {
+  for (const name of FIELD_NAMES) {
+    const field = panel.querySelector<HTMLInputElement>(
+      `input.cm-textfield[name=${name}]`,
+    );
+    if (!field) continue;
+    const key = name === "search" ? "editor.clearFind" : "editor.clearReplace";
+    augmentSearchField(field, i18n.t(key));
+  }
+}
+
+export function searchPanelClear(): Extension {
+  return ViewPlugin.fromClass(
+    class ClearButtonsPlugin {
+      private retryScheduled = false;
+
+      constructor(view: EditorView) {
+        this.augment(view);
+      }
+
+      update(update: ViewUpdate) {
+        this.augment(update.view);
+      }
+
+      private augment(view: EditorView) {
+        if (!searchPanelOpen(view.state)) return;
+        const panel = view.dom.querySelector(PANEL_SELECTOR);
+        if (!panel) {
+          if (this.retryScheduled) return;
+          this.retryScheduled = true;
+          requestAnimationFrame(() => {
+            this.retryScheduled = false;
+            this.augment(view);
+          });
+          return;
+        }
+        augmentPanelFields(panel);
+      }
+    },
+  );
 }

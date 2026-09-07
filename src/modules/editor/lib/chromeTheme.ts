@@ -346,6 +346,30 @@ const chrome = EditorView.theme({
     },
   },
 
+  ".cm-panel .cm-clear-wrap": {
+    position: "relative",
+    display: "inline-flex",
+    alignItems: "center",
+  },
+  ".cm-panel .cm-clear-wrap .cm-textfield": { paddingRight: "20px" },
+  ".cm-panel .cm-clear-btn": {
+    position: "absolute",
+    right: "5px",
+    width: "14px",
+    height: "14px",
+    display: "inline-flex",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: "0",
+    border: "none",
+    background: "transparent",
+    color: "var(--muted-foreground)",
+    cursor: "pointer",
+    borderRadius: "3px",
+    "&:hover": { color: "var(--foreground)" },
+  },
+  ".cm-panel .cm-clear-btn[hidden]": { display: "none" },
+
   ".cm-lsp-rename-panel": {
     display: "flex",
     gap: "6px",
