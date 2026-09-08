@@ -62,10 +62,16 @@ export function SettingsApp() {
   const init = usePreferencesStore((s) => s.init);
   const tabs = useTabs();
   const ActiveSection = tabs.find((t) => t.id === active)?.component;
+  const win = getCurrentWebviewWindow();
+  const { t } = useTranslation();
 
   useEffect(() => {
     void init();
   }, [init]);
+
+  useEffect(() => {
+    void win.setTitle(t("window.settingsTitle"));
+  }, [t, win]);
 
   useEffect(() => {
     const apply = (detail: string) => {
