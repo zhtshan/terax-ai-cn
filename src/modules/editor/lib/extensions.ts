@@ -27,6 +27,15 @@ const ZH_PHRASES: Record<string, string> = {
   "on line": "位于第",
   "Go to line": "跳转到行",
   go: "跳转",
+  "Fold line": "折叠行",
+  "Unfold line": "展开行",
+  "Folded lines": "已折叠行",
+  "Unfolded lines": "未折叠行",
+  "folded code": "已折叠的代码",
+  Diagnostics: "诊断",
+  "No diagnostics": "无诊断",
+  Completions: "补全",
+  "Control character": "控制字符",
 };
 
 // Compartments allow runtime reconfiguration without rebuilding state.
