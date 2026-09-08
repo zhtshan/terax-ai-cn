@@ -1,4 +1,5 @@
 import { usePreferencesStore } from "@/modules/settings/preferences";
+import { displayError } from "@/lib/teraxErrors";
 import i18n from "@/i18n";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import type { Extension } from "@codemirror/state";
@@ -206,7 +207,7 @@ async function createSession(
     recordCrash(key);
     store.removeSession(key, preset.id);
     toast.error(i18n.t("lsp.spawnFailed", { name: preset.name }), {
-      description: String(e),
+      description: displayError(e),
     });
     return null;
   }

@@ -1,5 +1,6 @@
 import { highlightingFor, indentUnit, language } from "@codemirror/language";
 import i18n from "@/i18n";
+import { displayError } from "@/lib/teraxErrors";
 import {
   type Extension,
   StateEffect,
@@ -340,7 +341,7 @@ export function lspInteractions(opts: {
         position: positionAt(view, pos),
       });
     } catch (e) {
-      toast.error(i18n.t("lsp.definitionFailed"), { description: String(e) });
+      toast.error(i18n.t("lsp.definitionFailed"), { description: displayError(e) });
       return;
     }
     const locs = normalizeLocations(result);
@@ -363,7 +364,7 @@ export function lspInteractions(opts: {
         context: { includeDeclaration: true },
       });
     } catch (e) {
-      toast.error(i18n.t("lsp.referencesFailed"), { description: String(e) });
+      toast.error(i18n.t("lsp.referencesFailed"), { description: displayError(e) });
       return;
     }
     const locs = result ?? [];

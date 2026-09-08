@@ -5,6 +5,8 @@ import {
   lookupGitStatus,
   repoRelativePath,
   statusCodeForFile,
+  gitFileStatusLabel,
+  gitCommitStatusLabel,
 } from "./gitStatusUtils";
 
 function file(overrides: Partial<GitChangedFile>): GitChangedFile {
@@ -110,5 +112,32 @@ describe("lookupGitStatus", () => {
   it("returns null for unchanged and out-of-repo paths", () => {
     expect(lookupGitStatus(map, "/repo", "/repo/src/b.ts")).toBeNull();
     expect(lookupGitStatus(map, "/repo", "/elsewhere/a.ts")).toBeNull();
+  });
+});
+
+describe("gitCommitStatusLabel", () => {
+  it("maps known status codes to zh labels", () => {
+    expect(gitCommitStatusLabel("M")).toBe("已修改");
+    expect(gitCommitStatusLabel("A")).toBe("新增");
+    expect(gitCommitStatusLabel("D")).toBe("已删除");
+    expect(gitCommitStatusLabel("R")).toBe("已重命名");
+    expect(gitCommitStatusLabel("C")).toBe("已复制");
+    expect(gitCommitStatusLabel("T")).toBe("类型变更");
+    expect(gitCommitStatusLabel("U")).toBe("未合并");
+    expect(gitCommitStatusLabel("?")).toBe("未跟踪");
+  });
+
+  it("falls back to unknown label for unexpected chars", () => {
+    const result = gitCommitStatusLabel("X");
+    expect(result).toContain("X");
+  });
+});
+
+describe("gitFileStatusLabel", () => {
+  it("delegates to gitCommitStatusLabel via statusCodeForFile", () => {
+    const f = file({ unstaged: true, worktreeStatus: "M" });
+    expect(gitFileStatusLabel(f)).toBe("已修改");
+    const u = file({ untracked: true });
+    expect(gitFileStatusLabel(u)).toBe("未跟踪");
   });
 });

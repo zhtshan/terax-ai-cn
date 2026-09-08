@@ -1,4 +1,5 @@
 import type { GitChangedFile, GitStatusSnapshot } from "@/modules/ai/lib/native";
+import i18n from "@/i18n";
 
 export type GitStatusCode = "M" | "A" | "D" | "U" | "R";
 
@@ -103,4 +104,25 @@ export function lookupGitStatus(
   const rel = repoRelativePath(absolutePath, [repoRoot, ...alternateRoots]);
   if (rel === null) return null;
   return map.get(rel) ?? null;
+}
+
+export function gitFileStatusLabel(file: GitChangedFile): string {
+  if (file.untracked) return i18n.t("sourceControl.statusUntracked");
+  const code = statusCodeForFile(file);
+  return gitCommitStatusLabel(code);
+}
+
+export function gitCommitStatusLabel(status: string): string {
+  const t = i18n.t;
+  switch (status.trim().toUpperCase()) {
+    case "A": return t("sourceControl.statusAdded");
+    case "M": return t("sourceControl.statusModified");
+    case "D": return t("sourceControl.statusDeleted");
+    case "R": return t("sourceControl.statusRenamed");
+    case "C": return t("sourceControl.statusCopied");
+    case "T": return t("sourceControl.statusTypeChanged");
+    case "U": return t("sourceControl.statusUnmerged");
+    case "?": return t("sourceControl.statusUntracked");
+    default: return t("sourceControl.statusUnknown", { c: status });
+  }
 }

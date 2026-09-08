@@ -1,4 +1,5 @@
 import { ensureMonoFontsLoaded } from "@/lib/fonts";
+import { displayError } from "@/lib/teraxErrors";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { invoke } from "@tauri-apps/api/core";
 import type { SearchAddon } from "@xterm/addon-search";
@@ -517,7 +518,7 @@ function surfaceSpawnFailure(leafId: number, s: Session, e: unknown): void {
   console.error("[terax] shell spawn failed:", e);
   s.shellExited = true;
   s.spawnFailed = true;
-  const detail = String(e)
+  const detail = displayError(e)
     .replace(/[\x00-\x1f\x7f]/g, " ")
     .slice(0, 300);
   deliverPtyBytes(

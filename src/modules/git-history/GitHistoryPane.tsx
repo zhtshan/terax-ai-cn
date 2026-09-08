@@ -7,6 +7,8 @@ import {
 import { Spinner } from "@/components/ui/spinner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { displayError } from "@/lib/teraxErrors";
+import { gitCommitStatusLabel } from "@/modules/explorer/lib/gitStatusUtils";
 import {
   native,
   type GitCommitFileChange,
@@ -98,12 +100,7 @@ function dirname(path: string): string {
 }
 
 function normalizeError(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error && typeof error === "object" && "message" in error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === "string") return message;
-  }
-  return "Unknown error";
+  return displayError(error);
 }
 
 function absoluteTime(secs: number): string {
@@ -1033,7 +1030,7 @@ const FileRow = memo(function FileRow({
           "inline-flex w-4 shrink-0 justify-center text-[9.5px] font-bold leading-none tabular-nums",
           statusTone(file.status),
         )}
-        title={file.statusLabel}
+        title={gitCommitStatusLabel(file.status)}
       >
         {file.status.toUpperCase()}
       </span>

@@ -70,6 +70,16 @@ describe("sourceControl keys", () => {
     expect(i18next.t("sourceControl.syncLabel")).toBe("同步");
     expect(i18next.t("sourceControl.syncTitle")).toBe("获取远程更新。");
   });
+
+  it("translates source control status labels", () => {
+    expect(i18next.t("sourceControl.statusAdded")).toBe("新增");
+    expect(i18next.t("sourceControl.statusModified")).toBe("已修改");
+    expect(i18next.t("sourceControl.statusRenamed")).toBe("已重命名");
+    expect(i18next.t("sourceControl.statusCopied")).toBe("已复制");
+    expect(i18next.t("sourceControl.statusTypeChanged")).toBe("类型变更");
+    expect(i18next.t("sourceControl.statusUnmerged")).toBe("未合并");
+    expect(i18next.t("sourceControl.statusUnknown", { c: "X" })).toBe("状态 X");
+  });
 });
 
 describe("ai keys", () => {
@@ -130,12 +140,24 @@ describe("editor and search keys", () => {
     expect(i18next.t("aiDiff.pending")).toBe("待审核");
     expect(i18next.t("aiDiff.approved")).toBe("已应用");
     expect(i18next.t("aiDiff.rejected")).toBe("已拒绝");
+    expect(i18next.t("aiDiff.toggleDiff")).toBe("展开/收起 Diff");
+    expect(i18next.t("aiDiff.reject")).toBe("拒绝");
   });
 
   it("covers search panel empty states", () => {
     expect(i18next.t("searchPanel.noResults")).toBe("无结果");
     expect(i18next.t("searchPanel.truncated")).toBe("结果已截断");
     expect(i18next.t("common.searching")).toBe("搜索中…");
+  });
+
+  it("covers common UI label keys", () => {
+    expect(i18next.t("common.breadcrumb")).toBe("面包屑");
+    expect(i18next.t("common.more")).toBe("更多");
+    expect(i18next.t("common.copy")).toBe("复制");
+    expect(i18next.t("common.copyCode")).toBe("复制代码");
+    expect(i18next.t("common.contextUsage")).toBe("模型上下文用量");
+    expect(i18next.t("common.branchPrevious")).toBe("上一个分支");
+    expect(i18next.t("common.branchNext")).toBe("下一个分支");
   });
 });
 
@@ -186,6 +208,9 @@ describe("lsp and misc keys", () => {
     expect(
       i18next.t("explorer.copyFailed", { detail: "denied" }),
     ).toBe("复制失败：denied");
+    expect(i18next.t("preview.title")).toBe("预览");
+    expect(i18next.t("terminal.closePane")).toBe("关闭面板");
+    expect(i18next.t("window.settingsTitle")).toBe("设置");
   });
 });
 
@@ -247,5 +272,24 @@ describe("settings and theme keys", () => {
       i18next.t("settings.themes.vColorKey", { path: "colors", key: "nope" }),
     ).toContain("无法识别的颜色键");
     expect(i18next.t("settings.themes.vAnsiArray", { path: "t.ansi" })).toContain("16");
+  });
+});
+
+describe("terax error code keys", () => {
+  it("translates terax fs error codes", () => {
+    expect(i18next.t("terax.fs_not_a_directory", { rest: "/tmp/x" })).toBe("不是目录：/tmp/x");
+    expect(i18next.t("terax.fs_not_found", { rest: "foo.txt" })).toBe("未找到：foo.txt");
+    expect(i18next.t("terax.pty_no_session")).toBe("PTY 会话不存在");
+    expect(i18next.t("terax.git_command_failed", { rest: "git log" })).toBe("命令执行失败：git log");
+  });
+
+  it("terax error codes exist in both locales", () => {
+    const en = i18next.getResourceBundle("en", "translation") as Record<string, Record<string, unknown>>;
+    const zh = i18next.getResourceBundle("zh-CN", "translation") as Record<string, Record<string, unknown>>;
+    const codes = Object.keys(en.terax ?? {});
+    expect(codes.length).toBeGreaterThan(50);
+    for (const c of codes) {
+      expect(zh.terax).toHaveProperty(c);
+    }
   });
 });

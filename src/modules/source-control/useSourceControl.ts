@@ -5,6 +5,7 @@ import {
 } from "@/modules/ai/lib/native";
 import { useWorkspaceEnvStore, workspaceScopeKey } from "@/modules/workspace";
 import i18n from "@/i18n";
+import { displayError } from "@/lib/teraxErrors";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 const AUTO_FETCH_THROTTLE_MS = 5 * 60_000;
@@ -69,12 +70,7 @@ type SourceControlSummaryState = {
 };
 
 function normalizeError(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error && typeof error === "object" && "message" in error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === "string") return message;
-  }
-  return i18n.t("sourceControl.unknownError");
+  return displayError(error);
 }
 
 function getContextualAction(

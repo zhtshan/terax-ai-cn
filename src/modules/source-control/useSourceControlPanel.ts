@@ -20,6 +20,8 @@ import {
 } from "@/modules/editor/lib/diffCache";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import i18n from "@/i18n";
+import { displayError } from "@/lib/teraxErrors";
+import { gitFileStatusLabel } from "@/modules/explorer/lib/gitStatusUtils";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { SourceControlSummary } from "./useSourceControl";
@@ -152,12 +154,7 @@ type SourceControlPanelState = {
 };
 
 function normalizeError(error: unknown): string {
-  if (typeof error === "string") return error;
-  if (error && typeof error === "object" && "message" in error) {
-    const message = (error as { message?: unknown }).message;
-    if (typeof message === "string") return message;
-  }
-  return i18n.t("sourceControl.unknownError");
+  return displayError(error);
 }
 
 function normalizeStatusCode(status: string): string {
@@ -199,7 +196,7 @@ function makeEntry(
     mode,
     indexStatus: file.indexStatus,
     worktreeStatus: file.worktreeStatus,
-    statusLabel: file.statusLabel,
+    statusLabel: gitFileStatusLabel(file),
     statusCode: statusCodeForMode(mode, file),
     originalPath: file.originalPath,
     untracked: file.untracked,
@@ -486,7 +483,7 @@ export function useSourceControlPanel(
         path: file.path,
         originalPath: file.originalPath,
         statusCode,
-        statusLabel: file.statusLabel,
+        statusLabel: gitFileStatusLabel(file),
         checkState,
         staged: file.staged,
         unstaged: file.unstaged,

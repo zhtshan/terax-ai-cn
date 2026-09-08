@@ -4,6 +4,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { checkWritableCanonical } from "@/modules/ai/lib/security";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { replaceAll } from "../lib/api";
+import { displayError } from "@/lib/teraxErrors";
 import type {
   GrepResponse,
   ReplaceError,
@@ -131,7 +132,7 @@ export function useReplaceRun(options: UseReplaceRunOptions): {
       } catch (err) {
         setState({
           kind: "error",
-          message: err instanceof Error ? err.message : String(err),
+          message: displayError(err),
         });
       }
     } finally {

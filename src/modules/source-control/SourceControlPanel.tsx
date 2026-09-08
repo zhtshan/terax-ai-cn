@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
+import { displayError } from "@/lib/teraxErrors";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -194,7 +195,7 @@ function BranchDropdown({
       setBranches(result.branches);
     } catch (e) {
       if (id !== requestRef.current) return;
-      setError(String(e));
+      setError(displayError(e));
       setBranches([]);
     } finally {
       if (id === requestRef.current) {
@@ -223,7 +224,7 @@ function BranchDropdown({
           position: "top-left",
         });
       } catch (e) {
-        toast.error(String(e), { position: "top-left" });
+        toast.error(displayError(e), { position: "top-left" });
       } finally {
         checkoutInFlight.current = false;
         setCheckingOut(false);

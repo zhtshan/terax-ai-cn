@@ -28,7 +28,14 @@
     "previous": "Previous",
     "next": "Next",
     "collapse": "Collapse",
-    "expand": "Expand"
+    "expand": "Expand",
+    "breadcrumb": "breadcrumb",
+    "more": "More",
+    "copyCode": "Copy code",
+    "contextUsage": "Model context usage",
+    "branchPrevious": "Previous branch",
+    "branchNext": "Next branch",
+    "copy": "Copy"
   },
   "settings": {
     "tabs": {
@@ -836,7 +843,8 @@
       "blockCopied": "Block copied",
       "attachToAi": "Attach to AI chat",
       "findInBlock": "Find in block"
-    }
+    },
+    "closePane": "Close pane"
   },
   "statusbar": {
     "private": "Private: hidden from AI",
@@ -935,7 +943,8 @@
     "cookieHint": "Cookie-based sign-in may not work in preview.",
     "suspended": "Preview suspended",
     "suspendedDesc": "Released to free memory after sitting in the background.",
-    "nothingToPreview": "Nothing to preview yet"
+    "nothingToPreview": "Nothing to preview yet",
+    "title": "Preview"
   },
   "shortcutsDialog": {
     "title": "Keyboard shortcuts",
@@ -980,7 +989,8 @@
     "minimize": "Minimize",
     "restore": "Restore",
     "maximize": "Maximize",
-    "close": "Close"
+    "close": "Close",
+    "settingsTitle": "Settings"
   },
   "workspace": {
     "inputBar": {
@@ -1030,7 +1040,9 @@
     "pending": "Pending review",
     "approved": "Applied",
     "rejected": "Rejected",
-    "newFile": "New file"
+    "newFile": "New file",
+    "toggleDiff": "Toggle diff",
+    "reject": "Reject"
   },
   "sourceControl": {
     "title": "Source Control",
@@ -1113,7 +1125,14 @@
     "syncTitle": "Fetch remote updates.",
     "nothingStaged": "Nothing staged",
     "stagedCount_one": "{{count}} file staged",
-    "stagedCount_other": "{{count}} files staged"
+    "stagedCount_other": "{{count}} files staged",
+    "statusAdded": "Added",
+    "statusModified": "Modified",
+    "statusRenamed": "Renamed",
+    "statusCopied": "Copied",
+    "statusTypeChanged": "Type changed",
+    "statusUnmerged": "Unmerged",
+    "statusUnknown": "Status {{c}}"
   },
   "themes": {
     "descriptions": {
@@ -1193,5 +1212,72 @@
       "editor.aiComplete": "Trigger AI completion",
       "editor.codeComplete": "Trigger code completion"
     }
+  },
+  "terax": {
+    "fs_no_parent": "path has no parent",
+    "fs_empty_pattern": "empty pattern",
+    "fs_empty_replacement": "empty replacement",
+    "fs_not_a_directory": "not a directory: {{rest}}",
+    "fs_bad_glob": "bad glob {{rest}}",
+    "fs_globset_build": "globset build: {{rest}}",
+    "fs_bad_pattern": "bad pattern: {{rest}}",
+    "fs_replace_error": "replace error: {{rest}}",
+    "fs_utf8_after_replace": "utf8 after replace: {{rest}}",
+    "fs_already_exists": "already exists: {{rest}}",
+    "fs_not_found": "not found: {{rest}}",
+    "fs_invalid_source": "invalid source: {{rest}}",
+    "git_not_installed": "git is not available on PATH. Install Git and retry.",
+    "git_too_old": "git version too old: {{rest}}",
+    "git_not_a_directory": "not a directory: {{rest}}",
+    "git_outside_workspace": "path is outside the authorized workspace: {{rest}}",
+    "git_invalid_path": "invalid path: {{rest}}",
+    "git_file_too_large": "file too large to diff: {{rest}}",
+    "git_symlink_rejected": "refusing to follow symlink: {{rest}}",
+    "git_no_upstream": "no upstream configured. Run `git push -u <remote> <branch>` in the terminal first.",
+    "git_auth_required": "authentication required: {{rest}}",
+    "git_host_key_unverified": "host key verification failed. Run the command once in the terminal to trust the host.",
+    "git_timed_out": "{{rest}} timed out",
+    "git_empty_commit_message": "commit message cannot be empty",
+    "git_command_failed": "{{rest}}",
+    "git_spawn": "failed to spawn git: {{rest}}",
+    "git_io": "io error: {{rest}}",
+    "git_no_stdout_pipe": "no stdout pipe",
+    "git_no_stderr_pipe": "no stderr pipe",
+    "git_wait_disconnected": "git wait thread disconnected",
+    "git_unknown_error": "unknown git error",
+    "git_commit_nothing_staged": "git commit: nothing staged",
+    "git_invalid_sha": "invalid commit identifier",
+    "net_dns_error": "DNS resolution failed: {{rest}}",
+    "net_no_addresses": "DNS: no addresses",
+    "net_invalid_url": "invalid url: {{rest}}",
+    "net_scheme_not_allowed": "scheme not allowed: {{rest}}",
+    "net_userinfo_not_allowed": "userinfo in url is not allowed",
+    "net_missing_host": "missing host",
+    "net_host_not_allowed": "host not allowed: {{rest}}",
+    "net_private_address": "host {{rest}} resolves to a private/loopback address; enable local network access in settings",
+    "net_no_safe_ips": "host {{rest}}: no safe IPs",
+    "net_header_not_allowed": "header not allowed: {{rest}}",
+    "net_header_control_bytes": "header value contains control bytes: {{rest}}",
+    "net_empty_base_url": "empty base url",
+    "net_too_many_redirects": "too many redirects",
+    "pty_missing_id_header": "pty_write: missing x-pty-id header",
+    "pty_expected_raw_body": "pty_write: expected raw body",
+    "pty_no_session": "no session",
+    "shell_empty_command": "empty command",
+    "shell_cwd_not_directory": "cwd is not a directory: {{rest}}",
+    "lsp_wsl_unsupported": "LSP: WSL workspaces are not supported yet",
+    "lsp_root_required": "LSP: workspace root is required",
+    "lsp_binary_not_found": "LSP: binary not found: {{rest}}",
+    "lsp_spawn_failed": "LSP: failed to start {{rest}}",
+    "lsp_no_stdin": "LSP: no stdin pipe",
+    "lsp_no_stdout": "LSP: no stdout pipe",
+    "lsp_no_stderr": "LSP: no stderr pipe",
+    "lsp_memory_limit": "terminated: memory budget exceeded ({{rest}})",
+    "workspace_cwd_not_accessible": "cwd not accessible: {{rest}}",
+    "workspace_cwd_not_directory": "cwd is not a directory: {{rest}}",
+    "workspace_cwd_outside": "cwd is outside the authorized workspace: {{rest}}",
+    "workspace_wsl_distro_unsafe": "unsafe WSL distro name: {{rest}}",
+    "workspace_wsl_windows_only": "WSL is only available on Windows",
+    "workspace_wsl_home_unresolved": "could not resolve WSL home for {{rest}}"
   }
 }
