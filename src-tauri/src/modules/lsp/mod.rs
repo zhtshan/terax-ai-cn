@@ -72,16 +72,16 @@ pub async fn lsp_spawn(
 ) -> Result<u32, String> {
     let workspace = WorkspaceEnv::from_option(workspace);
     if workspace.is_wsl() {
-        return Err("lsp: WSL workspaces are not supported yet".into());
+        return Err("terax:lsp_wsl_unsupported".into());
     }
     let root = authorize_spawn_cwd(&registry, Some(root.as_str()), &workspace)?
-        .ok_or("lsp: workspace root is required")?;
+        .ok_or("terax:lsp_root_required")?;
 
     let id = state.next_id.fetch_add(1, Ordering::Relaxed);
     let spawn_log = format!("cmd={command} root={}", root.display());
     let session = tauri::async_runtime::spawn_blocking(move || {
         let binary = env::resolve_binary(&command)
-            .ok_or_else(|| format!("lsp: binary not found: {command}"))?;
+            .ok_or_else(|| format!("terax:lsp_binary_not_found {command}"))?;
         let extra_env = env.unwrap_or_default();
         session::spawn(
             id, app, &binary, &args, &extra_env, &root, max_rss_mb, on_message, on_exit,

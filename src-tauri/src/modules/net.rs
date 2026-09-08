@@ -101,7 +101,7 @@ async fn resolve_and_classify(host: &str) -> Result<(IpKind, Vec<IpAddr>), Strin
     .map_err(|e| e.to_string())?
     .map_err(|e| format!("dns: {e}"))?;
     if lookup.is_empty() {
-        return Err("dns: no addresses".into());
+        return Err("terax:net_no_addresses".into());
     }
     let mut worst = IpKind::Public;
     for ip in &lookup {
@@ -120,19 +120,19 @@ async fn resolve_and_classify(host: &str) -> Result<(IpKind, Vec<IpAddr>), Strin
 use std::net::ToSocketAddrs;
 
 fn validate_url(url: &str, allow_private: bool) -> Result<reqwest::Url, String> {
-    let parsed = reqwest::Url::parse(url).map_err(|e| format!("invalid url: {e}"))?;
+    let parsed = reqwest::Url::parse(url).map_err(|e| format!("terax:net_invalid_url {e}"))?;
     match parsed.scheme() {
         "http" | "https" => {}
-        s => return Err(format!("scheme not allowed: {s}")),
+        s => return Err(format!("terax:net_scheme_not_allowed {s}")),
     }
     if parsed.username() != "" || parsed.password().is_some() {
-        return Err("userinfo in url is not allowed".into());
+        return Err("terax:net_userinfo_not_allowed".into());
     }
     let host = parsed
         .host_str()
-        .ok_or_else(|| "missing host".to_string())?;
+        .ok_or_else(|| "terax:net_missing_host".to_string())?;
     if is_blocked_host_name(host) {
-        return Err(format!("host not allowed: {host}"));
+        return Err(format!("terax:net_host_not_allowed {host}"));
     }
     // The actual IP classification has to be async — caller does it.
     let _ = allow_private;
@@ -151,7 +151,7 @@ async fn classify_and_collect_safe_ips(
         IpKind::BlockedMetadata => return Err(format!("host not allowed: {host}")),
         IpKind::Loopback | IpKind::Private if !allow_private => {
             return Err(format!(
-                "host {host} resolves to a private/loopback address; this endpoint requires explicit opt-in",
+                "terax:net_private_address {host}",
             ));
         }
         _ => {}
@@ -165,7 +165,7 @@ async fn classify_and_collect_safe_ips(
         })
         .collect();
     if safe.is_empty() {
-        return Err(format!("host {host}: no safe IPs"));
+        return Err(format!("terax:net_no_safe_ips {host}"));
     }
     Ok(safe)
 }
@@ -176,11 +176,11 @@ fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMa
     for (k, v) in h {
         let lower = k.to_ascii_lowercase();
         if HEADER_BLOCKLIST.contains(&lower.as_str()) {
-            return Err(format!("header not allowed: {k}"));
+            return Err(format!("terax:net_header_not_allowed {k}"));
         }
         // CRLF injection: header value must not contain CR / LF / NUL.
         if v.as_bytes().iter().any(|b| matches!(b, 0 | b'\r' | b'\n')) {
-            return Err(format!("header value contains control bytes: {k}"));
+            return Err(format!("terax:net_header_control_bytes {k}"));
         }
         let name = HeaderName::from_bytes(k.as_bytes()).map_err(|e| e.to_string())?;
         let value = HeaderValue::from_str(&v).map_err(|e| e.to_string())?;
@@ -193,13 +193,13 @@ fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMa
 pub async fn lm_ping(base_url: String) -> Result<u16, String> {
     let trimmed = base_url.trim().trim_end_matches('/');
     if trimmed.is_empty() {
-        return Err("empty base url".into());
+        return Err("terax:net_empty_base_url".into());
     }
     let probe = format!("{trimmed}/models");
     let parsed = validate_url(&probe, true)?;
     let host = parsed
         .host_str()
-        .ok_or_else(|| "missing host".to_string())?
+        .ok_or_else(|| "terax:net_missing_host".to_string())?
         .to_string();
     let safe_ips = classify_and_collect_safe_ips(&host, true).await?;
 
@@ -322,7 +322,7 @@ pub async fn ai_http_request(
     let parsed = validate_url(&url, allow_private)?;
     let host = parsed
         .host_str()
-        .ok_or_else(|| "missing host".to_string())?
+        .ok_or_else(|| "terax:net_missing_host".to_string())?
         .to_string();
     let safe_ips = classify_and_collect_safe_ips(&host, allow_private).await?;
 
@@ -476,7 +476,7 @@ pub async fn ai_http_stream(
     let host = match parsed.host_str() {
         Some(h) => h.to_string(),
         None => {
-            let e = "missing host".to_string();
+            let e = "terax:net_missing_host".to_string();
             let _ = on_event.send(AiStreamEvent::Error { message: e.clone() });
             return Err(e);
         }

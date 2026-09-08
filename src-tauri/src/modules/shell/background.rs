@@ -96,11 +96,11 @@ pub fn spawn(
 ) -> Result<Arc<BackgroundProc>, String> {
     let trimmed = command.trim().to_string();
     if trimmed.is_empty() {
-        return Err("empty command".into());
+        return Err("terax:shell_empty_command".into());
     }
     if let Some(ref dir) = cwd {
         if !resolve_path(dir, &workspace).is_dir() {
-            return Err(format!("cwd is not a directory: {dir}"));
+            return Err(format!("terax:shell_cwd_not_directory {dir}"));
         }
     }
 

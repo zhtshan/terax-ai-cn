@@ -93,7 +93,7 @@ impl ShellSession {
     ) -> Result<SessionRunOutput, String> {
         let trimmed = command.trim().to_string();
         if trimmed.is_empty() {
-            return Err("empty command".into());
+            return Err("terax:shell_empty_command".into());
         }
         if self.pristine.load(Ordering::Acquire) {
             if let Some(hint) = cwd_hint.filter(|s| !s.is_empty()) {

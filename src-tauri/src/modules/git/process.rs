@@ -517,6 +517,6 @@ mod tests {
             &[],
         )
         .unwrap_err();
-        assert!(err.to_string().contains("unsafe WSL distro name"));
+        assert!(err.to_string().contains("terax:workspace_wsl_distro_unsafe"));
     }
 }

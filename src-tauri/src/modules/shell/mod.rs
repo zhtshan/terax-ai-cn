@@ -48,7 +48,7 @@ pub async fn shell_run_command(
 ) -> Result<CommandOutput, String> {
     let trimmed = command.trim().to_string();
     if trimmed.is_empty() {
-        return Err("empty command".into());
+        return Err("terax:shell_empty_command".into());
     }
 
     let workspace = WorkspaceEnv::from_option(workspace);
@@ -165,7 +165,7 @@ fn run_blocking(
             (None, true)
         }
         Err(mpsc::RecvTimeoutError::Disconnected) => {
-            return Err("shell wait thread disconnected".into());
+            return Err("terax:shell_wait_thread_disconnected".into());
         }
     };
 

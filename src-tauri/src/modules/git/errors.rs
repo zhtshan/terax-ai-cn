@@ -44,50 +44,50 @@ impl Display for GitError {
         match self {
             GitError::NotInstalled => write!(
                 f,
-                "git is not available on PATH. Install Git and retry."
+                "terax:git_not_installed"
             ),
             GitError::TooOld { found, required } => write!(
                 f,
-                "git {found} is too old; Terax needs git {required} or newer.",
+                "terax:git_too_old found {found} required {required}",
             ),
-            GitError::NotADirectory(p) => write!(f, "not a directory: {p}"),
+            GitError::NotADirectory(p) => write!(f, "terax:git_not_a_directory {p}"),
             GitError::PathOutsideWorkspace(p) => write!(
                 f,
-                "path is outside the authorized workspace: {}",
+                "terax:git_outside_workspace {}",
                 p.display()
             ),
-            GitError::InvalidPath(p) => write!(f, "invalid path: {p}"),
+            GitError::InvalidPath(p) => write!(f, "terax:git_invalid_path {p}"),
             GitError::FileTooLarge { path, size, max } => write!(
                 f,
-                "file too large to diff ({size} bytes, max {max}): {}",
+                "terax:git_file_too_large {} ({size} bytes, max {max})",
                 path.display()
             ),
             GitError::SymlinkRejected(p) => {
-                write!(f, "refusing to follow symlink: {}", p.display())
+                write!(f, "terax:git_symlink_rejected {}", p.display())
             }
             GitError::NoUpstream => write!(
                 f,
-                "no upstream configured. Run `git push -u <remote> <branch>` in the terminal first."
+                "terax:git_no_upstream"
             ),
             GitError::AuthRequired(detail) => write!(
                 f,
-                "authentication required: {detail}. Configure a credential helper or SSH key."
+                "terax:git_auth_required {detail}"
             ),
             GitError::HostKeyUnverified => write!(
                 f,
-                "host key verification failed. Run the command once in the terminal to trust the host."
+                "terax:git_host_key_unverified"
             ),
-            GitError::TimedOut(op) => write!(f, "{op} timed out"),
-            GitError::EmptyCommitMessage => write!(f, "commit message cannot be empty"),
+            GitError::TimedOut(op) => write!(f, "terax:git_timed_out {op}"),
+            GitError::EmptyCommitMessage => write!(f, "terax:git_empty_commit_message"),
             GitError::CommandFailed { context, detail } => {
                 if detail.is_empty() {
-                    write!(f, "{context}")
+                    write!(f, "terax:git_command_failed {context}")
                 } else {
-                    write!(f, "{context}: {detail}")
+                    write!(f, "terax:git_command_failed {context}: {detail}")
                 }
             }
-            GitError::Spawn(err) => write!(f, "failed to spawn git: {err}"),
-            GitError::Io(err) => write!(f, "io error: {err}"),
+            GitError::Spawn(err) => write!(f, "terax:git_spawn {err}"),
+            GitError::Io(err) => write!(f, "terax:git_io {err}"),
         }
     }
 }

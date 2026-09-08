@@ -64,7 +64,7 @@ pub fn fs_search(
     let workspace = WorkspaceEnv::from_option(workspace);
     let root_path = resolve_path(&root, &workspace);
     if !root_path.is_dir() {
-        return Err(format!("not a directory: {root}"));
+        return Err(format!("terax:fs_not_a_directory {root}"));
     }
 
     let mut cands: Vec<SearchHit> = Vec::new();
@@ -172,7 +172,7 @@ pub fn fs_list_files(
     let workspace = WorkspaceEnv::from_option(workspace);
     let root_path = resolve_path(&root, &workspace);
     if !root_path.is_dir() {
-        return Err(format!("not a directory: {root}"));
+        return Err(format!("terax:fs_not_a_directory {root}"));
     }
 
     let walker = WalkBuilder::new(&root_path)

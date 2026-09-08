@@ -116,7 +116,7 @@ struct FileWrittenEvent {
 /// The random suffix is what blocks pre-staged symlink attacks.
 pub(super) fn write_atomic(target: &Path, content: &[u8]) -> std::io::Result<()> {
     let parent = target.parent().ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::InvalidInput, "path has no parent")
+        std::io::Error::new(std::io::ErrorKind::InvalidInput, "terax:fs_no_parent")
     })?;
     let mut tmp = NamedTempFile::new_in(parent)?;
     tmp.as_file_mut().write_all(content)?;
