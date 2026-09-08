@@ -2,15 +2,35 @@
 
 All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
-## [0.8.10] - 2026-09-07
+## [0.8.10] - 2026-09-08
 
 ### Added
 - 预览窗格移植上游 #1148 cookie 登录提示条，loopback 预览提供外部浏览器回退
+- tab 右键菜单新增「定位」/「取消定位」，固定后标题旁显示图钉徽标，拖拽排序时跳过
+- 编辑器 Cmd+F 检索/替换面板两个输入框新增清空按钮
 
 ### Fixed
 - 终端文件链接支持全角标点收尾与括号包裹路径，路径后紧跟全角逗号等不再匹配失败
 - 终端文件链接点击按工作区根回退解析，修复 shell 位于子目录时项目根相对路径误报「文件不存在」
 - 深色模式下分屏分隔线提升可见度（浅色保持原样）
+- proxyFetch abort 监听在流终态（reject/流 end/流 error/消费者 cancel）统一摘除，防长寿命 signal 闭包滞留（停止链路遗留 defer 项 1/3）
+- run_subagent 中断时清除残留的 agentMeta.step 标签，防状态徽章显示已失效的子代理步骤（2/3）
+- ai_http_cancel 孤儿取消落 tombstone（容量 1024 FIFO 驱逐），迟到同 id 流入口短路，封住注册前取消落空的上游计费窗口（3/3）
+- Cmd+F 检索替换面板接入中文 phrases，修复面板显示英文
+- 修复工具卡片标签错位与缺失 key 显示原文：16 个工具卡片曾因大小写不匹配显示 `ai.tools.Read` 等原始 key，approval/error 状态标签同理修复
+- 源代码管理面板与状态栏提示中文化，消除 Git 文件状态 title 中英混排
+- AI 模块漏翻接线与文案中文化，修复持久化会话标题（`New chat`）导致翻译永不生效的问题
+- 编辑器占位屏/格式化提示/搜索面板与 AI Diff 徽标中文化
+- LSP/代码块/上下文用量/Git 链接与杂项文案中文化
+- 设置供应商提示/Shell 描述与主题校验错误中文化，消除主题导入失败时的中英混排
+- 模型目录 45 条描述与档位提示中文化
+- Rust 错误串统一改为 `terax:<code>` 前缀格式，标签交由前端 i18n 渲染
+- 补充遗漏的 terax 错误码（net dns 错误、shell pipe 错误）
+- 前端错误显示接入 terax 错误码映射层
+- 设置窗口标题动态化
+- aria-label 与 iframe title 接入 i18n
+- 编辑器扩展补充中文翻译项（fold/unfold、diagnostics、completions 等）
+- 补全代理通知/快捷键/终端拖拽提示的翻译缺口：代理通知栏 attention/error 状态、编辑器前进后退快捷键、终端拖拽提示与路径面包屑隐藏文件夹提示
 
 ## [0.8.9] - 2026-08-31
 
