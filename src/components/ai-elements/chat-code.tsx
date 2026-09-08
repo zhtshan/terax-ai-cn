@@ -269,7 +269,7 @@ function CopyButton({ text }: { text: string }) {
       variant="ghost"
       onClick={onCopy}
       className="size-5 shrink-0 text-muted-foreground hover:text-foreground"
-      aria-label="Copy code"
+      aria-label={i18n.t("common.copyCode")}
     >
       <HugeiconsIcon
         icon={copied ? CheckmarkCircle01Icon : CopyIcon}

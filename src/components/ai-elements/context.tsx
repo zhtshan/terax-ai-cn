@@ -65,7 +65,7 @@ const ContextIcon = () => {
 
   return (
     <svg
-      aria-label="Model context usage"
+      aria-label={i18n.t("common.contextUsage")}
       height="20"
       role="img"
       style={{ color: "currentcolor" }}

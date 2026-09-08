@@ -184,7 +184,7 @@ export const PreviewPane = forwardRef<PreviewPaneHandle, Props>(
               <iframe
                 key={`${url}#${nonce}`}
                 src={url}
-                title="Preview"
+                title={t("preview.title")}
                 className="h-full w-full border-0"
                 // sandbox grants the bare minimum for a dev preview: scripts,
                 // same-origin (cookies/storage for the previewed app), forms,
