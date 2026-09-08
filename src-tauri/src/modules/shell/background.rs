@@ -96,11 +96,11 @@ pub fn spawn(
 ) -> Result<Arc<BackgroundProc>, String> {
     let trimmed = command.trim().to_string();
     if trimmed.is_empty() {
-        return Err("empty command".into());
+        return Err("terax:shell_empty_command".into());
     }
     if let Some(ref dir) = cwd {
         if !resolve_path(dir, &workspace).is_dir() {
-            return Err(format!("cwd is not a directory: {dir}"));
+            return Err(format!("terax:shell_cwd_not_directory {dir}"));
         }
     }
 
@@ -119,11 +119,11 @@ pub fn spawn(
     };
     let stdout_pipe = shared.take_stdout().ok_or_else(|| {
         kill_on_fail();
-        "no stdout pipe".to_string()
+        "terax:shell_no_stdout_pipe".to_string()
     })?;
     let stderr_pipe = shared.take_stderr().ok_or_else(|| {
         kill_on_fail();
-        "no stderr pipe".to_string()
+        "terax:shell_no_stderr_pipe".to_string()
     })?;
     let child = shared;
 

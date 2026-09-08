@@ -13,6 +13,7 @@ import {
   type ViewUpdate,
 } from "@codemirror/view";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import i18n from "@/i18n";
 import { LANGUAGES } from "./languageDefinitions";
 
 // Fence-info strings (```ts, ```python) resolve against the same lazy
@@ -45,7 +46,7 @@ const urlMatcher = new MatchDecorator({
   regexp: URL_RE,
   decoration: Decoration.mark({
     class: "cm-md-url",
-    attributes: { title: "Cmd/Ctrl+Click to open" },
+    attributes: { title: i18n.t("editor.cmdClickToOpen") },
   }),
 });
 

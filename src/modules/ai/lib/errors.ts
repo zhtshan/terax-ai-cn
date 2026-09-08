@@ -1,17 +1,17 @@
+import i18n from "@/i18n";
+
 type ErrorDetails = {
   code: string | null;
   message: string;
 };
 
 const MAX_ERROR_LENGTH = 800;
-const FALLBACK_ERROR =
-  "The AI provider rejected the request. Check the selected model and provider settings, then try again.";
 
 export function formatAiError(error: unknown): string {
   const details = extractErrorDetails(error);
-  if (!details) return FALLBACK_ERROR;
+  if (!details) return i18n.t("ai.errors.fallback");
   const message = sanitizeErrorMessage(details.message);
-  if (!message) return FALLBACK_ERROR;
+  if (!message) return i18n.t("ai.errors.fallback");
   const prefix = errorPrefix(details.code, message);
   return prefix ? `${prefix}: ${message}` : message;
 }
@@ -73,19 +73,19 @@ function errorPrefix(code: string | null, message: string): string | null {
   switch (code?.toLowerCase()) {
     case "model_not_found":
     case "not_found_error":
-      return "Model unavailable";
+      return i18n.t("ai.errors.modelUnavailable");
     case "invalid_api_key":
     case "authentication_error":
-      return "Authentication failed";
+      return i18n.t("ai.errors.authFailed");
     case "insufficient_quota":
-      return "Quota exceeded";
+      return i18n.t("ai.errors.quotaExceeded");
     case "rate_limit_exceeded":
     case "rate_limit_error":
-      return "Rate limit reached";
+      return i18n.t("ai.errors.rateLimited");
   }
   return /\bmodel\b.*\b(?:limited preview|not available|not found)\b/i.test(
     message,
   )
-    ? "Model unavailable"
+    ? i18n.t("ai.errors.modelUnavailable")
     : null;
 }

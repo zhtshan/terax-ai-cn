@@ -1,4 +1,5 @@
 import { isMarkdownPath } from "@/lib/utils";
+import i18n from "@/i18n";
 import {
   findLeafCwd,
   hasLeaf,
@@ -24,6 +25,8 @@ type TabBase = {
   spaceId: string;
   /** Restored from disk, not yet activated: rendered as a placeholder, not mounted. */
   cold?: boolean;
+  /** User-pinned: stays in place during reorder/drag. */
+  pinned?: boolean;
 };
 
 export type TerminalTab = TabBase & {
@@ -189,7 +192,7 @@ export function reorderTabsByGap(
   toGapIndex: number,
 ): Tab[] {
   const moved = tabs.find((t) => t.id === fromId);
-  if (!moved) return tabs;
+  if (!moved || moved.pinned) return tabs;
   const sameSpace = tabs.filter((t) => t.spaceId === moved.spaceId);
   const spaceFrom = sameSpace.findIndex((t) => t.id === fromId);
   let spaceTarget = toGapIndex > spaceFrom ? toGapIndex - 1 : toGapIndex;
@@ -442,7 +445,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
         cold: true,
-        title: "shell",
+        title: i18n.t("tabs.terminal"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -462,7 +465,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
         cold: true,
-        title: "blocks",
+        title: i18n.t("tabs.blocks"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -510,7 +513,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         kind: "terminal",
         spaceId: activeSpaceIdRef.current,
         cold: true,
-        title: "private",
+        title: i18n.t("tabs.privacy"),
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
@@ -850,7 +853,9 @@ export function useTabs(initial?: Partial<TerminalTab>) {
       const existing = curr.find(
         (t) => t.kind === "git-history" && t.repoRoot === input.repoRoot,
       );
-      const title = input.branch ? `History · ${input.branch}` : "Git History";
+      const title = input.branch
+        ? i18n.t("tabs.historyBranch", { branch: input.branch })
+        : i18n.t("tabs.gitHistory");
       if (existing) {
         const nextTabs = curr.map((t) =>
           t.id === existing.id ? { ...t, title } : t,
@@ -1167,7 +1172,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
           id: tabId,
           kind: "terminal",
           spaceId: activeSpaceIdRef.current,
-          title: "shell",
+          title: i18n.t("tabs.terminal"),
           cwd,
           paneTree: { kind: "leaf", id: leafId, cwd },
           activeLeafId: leafId,
@@ -1180,6 +1185,12 @@ export function useTabs(initial?: Partial<TerminalTab>) {
 
   const reorderTabByGap = useCallback((fromId: number, toGapIndex: number) => {
     setTabs((prev) => reorderTabsByGap(prev, fromId, toGapIndex));
+  }, []);
+
+  const togglePinTab = useCallback((id: number) => {
+    setTabs((curr) =>
+      curr.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)),
+    );
   }, []);
 
   return {
@@ -1202,6 +1213,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     newPrivateTab,
     openFileTab,
     pinTab,
+    togglePinTab,
     newPreviewTab,
     newMarkdownTab,
     setMarkdownView,

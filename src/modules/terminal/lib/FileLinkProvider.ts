@@ -3,7 +3,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { toast } from "sonner";
 import { getLspNavigator } from "@/modules/lsp/lib/navigator";
 import { leafCwd } from "./useTerminalSession";
-import { isInsideWorkspace, matchFileLinks, resolvePath } from "./fileLinkMatch";
+import { isInsideWorkspace, matchFileLinks, resolveActivations, resolvePath } from "./fileLinkMatch";
 
 export type FileLinkProviderOptions = {
   getLeafId: () => number | null;
@@ -185,28 +185,32 @@ export function registerFileLinkProvider(
             const clickedLeafId = options.getLeafId();
             const clickCwd =
               clickedLeafId !== null ? leafCwd(clickedLeafId) : null;
-            const clickedAbsPath = resolvePath(
+            const candidates = resolveActivations(
               candidate.path,
               clickCwd,
               options.getHomeDir(),
+              explorerRoot,
             );
-            if (clickedAbsPath === null) return;
-            if (!isInsideWorkspace(clickedAbsPath, explorerRoot)) return;
-            try {
-              const result = await invoke<{ kind: string; is_dir: boolean }>(
-                "fs_stat",
-                { path: clickedAbsPath },
-              );
-              // is_dir follows symlinks; kind describes the link itself, so a
-              // symlinked directory reports kind "symlink".
-              if (result.is_dir) {
-                toast.error("不能打开目录");
+            if (candidates.length === 0) return;
+            for (const absPath of candidates) {
+              try {
+                const result = await invoke<{
+                  kind: string;
+                  is_dir: boolean;
+                }>("fs_stat", { path: absPath });
+                // is_dir follows symlinks; kind describes the link itself, so
+                // a symlinked directory reports kind "symlink".
+                if (result.is_dir) {
+                  toast.error("不能打开目录");
+                  return;
+                }
+                nav.openFile(absPath, candidate.line ?? 0);
                 return;
+              } catch {
+                // Missing at this base; try the next candidate.
               }
-              nav.openFile(clickedAbsPath, candidate.line ?? 0);
-            } catch {
-              toast.error("文件不存在");
             }
+            toast.error("文件不存在");
           },
         });
       }

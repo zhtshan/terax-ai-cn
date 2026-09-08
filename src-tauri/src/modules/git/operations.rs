@@ -63,7 +63,7 @@ fn resolve_repo_in_authorized(
             ["symbolic-ref", "--short", "HEAD"],
         )?
         .ok_or(GitError::CommandFailed {
-            context: "failed to resolve HEAD",
+            context: "terax:git_unknown_error",
             detail: String::new(),
         })?,
     };
@@ -455,7 +455,7 @@ pub fn commit(
         DEFAULT_TIMEOUT_SECS,
     )?;
     if output.exit_code != Some(0) && nothing_to_commit(&output) {
-        return Err(GitError::command("git commit", "nothing staged"));
+        return Err(GitError::command("git commit", "terax:git_commit_nothing_staged"));
     }
     ensure_success(&output, "git commit failed")?;
 
@@ -529,7 +529,7 @@ pub fn log_file(
     let cursor = match before_sha {
         Some(sha) if !sha.is_empty() => {
             if !sha_is_safe(sha) {
-                return Err(GitError::command("git log", "invalid cursor sha"));
+                return Err(GitError::command("terax:git_invalid_sha", ""));
             }
             Some(format!("{sha}^"))
         }
@@ -658,7 +658,7 @@ pub fn log(
     let cursor = match before_sha {
         Some(sha) if !sha.is_empty() => {
             if !sha_is_safe(sha) {
-                return Err(GitError::command("git log", "invalid cursor sha"));
+                return Err(GitError::command("terax:git_invalid_sha", ""));
             }
             Some(format!("{sha}^"))
         }
@@ -761,7 +761,7 @@ pub fn show_commit_diff(
     let repo_root = authorized_repo_root(registry, repo_root, workspace)?;
     ensure_git_available(&repo_root.workspace)?;
     if !sha_is_safe(sha) {
-        return Err(GitError::command("git show", "invalid commit identifier"));
+        return Err(GitError::command("terax:git_invalid_sha", ""));
     }
     let output = run_git(
         &repo_root.workspace,
@@ -827,7 +827,7 @@ pub fn commit_files(
     let repo_root = authorized_repo_root(registry, repo_root, workspace)?;
     ensure_git_available(&repo_root.workspace)?;
     if !sha_is_safe(sha) {
-        return Err(GitError::command("git diff-tree", "invalid commit sha"));
+        return Err(GitError::command("terax:git_invalid_sha", ""));
     }
 
     let output = run_git(
@@ -887,7 +887,7 @@ pub fn commit_file_diff(
     let repo_root = authorized_repo_root(registry, repo_root, workspace)?;
     ensure_git_available(&repo_root.workspace)?;
     if !sha_is_safe(sha) {
-        return Err(GitError::command("git show", "invalid commit sha"));
+        return Err(GitError::command("terax:git_invalid_sha", ""));
     }
     let resolved = resolve_within_repo(&repo_root.local_path, path)?;
     let rel = resolved
@@ -977,7 +977,7 @@ pub fn commit_file_diff_against_working(
     let repo_root = authorized_repo_root(registry, repo_root, workspace)?;
     ensure_git_available(&repo_root.workspace)?;
     if !sha_is_safe(sha) {
-        return Err(GitError::command("git show", "invalid commit sha"));
+        return Err(GitError::command("terax:git_invalid_sha", ""));
     }
     let resolved = resolve_within_repo(&repo_root.local_path, path)?;
     let rel = resolved
@@ -1154,17 +1154,8 @@ fn apply_numstat(files: &mut [GitCommitFileChange], bytes: &[u8]) {
     }
 }
 
-fn status_label_for(c: char) -> String {
-    match c {
-        'A' => "Added".into(),
-        'M' => "Modified".into(),
-        'D' => "Deleted".into(),
-        'R' => "Renamed".into(),
-        'C' => "Copied".into(),
-        'T' => "Type changed".into(),
-        'U' => "Unmerged".into(),
-        _ => format!("Status {c}"),
-    }
+fn status_label_for(_c: char) -> String {
+    String::new()
 }
 
 pub fn fetch(
@@ -1442,17 +1433,10 @@ mod tests {
     }
 
     #[test]
-    fn status_label_for_known_chars() {
-        assert_eq!(status_label_for('A'), "Added");
-        assert_eq!(status_label_for('M'), "Modified");
-        assert_eq!(status_label_for('D'), "Deleted");
-        assert_eq!(status_label_for('R'), "Renamed");
-        assert_eq!(status_label_for('C'), "Copied");
-    }
-
-    #[test]
-    fn status_label_for_unknown_falls_back() {
-        assert_eq!(status_label_for('X'), "Status X");
+    fn status_label_for_empty_for_all_chars() {
+        assert_eq!(status_label_for('A'), "");
+        assert_eq!(status_label_for('M'), "");
+        assert_eq!(status_label_for('X'), "");
     }
 
     #[test]

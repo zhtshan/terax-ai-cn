@@ -11,6 +11,7 @@ import { cn } from "@/lib/utils";
 import { CheckmarkCircle01Icon, CopyIcon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { ComponentProps } from "react";
+import i18n from "@/i18n";
 import {
   createContext,
   useCallback,
@@ -133,11 +134,11 @@ export const SnippetCopyButton = ({
 
   return (
     <InputGroupButton
-      aria-label="Copy"
+      aria-label={i18n.t("common.copy")}
       className={className}
       onClick={copyToClipboard}
       size="icon-sm"
-      title="Copy"
+      title={i18n.t("common.copy")}
       {...props}
     >
       {children ?? <HugeiconsIcon icon={Icon} size={14} className="size-3.5" />}

@@ -1,4 +1,5 @@
 import { Badge } from "@/components/ui/badge";
+import i18next from "i18next";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -107,43 +108,32 @@ const LOCAL_META: Partial<Record<ProviderId, LocalMeta>> = {
   lmstudio: {
     urlPlaceholder: "http://localhost:1234/v1",
     modelPlaceholder: "qwen2.5-coder-7b-instruct",
-    description:
-      "Run GGUF models via LM Studio's HTTP server (Developer tab → enable).",
-    modelHint: (
-      <>
-        The model id loaded in LM Studio — see the server's{" "}
-        <span className="font-mono">/v1/models</span> page.
-      </>
-    ),
+    description: i18next.t("settings.models.localLmstudioDesc"),
+    modelHint: i18next.t("settings.models.lmstudioModelHint"),
   },
   mlx: {
     urlPlaceholder: "http://127.0.0.1:8080/v1",
     modelPlaceholder: "mlx-community/Qwen2.5-Coder-7B-Instruct-4bit",
-    description:
-      "Apple-silicon inference via mlx_lm.server (pip install mlx-lm).",
-    modelHint: <>The Hugging Face repo path you launched mlx_lm.server with.</>,
+    description: i18next.t("settings.models.mlxDesc"),
+    modelHint: i18next.t("settings.models.mlxModelHint"),
   },
   ollama: {
     urlPlaceholder: "http://localhost:11434/v1",
     modelPlaceholder: "qwen2.5-coder:7b",
-    description: "Local models via Ollama's built-in OpenAI-compatible API.",
-    modelHint: <>The model name from `ollama list` / `ollama pull`.</>,
+    description: i18next.t("settings.models.ollamaDesc"),
+    modelHint: i18next.t("settings.models.ollamaModelHint"),
   },
   "openai-compatible": {
     urlPlaceholder: "https://api.example.com/v1",
     modelPlaceholder: "gpt-4o, qwen3-max, glm-4.6, …",
-    description: "Any OpenAI-compatible endpoint — vLLM, Z.AI, Fireworks, etc.",
+    description: i18next.t("settings.models.openaiCompatDesc"),
     modelHint: null,
   },
   openrouter: {
     urlPlaceholder: "",
     modelPlaceholder: "anthropic/claude-sonnet-5, openai/gpt-5.6, …",
-    description: "Any model on OpenRouter — type its full provider/model id.",
-    modelHint: (
-      <>
-        Browse ids at <span className="font-mono">openrouter.ai/models</span>.
-      </>
-    ),
+    description: i18next.t("settings.models.openrouterDesc"),
+    modelHint: i18next.t("settings.models.openrouterModelHint"),
   },
 };
 

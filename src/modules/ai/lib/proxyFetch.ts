@@ -94,6 +94,12 @@ async function proxyFetchImpl(
         }
       }
     };
+    // onAbort 用 once:true 自移除；这里只负责终态路径的摘除，防长寿命 signal 闭包滞留。
+    const detach = () => signal?.removeEventListener("abort", onAbort);
+    const fail = (e: unknown) => {
+      detach();
+      reject(e);
+    };
     signal?.addEventListener("abort", onAbort, { once: true });
     if (signal?.aborted) onAbort();
     if (cancelled) return;
@@ -110,6 +116,7 @@ async function proxyFetchImpl(
             cancel() {
               cancelled = true;
               cancelUpstream();
+              detach();
             },
           });
           resolved = true;
@@ -127,13 +134,15 @@ async function proxyFetchImpl(
         }
         case "end": {
           streamController?.close();
+          detach();
           break;
         }
         case "error": {
           if (!resolved) {
-            reject(new Error(event.message));
+            fail(new Error(event.message));
           } else {
             streamController?.error(new Error(event.message));
+            detach();
           }
           break;
         }
@@ -150,7 +159,7 @@ async function proxyFetchImpl(
       onEvent: channel,
     }).catch((e) => {
       if (resolved) return; // headers already arrived; chunk-side error wins
-      reject(e instanceof Error ? e : new Error(String(e)));
+      fail(e instanceof Error ? e : new Error(String(e)));
     });
   });
 }

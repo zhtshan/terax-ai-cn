@@ -6,7 +6,7 @@ pub fn fs_create_file(path: String, workspace: Option<WorkspaceEnv>) -> Result<(
     let workspace = WorkspaceEnv::from_option(workspace);
     let p = resolve_path(&path, &workspace);
     if p.exists() {
-        return Err(format!("already exists: {}", p.display()));
+        return Err(format!("terax:fs_already_exists {}", p.display()));
     }
     std::fs::write(&p, "").map_err(|e| {
         log::debug!("fs_create_file({}) failed: {e}", p.display());
@@ -22,7 +22,7 @@ pub fn fs_create_dir(path: String, workspace: Option<WorkspaceEnv>) -> Result<()
     let workspace = WorkspaceEnv::from_option(workspace);
     let p = resolve_path(&path, &workspace);
     if p.exists() {
-        return Err(format!("already exists: {}", p.display()));
+        return Err(format!("terax:fs_already_exists {}", p.display()));
     }
     std::fs::create_dir_all(&p).map_err(|e| {
         log::debug!("fs_create_dir({}) failed: {e}", p.display());
@@ -37,10 +37,10 @@ pub fn fs_rename(from: String, to: String, workspace: Option<WorkspaceEnv>) -> R
     let from_p = resolve_path(&from, &workspace);
     let to_p = resolve_path(&to, &workspace);
     if !from_p.exists() {
-        return Err(format!("not found: {}", from_p.display()));
+        return Err(format!("terax:fs_not_found {}", from_p.display()));
     }
     if to_p.exists() {
-        return Err(format!("already exists: {}", to_p.display()));
+        return Err(format!("terax:fs_already_exists {}", to_p.display()));
     }
     std::fs::rename(&from_p, &to_p).map_err(|e| {
         log::debug!(
@@ -106,7 +106,7 @@ pub fn fs_copy(
         let src = std::path::PathBuf::from(source);
         let name = src
             .file_name()
-            .ok_or_else(|| format!("invalid source: {source}"))?
+            .ok_or_else(|| format!("terax:fs_invalid_source {source}"))?
             .to_string_lossy();
         let name = if auto_rename.unwrap_or(false) {
             copy_name_available(&dest, &name)
@@ -115,7 +115,7 @@ pub fn fs_copy(
         };
         let target = dest.join(&name);
         if target.exists() {
-            return Err(format!("already exists: {}", target.display()));
+            return Err(format!("terax:fs_already_exists {}", target.display()));
         }
         copy_recursive(&src, &target).map_err(|e| {
             log::warn!(
@@ -173,7 +173,7 @@ mod tests {
         // A second create must error, not truncate existing content.
         std::fs::write(&f, b"data").unwrap();
         let err = fs_create_file(s(f.clone()), None).unwrap_err();
-        assert!(err.contains("already exists"), "got: {err}");
+        assert!(err.contains("terax:fs_already_exists"), "got: {err}");
         assert_eq!(std::fs::read(&f).unwrap(), b"data");
     }
 
@@ -184,7 +184,7 @@ mod tests {
         fs_create_dir(s(nested.clone()), None).expect("create dir");
         assert!(nested.is_dir());
         let err = fs_create_dir(s(nested), None).unwrap_err();
-        assert!(err.contains("already exists"), "got: {err}");
+        assert!(err.contains("terax:fs_already_exists"), "got: {err}");
     }
 
     #[test]
@@ -200,13 +200,13 @@ mod tests {
 
         // Missing source is reported, not silently ignored.
         let err = fs_rename(s(from), s(dir.path().join("c.txt")), None).unwrap_err();
-        assert!(err.contains("not found"), "got: {err}");
+        assert!(err.contains("terax:fs_not_found"), "got: {err}");
 
         // Refusing to overwrite an existing target is the data-loss guard.
         let occupied = dir.path().join("keep.txt");
         std::fs::write(&occupied, b"keep").unwrap();
         let err = fs_rename(s(to.clone()), s(occupied.clone()), None).unwrap_err();
-        assert!(err.contains("already exists"), "got: {err}");
+        assert!(err.contains("terax:fs_already_exists"), "got: {err}");
         assert_eq!(std::fs::read(&occupied).unwrap(), b"keep");
         assert!(to.exists());
     }
@@ -245,7 +245,7 @@ mod tests {
             None,
         )
         .unwrap_err();
-        assert!(err.contains("already exists"), "got: {err}");
+        assert!(err.contains("terax:fs_already_exists"), "got: {err}");
     }
 
     #[test]

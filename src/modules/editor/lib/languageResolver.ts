@@ -1,4 +1,5 @@
 import type { Extension } from "@codemirror/state";
+import i18n from "@/i18n";
 import {
   extensionMap,
   filenameMap,
@@ -56,7 +57,7 @@ function match(base: string): {
 }
 
 export function resolveDisplayName(filename: string | null): string {
-  if (!filename) return "Plain Text";
+  if (!filename) return i18n.t("editor.plainText");
   const base = basenameOf(filename);
   const { def } = match(base);
   if (def) return def.name;

@@ -36,6 +36,7 @@ import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
 import { IS_MAC, IS_WINDOWS } from "@/lib/platform";
 import { cn } from "@/lib/utils";
+import { displayError } from "@/lib/teraxErrors";
 import { ExplorerSearch, type ExplorerSearchHandle } from "./ExplorerSearch";
 import { EntryRow, PendingRow, StatusRow, type RowActions } from "./TreeRow";
 import { InlineInput } from "./InlineInput";
@@ -308,7 +309,7 @@ export const FileTreeSection = memo(
             tree.refresh(destDir);
             if (clip.mode === "cut") clipboard.clear();
           })
-          .catch((e) => toast.error(`Copy failed: ${String(e)}`));
+          .catch((e) => toast.error(t("explorer.copyFailed", { detail: displayError(e) })));
       },
       [clipboard, tree],
     );

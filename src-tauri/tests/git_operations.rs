@@ -493,7 +493,7 @@ fn commit_files_reports_added_and_modified() {
     assert_eq!(files.len(), 1);
     assert_eq!(files[0].path, "a.txt");
     assert_eq!(files[0].status, "M");
-    assert_eq!(files[0].status_label, "Modified");
+    assert_eq!(files[0].status_label, "");
 }
 
 #[test]

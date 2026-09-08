@@ -18,6 +18,8 @@
     "dismiss": "Dismiss",
     "continue": "Continue",
     "loading": "Loading…",
+    "retry": "Retry",
+    "searching": "Searching…",
     "testing": "Testing…",
     "error": "Error",
     "none": "none",
@@ -26,7 +28,14 @@
     "previous": "Previous",
     "next": "Next",
     "collapse": "Collapse",
-    "expand": "Expand"
+    "expand": "Expand",
+    "breadcrumb": "breadcrumb",
+    "more": "More",
+    "copyCode": "Copy code",
+    "contextUsage": "Model context usage",
+    "branchPrevious": "Previous branch",
+    "branchNext": "Next branch",
+    "copy": "Copy"
   },
   "settings": {
     "tabs": {
@@ -87,7 +96,10 @@
       "autostart": "Launch at login",
       "autostartDesc": "Open Terax automatically when you sign in.",
       "restoreWindow": "Restore window position & size",
-      "restoreWindowDesc": "Reopen the main window where you left it. Applies on next launch."
+      "restoreWindowDesc": "Reopen the main window where you left it. Applies on next launch.",
+      "shellNoBlocks": "Command blocks and directory tracking are unavailable for this shell.",
+      "shellWsl": "Shell for the integrated terminal. WSL spaces use the distro login shell. Existing tabs keep their shell.",
+      "shellDefault": "Shell for new terminal tabs. Existing tabs keep their shell."
     },
     "shortcuts": {
       "title": "Shortcuts",
@@ -131,6 +143,7 @@
       "addProvider": "Add provider",
       "cloud": "Cloud",
       "localAndCustom": "Local & custom",
+      "custom": "Custom",
       "connected": "Connected",
       "docs": "Docs",
       "removeProvider": "Remove provider",
@@ -151,7 +164,14 @@
       "provider": "Provider",
       "sttOpenaiDesc": "Uses your official OpenAI API key and the Whisper model for transcription.",
       "sttGroqDesc": "Uses your official Groq API key and Groq's Whisper endpoint for transcription.",
-      "sttWhispercppDesc": "Connects to a local Whisper.cpp server for fully offline transcription."
+      "sttWhispercppDesc": "Connects to a local Whisper.cpp server for fully offline transcription.",
+      "mlxDesc": "Apple-silicon inference via mlx_lm.server (pip install mlx-lm).",
+      "ollamaDesc": "Local models via Ollama's built-in OpenAI-compatible API.",
+      "openrouterDesc": "Any model on OpenRouter — type its full provider/model id.",
+      "lmstudioModelHint": "Enter the model id loaded in LM Studio — the one shown on the server's /v1/models page.",
+      "mlxModelHint": "The Hugging Face repo path you launched mlx_lm.server with.",
+      "ollamaModelHint": "The model name from `ollama list` / `ollama pull`.",
+      "openrouterModelHint": "Browse ids at openrouter.ai/models."
     },
     "agents": {
       "title": "Agents",
@@ -315,7 +335,24 @@
       "chooseImage": "Choose image",
       "opacity": "Opacity",
       "blur": "Blur",
-      "backgroundHint": "Drop an image here or pick one. Stored locally; doesn't affect the default look until set."
+      "backgroundHint": "Drop an image here or pick one. Stored locally; doesn't affect the default look until set.",
+      "starterName": "My Theme",
+      "starterDesc": "Custom theme.",
+      "bgStorageFull": "Not enough storage to save this image. Remove unused themes or backgrounds and try again.",
+      "bgNotImage": "This file isn't an image.",
+      "bgTooLargeAnimated": "Animated images are limited to {{limit}} MB. This one is {{size}}.",
+      "bgTooLargeStatic": "Images are limited to {{limit}} MB. This one is {{size}}.",
+      "bgDecodeFailed": "This image couldn't be decoded. Try a different file.",
+      "importNotObject": "Theme must be a JSON object",
+      "importIdInvalid": "id must be a kebab-case string (a-z, 0-9, -)",
+      "importNameRequired": "name must be a non-empty string",
+      "importVariantsObject": "variants must be an object",
+      "importVariantsRequired": "variants must contain at least one of: light, dark",
+      "vObject": "{{path}} must be an object",
+      "vString": "{{path}} must be a string",
+      "vNonEmptyString": "{{path}} must be a non-empty string",
+      "vColorKey": "{{path}}: not a recognized color key {{key}}",
+      "vAnsiArray": "{{path}} must be an array of 16 strings"
     }
   },
   "ai": {
@@ -518,8 +555,40 @@
     "slashCommands": {
       "initWorkspace": "Initialize workspace",
       "planMode": "Plan mode",
+      "delegateToClaude": "Delegate to Claude Code",
       "planModeOff": "Plan mode off",
       "planModeOn": "Plan mode on"
+    },
+    "composer": {
+      "editorSelection": "Editor selection",
+      "terminalSelection": "Terminal selection"
+    },
+    "customEndpoint": "Custom endpoint",
+    "chatCode": {
+      "generating": "Generating code…",
+      "generatingLang": "Generating {{lang}}…",
+      "runInTerminal": "Run in active terminal"
+    },
+    "context": {
+      "input": "Input",
+      "output": "Output",
+      "reasoning": "Reasoning",
+      "cache": "Cache"
+    },
+    "errors": {
+      "modelUnavailable": "Model unavailable",
+      "authFailed": "Authentication failed",
+      "quotaExceeded": "Quota exceeded",
+      "rateLimited": "Rate limit reached",
+      "fallback": "The AI provider rejected the request. Check the selected model and provider settings, then try again.",
+      "transcriptionFailed": "Transcription failed",
+      "micDenied": "Microphone access failed"
+    },
+    "stt": {
+      "invalidWhisperUrl": "Invalid Whisper.cpp URL: {{url}}",
+      "whisperLoopbackOnly": "Whisper.cpp must run on a loopback address (localhost or 127.x.x.x) to keep transcription local.",
+      "openaiKeyMissing": "OpenAI API key is not configured",
+      "groqKeyMissing": "Groq API key is not configured"
     },
     "sessions": {
       "newChat": "New chat"
@@ -647,6 +716,44 @@
       "content": "Find text in files"
     }
   },
+  "gitHistory": {
+    "loadingCommits": "Loading commits…",
+    "loadErrorTitle": "Could not load history",
+    "retry": "Retry",
+    "unknownError": "Unknown error",
+    "noCommitsTitle": "No commits yet",
+    "noCommitsDesc": "This branch has no commits.",
+    "header": {
+      "sha": "SHA",
+      "subject": "Subject",
+      "author": "Author",
+      "date": "Date",
+      "changes": "Changes"
+    },
+    "loadingMore": "Loading more…",
+    "endReached": "End of history",
+    "failedToLoadMore": "Failed to load more",
+    "noSubject": "(no subject)",
+    "unknown": "Unknown",
+    "filesChanged_one": "{{count}} file changed",
+    "filesChanged_other": "{{count}} files changed",
+    "loadingFiles": "Loading files…",
+    "noFileChanges": "No file changes.",
+    "files": "Files",
+    "binary": "binary",
+    "copied": "Copied",
+    "copySha": "Copy SHA",
+    "viewOnHost": "View on {{host}}"
+  },
+  "spaces": {
+    "title": "Spaces",
+    "newSpace": "New space",
+    "renameSpace": "Rename space",
+    "newTab": "New tab",
+    "deleteSpace": "Delete space",
+    "dropToMoveHere": "Drop to move here",
+    "noTabs": "No tabs"
+  },
   "lsp": {
     "startForWorkspace": "Start {{command}} for this workspace",
     "enablePill": "Enable {{name}} LSP",
@@ -665,7 +772,18 @@
     "startingTitle": "Language server starting",
     "activeTitle": "Language server active",
     "runningStarting": "<1>{{command}}</1> is starting for this workspace.",
-    "runningActive": "<1>{{command}}</1> is running for this workspace."
+    "runningActive": "<1>{{command}}</1> is running for this workspace.",
+    "definitionFailed": "Go to definition failed",
+    "noDefinition": "No definition found",
+    "referencesFailed": "Find references failed",
+    "noReferences": "No references found",
+    "definitions": "Definitions",
+    "references": "References",
+    "spawnFailed": "{{name}} language server failed to start",
+    "stopped": "{{name}} language server stopped",
+    "keepsCrashing": "{{name}} language server keeps crashing",
+    "giveUp": "Giving up for this workspace.",
+    "exited": "{{name}} language server exited"
   },
   "markdown": {
     "failedToRead": "Failed to read file: {{message}}",
@@ -697,7 +815,9 @@
     "error": "Error: {{message}}",
     "truncated": "Results truncated",
     "noResults": "No results found",
-    "noWorkspace": "Open a folder to search"
+    "noWorkspace": "Open a folder to search",
+    "replaceEmpty": "Replacement is empty",
+    "replaceFailed": "Replace failed"
   },
   "terminal": {
     "watermark": {
@@ -723,12 +843,16 @@
       "blockCopied": "Block copied",
       "attachToAi": "Attach to AI chat",
       "findInBlock": "Find in block"
-    }
+    },
+    "closePane": "Close pane",
+    "dropFileHint": "Drop file path here"
   },
   "statusbar": {
     "private": "Private: hidden from AI",
     "privateTooltip": "AI can't see this terminal's output. Use it for secrets, SSH, or anything you don't want sent to the model.",
     "windows": "Windows",
+    "noSubfolders": "No subfolders",
+    "showHiddenFolders": "Show hidden folders",
     "workspaceEnv": "Workspace environment",
     "windowsLocal": "Windows Local",
     "loadingWsl": "Loading WSL distros...",
@@ -753,9 +877,13 @@
     "fewerLanguages": "↑ Fewer languages",
     "allLanguages": "↓ All languages",
     "renameTab": "Rename tab",
+    "gitHistory": "Git History",
+    "historyBranch": "History · {{branch}}",
     "externalChange": "Changed on disk",
     "externalReload": "Reload (discard local changes)",
-    "externalKeep": "Keep my version"
+    "externalKeep": "Keep my version",
+    "pin": "Pin",
+    "unpin": "Unpin"
   },
   "explorer": {
     "noCurrentDir": "No current directory",
@@ -772,6 +900,7 @@
     "copyRelativePath": "Copy Relative Path",
     "copyFile": "Copy",
     "cutFile": "Cut",
+    "copyFailed": "Copy failed: {{detail}}",
     "paste": "Paste",
     "attachToAgent": "Attach to Agent",
     "rename": "Rename",
@@ -812,9 +941,11 @@
     "placeholder": "http://localhost:3000",
     "openInBrowser": "Open in system browser",
     "embedWarning": "The site's response headers (X-Frame-Options / frame-ancestors) block embedding. If the page is blank, open it externally or relax the headers on your dev server.",
+    "cookieHint": "Cookie-based sign-in may not work in preview.",
     "suspended": "Preview suspended",
     "suspendedDesc": "Released to free memory after sitting in the background.",
-    "nothingToPreview": "Nothing to preview yet"
+    "nothingToPreview": "Nothing to preview yet",
+    "title": "Preview"
   },
   "shortcutsDialog": {
     "title": "Keyboard shortcuts",
@@ -859,7 +990,8 @@
     "minimize": "Minimize",
     "restore": "Restore",
     "maximize": "Maximize",
-    "close": "Close"
+    "close": "Close",
+    "settingsTitle": "Settings"
   },
   "workspace": {
     "inputBar": {
@@ -872,6 +1004,8 @@
     "nameRequired": "Name is required",
     "pathRelative": "Path must be relative",
     "noWorkspaceRoot": "No workspace root",
+    "clearFind": "Clear find",
+    "clearReplace": "Clear replace",
     "newFile": "New file",
     "newFileDesc": "Filename (relative to workspace root). The extension determines the language mode.",
     "exampleTs": "example.ts",
@@ -890,44 +1024,26 @@
     "formatSkipped": "Format on save skipped",
     "formatSkippedNoFormatterDesc": "The active language server has no formatter. Pick an external one in Settings (Ruff for Python, Prettier, rustfmt, ...).",
     "formatSkippedNoLspDesc": "No active language server for this file. Enable one in the statusbar, or pick an external formatter in Settings.",
-    "saveToPreview": "Save to preview"
+    "saveToPreview": "Save to preview",
+    "formatFailed": "{{formatter}} format failed",
+    "binaryFile": "Binary file",
+    "fileTooLarge": "File too large",
+    "syntaxDisabled": "syntax features disabled",
+    "previewNotSupported": "preview not supported",
+    "openAnyway": "Open anyway",
+    "plainText": "Plain Text",
+    "formatterLsp": "Language server",
+    "formatterCustom": "Custom command",
+    "noFormatCommand": "No custom format command configured in Settings.",
+    "cmdClickToOpen": "Cmd/Ctrl+Click to open"
   },
-  "gitHistory": {
-    "loadingCommits": "Loading commits…",
-    "loadErrorTitle": "Could not load history",
-    "retry": "Retry",
-    "unknownError": "Unknown error",
-    "noCommitsTitle": "No commits yet",
-    "noCommitsDesc": "This branch has no commits.",
-    "header": {
-      "sha": "SHA",
-      "subject": "Subject",
-      "author": "Author",
-      "date": "Date",
-      "changes": "Changes"
-    },
-    "loadingMore": "Loading more…",
-    "endReached": "End of history",
-    "failedToLoadMore": "Failed to load more",
-    "noSubject": "(no subject)",
-    "unknown": "Unknown",
-    "filesChanged_one": "{{count}} file changed",
-    "filesChanged_other": "{{count}} files changed",
-    "loadingFiles": "Loading files…",
-    "noFileChanges": "No file changes.",
-    "files": "Files",
-    "binary": "binary",
-    "copied": "Copied",
-    "copySha": "Copy SHA"
-  },
-  "spaces": {
-    "title": "Spaces",
-    "newSpace": "New space",
-    "renameSpace": "Rename space",
-    "newTab": "New tab",
-    "deleteSpace": "Delete space",
-    "dropToMoveHere": "Drop to move here",
-    "noTabs": "No tabs"
+  "aiDiff": {
+    "pending": "Pending review",
+    "approved": "Applied",
+    "rejected": "Rejected",
+    "newFile": "New file",
+    "toggleDiff": "Toggle diff",
+    "reject": "Reject"
   },
   "sourceControl": {
     "title": "Source Control",
@@ -984,7 +1100,40 @@
     "openDiff": "Open Diff",
     "openFile": "Open File",
     "revealInFinder": "Reveal in Finder",
-    "revealInFileManager": "Reveal in File Manager"
+    "revealInFileManager": "Reveal in File Manager",
+    "statusDeleted": "Deleted",
+    "statusUntracked": "Untracked",
+    "generateNoStaged": "Stage changes to generate a commit message",
+    "generateNoProvider": "Connect an AI provider to generate commit messages",
+    "generateBusy": "Wait for the current AI action to finish",
+    "generateReady": "Generate commit message",
+    "invalidCommitMessage": "AI returned an invalid commit message. Try again or switch models.",
+    "pushNoUpstream": "Configure or publish this branch in the terminal to enable push in this iteration.",
+    "pushBehind": "Pull remote changes before pushing local commits.",
+    "pushNoCommits": "No local commits to push to {{upstream}}.",
+    "pushWill": "Pushes to {{upstream}}.",
+    "stagedEmpty": "No staged changes",
+    "unstagedEmpty": "No unstaged changes",
+    "committed": "Committed {{sha}} {{summary}}",
+    "pushedTo": "Pushed to {{upstream}}",
+    "pushCompleted": "Push completed",
+    "divergedTitle": "Branch has diverged from upstream. Use Source Control or the terminal to resolve it.",
+    "pullTitle_one": "Pull {{count}} remote commit with fast-forward only.",
+    "pullTitle_other": "Pull {{count}} remote commits with fast-forward only.",
+    "pushTitle_one": "Push {{count}} local commit.",
+    "pushTitle_other": "Push {{count}} local commits.",
+    "syncLabel": "Sync",
+    "syncTitle": "Fetch remote updates.",
+    "nothingStaged": "Nothing staged",
+    "stagedCount_one": "{{count}} file staged",
+    "stagedCount_other": "{{count}} files staged",
+    "statusAdded": "Added",
+    "statusModified": "Modified",
+    "statusRenamed": "Renamed",
+    "statusCopied": "Copied",
+    "statusTypeChanged": "Type changed",
+    "statusUnmerged": "Unmerged",
+    "statusUnknown": "Status {{c}}"
   },
   "themes": {
     "descriptions": {
@@ -1062,7 +1211,76 @@
       "editor.undo": "Undo",
       "editor.redo": "Redo",
       "editor.aiComplete": "Trigger AI completion",
-      "editor.codeComplete": "Trigger code completion"
+      "editor.codeComplete": "Trigger code completion",
+      "editor.goBack": "Go back",
+      "editor.goForward": "Go forward"
     }
+  },
+  "terax": {
+    "fs_no_parent": "path has no parent",
+    "fs_empty_pattern": "empty pattern",
+    "fs_empty_replacement": "empty replacement",
+    "fs_not_a_directory": "not a directory: {{rest}}",
+    "fs_bad_glob": "bad glob {{rest}}",
+    "fs_globset_build": "globset build: {{rest}}",
+    "fs_bad_pattern": "bad pattern: {{rest}}",
+    "fs_replace_error": "replace error: {{rest}}",
+    "fs_utf8_after_replace": "utf8 after replace: {{rest}}",
+    "fs_already_exists": "already exists: {{rest}}",
+    "fs_not_found": "not found: {{rest}}",
+    "fs_invalid_source": "invalid source: {{rest}}",
+    "git_not_installed": "git is not available on PATH. Install Git and retry.",
+    "git_too_old": "git version too old: {{rest}}",
+    "git_not_a_directory": "not a directory: {{rest}}",
+    "git_outside_workspace": "path is outside the authorized workspace: {{rest}}",
+    "git_invalid_path": "invalid path: {{rest}}",
+    "git_file_too_large": "file too large to diff: {{rest}}",
+    "git_symlink_rejected": "refusing to follow symlink: {{rest}}",
+    "git_no_upstream": "no upstream configured. Run `git push -u <remote> <branch>` in the terminal first.",
+    "git_auth_required": "authentication required: {{rest}}",
+    "git_host_key_unverified": "host key verification failed. Run the command once in the terminal to trust the host.",
+    "git_timed_out": "{{rest}} timed out",
+    "git_empty_commit_message": "commit message cannot be empty",
+    "git_command_failed": "{{rest}}",
+    "git_spawn": "failed to spawn git: {{rest}}",
+    "git_io": "io error: {{rest}}",
+    "git_no_stdout_pipe": "no stdout pipe",
+    "git_no_stderr_pipe": "no stderr pipe",
+    "git_wait_disconnected": "git wait thread disconnected",
+    "git_unknown_error": "unknown git error",
+    "git_commit_nothing_staged": "git commit: nothing staged",
+    "git_invalid_sha": "invalid commit identifier",
+    "net_dns_error": "DNS resolution failed: {{rest}}",
+    "net_no_addresses": "DNS: no addresses",
+    "net_invalid_url": "invalid url: {{rest}}",
+    "net_scheme_not_allowed": "scheme not allowed: {{rest}}",
+    "net_userinfo_not_allowed": "userinfo in url is not allowed",
+    "net_missing_host": "missing host",
+    "net_host_not_allowed": "host not allowed: {{rest}}",
+    "net_private_address": "host {{rest}} resolves to a private/loopback address; enable local network access in settings",
+    "net_no_safe_ips": "host {{rest}}: no safe IPs",
+    "net_header_not_allowed": "header not allowed: {{rest}}",
+    "net_header_control_bytes": "header value contains control bytes: {{rest}}",
+    "net_empty_base_url": "empty base url",
+    "net_too_many_redirects": "too many redirects",
+    "pty_missing_id_header": "pty_write: missing x-pty-id header",
+    "pty_expected_raw_body": "pty_write: expected raw body",
+    "pty_no_session": "no session",
+    "shell_empty_command": "empty command",
+    "shell_cwd_not_directory": "cwd is not a directory: {{rest}}",
+    "lsp_wsl_unsupported": "LSP: WSL workspaces are not supported yet",
+    "lsp_root_required": "LSP: workspace root is required",
+    "lsp_binary_not_found": "LSP: binary not found: {{rest}}",
+    "lsp_spawn_failed": "LSP: failed to start {{rest}}",
+    "lsp_no_stdin": "LSP: no stdin pipe",
+    "lsp_no_stdout": "LSP: no stdout pipe",
+    "lsp_no_stderr": "LSP: no stderr pipe",
+    "lsp_memory_limit": "terminated: memory budget exceeded ({{rest}})",
+    "workspace_cwd_not_accessible": "cwd not accessible: {{rest}}",
+    "workspace_cwd_not_directory": "cwd is not a directory: {{rest}}",
+    "workspace_cwd_outside": "cwd is outside the authorized workspace: {{rest}}",
+    "workspace_wsl_distro_unsafe": "unsafe WSL distro name: {{rest}}",
+    "workspace_wsl_windows_only": "WSL is only available on Windows",
+    "workspace_wsl_home_unresolved": "could not resolve WSL home for {{rest}}"
   }
 }

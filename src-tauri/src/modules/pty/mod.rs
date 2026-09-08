@@ -178,9 +178,9 @@ pub fn pty_write(
         .get("x-pty-id")
         .and_then(|v| v.to_str().ok())
         .and_then(|s| s.parse().ok())
-        .ok_or_else(|| "pty_write: missing x-pty-id header".to_string())?;
+        .ok_or_else(|| "terax:pty_missing_id_header".to_string())?;
     let tauri::ipc::InvokeBody::Raw(bytes) = request.body() else {
-        return Err("pty_write: expected raw body".to_string());
+        return Err("terax:pty_expected_raw_body".to_string());
     };
     let session = state
         .sessions
@@ -190,7 +190,7 @@ pub fn pty_write(
         .cloned()
         .ok_or_else(|| {
             log::warn!("pty_write: unknown id={id}");
-            "no session".to_string()
+            "terax:pty_no_session".to_string()
         })?;
     // Bind to a local so the MutexGuard temporary drops before `session` —
     // see rustc note on tail-expression temporary drop order.
@@ -220,10 +220,7 @@ pub fn pty_resize(
         .unwrap()
         .get(&id)
         .cloned()
-        .ok_or_else(|| {
-            log::warn!("pty_resize: unknown id={id}");
-            "no session".to_string()
-        })?;
+        .ok_or_else(|| "terax:pty_no_session".to_string())?;
     let result = session
         .master
         .lock()
@@ -280,7 +277,7 @@ pub fn pty_has_foreground_process(state: tauri::State<PtyState>, id: u32) -> Res
     let sessions = state.sessions.read().unwrap();
     let session = sessions.get(&id).ok_or_else(|| {
         log::warn!("pty_has_foreground_process: unknown session id={id}");
-        "no session".to_string()
+        "terax:pty_no_session".to_string()
     })?;
     let shell_pid = session.shell_pid;
     if shell_pid == 0 {
@@ -297,7 +294,7 @@ pub fn pty_has_foreground_job(state: tauri::State<PtyState>, id: u32) -> Result<
     let sessions = state.sessions.read().unwrap();
     let session = sessions.get(&id).ok_or_else(|| {
         log::warn!("pty_has_foreground_job: unknown session id={id}");
-        "no session".to_string()
+        "terax:pty_no_session".to_string()
     })?;
     let shell_pid = session.shell_pid;
     if shell_pid == 0 {

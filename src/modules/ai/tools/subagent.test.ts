@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { ToolContext } from "./context";
 
 const runSubagent = vi.hoisted(() => vi.fn());
+const patchAgentMeta = vi.hoisted(() => vi.fn());
 
 vi.mock("../agents/runSubagent", () => ({ runSubagent }));
 vi.mock("../store/chatStore", () => ({
@@ -9,7 +10,7 @@ vi.mock("../store/chatStore", () => ({
     getState: () => ({
       apiKeys: {},
       selectedModelId: "any",
-      patchAgentMeta: () => {},
+      patchAgentMeta,
     }),
   },
 }));
@@ -74,5 +75,29 @@ describe("run_subagent abort", () => {
       { toolCallId: "t1", messages: [] } as never,
     )) as Record<string, unknown>;
     expect(r).toEqual({ type: "explore", aborted: true });
+  });
+
+  it("clears the stale agent step when aborted", async () => {
+    patchAgentMeta.mockClear();
+    runSubagent.mockRejectedValue(
+      new DOMException("Request aborted", "AbortError"),
+    );
+    const tools = buildSubagentTools(ctx);
+    await tools.run_subagent.execute!(
+      { type: "explore", prompt: "p" },
+      { toolCallId: "t1", messages: [] } as never,
+    );
+    expect(patchAgentMeta).toHaveBeenCalledWith({ step: null });
+  });
+
+  it("does not clear the step on unrelated failure", async () => {
+    patchAgentMeta.mockClear();
+    runSubagent.mockRejectedValue(new Error("boom"));
+    const tools = buildSubagentTools(ctx);
+    await tools.run_subagent.execute!(
+      { type: "explore", prompt: "p" },
+      { toolCallId: "t1", messages: [] } as never,
+    );
+    expect(patchAgentMeta).not.toHaveBeenCalled();
   });
 });

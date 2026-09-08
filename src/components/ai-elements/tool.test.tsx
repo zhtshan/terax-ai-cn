@@ -1,7 +1,7 @@
 import { cleanup, render, screen } from "@testing-library/react";
 import i18next from "i18next";
 import { afterEach, describe, expect, it } from "vitest";
-import { Tool } from "./tool";
+import { STATUS_LABEL, Tool, TOOL_META } from "./tool";
 
 // setup 未开 globals，testing-library 不会自动清理 DOM。
 afterEach(cleanup);
@@ -108,5 +108,42 @@ describe("Tool bash_run output", () => {
       />,
     );
     expect(screen.queryByText(interrupted)).toBeFalsy();
+  });
+});
+
+describe("Tool label localization", () => {
+  it("renders the localized label for a known tool", () => {
+    render(
+      <Tool
+        toolName="read_file"
+        state="input-available"
+        input={{ path: "/w/a.ts" }}
+      />,
+    );
+    expect(screen.getByText("读取")).toBeTruthy();
+    expect(screen.queryByText(/ai\.tools\./)).toBeFalsy();
+  });
+
+  it("labels the status dot while awaiting approval", () => {
+    render(
+      <Tool
+        toolName="bash_run"
+        state="approval-requested"
+        input={{ command: "ls" }}
+      />,
+    );
+    expect(screen.getByLabelText("等待审批")).toBeTruthy();
+  });
+
+  it("resolves every TOOL_META label to a translation", () => {
+    for (const { label } of Object.values(TOOL_META)) {
+      expect(i18next.t(`ai.tools.${label}`)).not.toBe(`ai.tools.${label}`);
+    }
+  });
+
+  it("resolves every STATUS_LABEL state to a translation", () => {
+    for (const value of Object.values(STATUS_LABEL)) {
+      expect(i18next.t(`ai.tools.${value}`)).not.toBe(`ai.tools.${value}`);
+    }
   });
 });

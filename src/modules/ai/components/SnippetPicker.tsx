@@ -76,7 +76,9 @@ export function SnippetPickerContent({
                             <span className="font-mono text-muted-foreground">
                               #{c.name}
                             </span>
-                            <span className="font-medium">{c.label}</span>
+                            <span className="font-medium">
+                              {t(`ai.slashCommands.${c.label}`)}
+                            </span>
                           </span>
                         </span>
                       </button>

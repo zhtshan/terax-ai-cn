@@ -1,4 +1,5 @@
 import type { Theme, ThemeColors, ThemeVariant, TerminalPalette } from "./types";
+import i18n from "@/i18n";
 
 export type ValidationResult =
   | { ok: true; theme: Theme }
@@ -33,14 +34,14 @@ function isStr(v: unknown): v is string {
 
 function parseColors(raw: unknown, path: string): ThemeColors | string {
   if (raw === undefined) return {};
-  if (!isObj(raw)) return `${path} must be an object`;
+  if (!isObj(raw)) return i18n.t("settings.themes.vObject", { path });
   const out: ThemeColors = {};
   for (const k of Object.keys(raw)) {
     if (!(COLOR_KEYS as string[]).includes(k)) {
-      return `${path}.${k} is not a recognized color key`;
+      return i18n.t("settings.themes.vColorKey", { path, key: k });
     }
     const v = raw[k];
-    if (!isStr(v) || v.length === 0) return `${path}.${k} must be a non-empty string`;
+    if (!isStr(v) || v.length === 0) return i18n.t("settings.themes.vNonEmptyString", { path: `${path}.${k}` });
     out[k as keyof ThemeColors] = v;
   }
   return out;
@@ -48,34 +49,34 @@ function parseColors(raw: unknown, path: string): ThemeColors | string {
 
 function parseTerminal(raw: unknown, path: string): TerminalPalette | string {
   if (raw === undefined) return {};
-  if (!isObj(raw)) return `${path} must be an object`;
+  if (!isObj(raw)) return i18n.t("settings.themes.vObject", { path });
   const out: TerminalPalette = {};
   if (raw.background !== undefined) {
-    if (!isStr(raw.background)) return `${path}.background must be a string`;
+    if (!isStr(raw.background)) return i18n.t("settings.themes.vString", { path: `${path}.background` });
     out.background = raw.background;
   }
   if (raw.foreground !== undefined) {
-    if (!isStr(raw.foreground)) return `${path}.foreground must be a string`;
+    if (!isStr(raw.foreground)) return i18n.t("settings.themes.vString", { path: `${path}.foreground` });
     out.foreground = raw.foreground;
   }
   if (raw.cursor !== undefined) {
-    if (!isStr(raw.cursor)) return `${path}.cursor must be a string`;
+    if (!isStr(raw.cursor)) return i18n.t("settings.themes.vString", { path: `${path}.cursor` });
     out.cursor = raw.cursor;
   }
   if (raw.cursorAccent !== undefined) {
-    if (!isStr(raw.cursorAccent)) return `${path}.cursorAccent must be a string`;
+    if (!isStr(raw.cursorAccent)) return i18n.t("settings.themes.vString", { path: `${path}.cursorAccent` });
     out.cursorAccent = raw.cursorAccent;
   }
   if (raw.selection !== undefined) {
-    if (!isStr(raw.selection)) return `${path}.selection must be a string`;
+    if (!isStr(raw.selection)) return i18n.t("settings.themes.vString", { path: `${path}.selection` });
     out.selection = raw.selection;
   }
   if (raw.ansi !== undefined) {
     if (!Array.isArray(raw.ansi) || raw.ansi.length !== 16) {
-      return `${path}.ansi must be an array of 16 strings`;
+      return i18n.t("settings.themes.vAnsiArray", { path: `${path}.ansi` });
     }
     for (let i = 0; i < 16; i++) {
-      if (!isStr(raw.ansi[i])) return `${path}.ansi[${i}] must be a string`;
+      if (!isStr(raw.ansi[i])) return i18n.t("settings.themes.vString", { path: `${path}.ansi[${i}]` });
     }
     out.ansi = raw.ansi as unknown as TerminalPalette["ansi"];
   }
@@ -83,7 +84,7 @@ function parseTerminal(raw: unknown, path: string): TerminalPalette | string {
 }
 
 function parseVariant(raw: unknown, path: string): ThemeVariant | string {
-  if (!isObj(raw)) return `${path} must be an object`;
+  if (!isObj(raw)) return i18n.t("settings.themes.vObject", { path });
   const colors = parseColors(raw.colors, `${path}.colors`);
   if (typeof colors === "string") return colors;
   const terminal = parseTerminal(raw.terminal, `${path}.terminal`);
@@ -92,14 +93,14 @@ function parseVariant(raw: unknown, path: string): ThemeVariant | string {
 }
 
 export function validateTheme(raw: unknown): ValidationResult {
-  if (!isObj(raw)) return { ok: false, error: "Theme must be a JSON object" };
+  if (!isObj(raw)) return { ok: false, error: i18n.t("settings.themes.importNotObject") };
   if (!isStr(raw.id) || !ID_RE.test(raw.id)) {
-    return { ok: false, error: "id must be a kebab-case string (a-z, 0-9, -)" };
+    return { ok: false, error: i18n.t("settings.themes.importIdInvalid") };
   }
   if (!isStr(raw.name) || raw.name.trim().length === 0) {
-    return { ok: false, error: "name must be a non-empty string" };
+    return { ok: false, error: i18n.t("settings.themes.importNameRequired") };
   }
-  if (!isObj(raw.variants)) return { ok: false, error: "variants must be an object" };
+  if (!isObj(raw.variants)) return { ok: false, error: i18n.t("settings.themes.importVariantsObject") };
   const variants: Theme["variants"] = {};
   if (raw.variants.light !== undefined) {
     const v = parseVariant(raw.variants.light, "variants.light");
@@ -112,7 +113,7 @@ export function validateTheme(raw: unknown): ValidationResult {
     variants.dark = v;
   }
   if (!variants.light && !variants.dark) {
-    return { ok: false, error: "variants must contain at least one of: light, dark" };
+    return { ok: false, error: i18n.t("settings.themes.importVariantsRequired") };
   }
   const theme: Theme = {
     id: raw.id,

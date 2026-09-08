@@ -18,6 +18,8 @@
     "dismiss": "忽略",
     "continue": "继续",
     "loading": "加载中…",
+    "retry": "重试",
+    "searching": "搜索中…",
     "testing": "测试中…",
     "error": "错误",
     "none": "无",
@@ -26,7 +28,14 @@
     "previous": "上一个",
     "next": "下一个",
     "collapse": "折叠",
-    "expand": "展开"
+    "expand": "展开",
+    "breadcrumb": "面包屑",
+    "more": "更多",
+    "copyCode": "复制代码",
+    "contextUsage": "模型上下文用量",
+    "branchPrevious": "上一个分支",
+    "branchNext": "下一个分支",
+    "copy": "复制"
   },
   "settings": {
     "tabs": {
@@ -87,7 +96,10 @@
       "letterSpacingDesc": "字符之间的额外水平间距(像素)。负值可用于收紧 Nerd Font。",
       "agents": "代理",
       "agentNotifications": "编码代理通知",
-      "agentNotificationsDesc": "当 Claude Code 或 Codex 等在终端中运行的编码代理需要你的输入或完成任务时进行提醒。Terax 未聚焦时使用系统通知,否则使用应用内提示。"
+      "agentNotificationsDesc": "当 Claude Code 或 Codex 等在终端中运行的编码代理需要你的输入或完成任务时进行提醒。Terax 未聚焦时使用系统通知,否则使用应用内提示。",
+      "shellNoBlocks": "此 Shell 不支持命令块与目录跟踪。",
+      "shellWsl": "集成终端使用的 Shell。WSL 空间使用发行版登录 Shell。已有标签页保持原 Shell。",
+      "shellDefault": "新建终端标签页使用的 Shell。已有标签页保持原 Shell。"
     },
     "shortcuts": {
       "title": "快捷键",
@@ -131,6 +143,7 @@
       "addProvider": "添加提供商",
       "cloud": "云端",
       "localAndCustom": "本地与自定义",
+      "custom": "自定义",
       "connected": "已连接",
       "docs": "文档",
       "removeProvider": "移除提供商",
@@ -151,7 +164,14 @@
       "provider": "提供商",
       "sttOpenaiDesc": "使用你的官方 OpenAI API 密钥和 Whisper 模型进行转录。",
       "sttGroqDesc": "使用你的官方 Groq API 密钥和 Groq 的 Whisper 端点进行转录。",
-      "sttWhispercppDesc": "连接本地 Whisper.cpp 服务器以实现完全离线转录。"
+      "sttWhispercppDesc": "连接本地 Whisper.cpp 服务器以实现完全离线转录。",
+      "mlxDesc": "通过 mlx_lm.server（pip install mlx-lm）在 Apple 芯片上本地推理。",
+      "ollamaDesc": "通过 Ollama 内置的 OpenAI 兼容 API 使用本地模型。",
+      "openrouterDesc": "OpenRouter 上的任意模型 — 输入完整的 provider/model id。",
+      "lmstudioModelHint": "输入 LM Studio 中已加载的模型 ID — 即服务器 /v1/models 页面显示的名称。",
+      "mlxModelHint": "输入启动 mlx_lm.server 时使用的 Hugging Face 仓库路径。",
+      "ollamaModelHint": "输入 `ollama list` / `ollama pull` 中的模型名称。",
+      "openrouterModelHint": "在 openrouter.ai/models 浏览可用 id。"
     },
     "agents": {
       "title": "代理",
@@ -315,7 +335,24 @@
       "chooseImage": "选择图片",
       "opacity": "不透明度",
       "blur": "模糊",
-      "backgroundHint": "拖拽图片到此处或选择一张。本地存储,在设置前不影响默认外观。"
+      "backgroundHint": "拖拽图片到此处或选择一张。本地存储,在设置前不影响默认外观。",
+      "starterName": "我的主题",
+      "starterDesc": "自定义主题。",
+      "bgStorageFull": "存储空间不足，无法保存此图片。请移除不用的主题或背景后重试。",
+      "bgNotImage": "这不是图片文件。",
+      "bgTooLargeAnimated": "动图最大 {{limit}} MB，当前 {{size}}。",
+      "bgTooLargeStatic": "图片最大 {{limit}} MB，当前 {{size}}。",
+      "bgDecodeFailed": "无法解码此图片，请换一个文件试试。",
+      "importNotObject": "主题必须是 JSON 对象",
+      "importIdInvalid": "id 必须是 kebab-case 字符串（a-z、0-9、-）",
+      "importNameRequired": "name 必须是非空字符串",
+      "importVariantsObject": "variants 必须是对象",
+      "importVariantsRequired": "variants 至少需要 light 或 dark 之一",
+      "vObject": "{{path}} 必须是对象",
+      "vString": "{{path}} 必须是字符串",
+      "vNonEmptyString": "{{path}} 必须是非空字符串",
+      "vColorKey": "{{path}}：无法识别的颜色键 {{key}}",
+      "vAnsiArray": "{{path}} 必须是包含 16 个字符串的数组"
     }
   },
   "ai": {
@@ -518,8 +555,40 @@
     "slashCommands": {
       "initWorkspace": "初始化工作区",
       "planMode": "计划模式",
+      "delegateToClaude": "委派给 Claude Code",
       "planModeOff": "计划模式已关闭",
       "planModeOn": "计划模式已开启"
+    },
+    "composer": {
+      "editorSelection": "编辑器选区",
+      "terminalSelection": "终端选区"
+    },
+    "customEndpoint": "自定义端点",
+    "chatCode": {
+      "generating": "正在生成代码…",
+      "generatingLang": "正在生成 {{lang}}…",
+      "runInTerminal": "在活动终端运行"
+    },
+    "context": {
+      "input": "输入",
+      "output": "输出",
+      "reasoning": "推理",
+      "cache": "缓存"
+    },
+    "errors": {
+      "modelUnavailable": "模型不可用",
+      "authFailed": "认证失败",
+      "quotaExceeded": "配额已用尽",
+      "rateLimited": "请求过于频繁",
+      "fallback": "AI 服务商拒绝了请求。请检查所选模型与服务商设置后重试。",
+      "transcriptionFailed": "转录失败",
+      "micDenied": "无法访问麦克风"
+    },
+    "stt": {
+      "invalidWhisperUrl": "Whisper.cpp 地址无效：{{url}}",
+      "whisperLoopbackOnly": "Whisper.cpp 必须运行在本地回环地址（localhost 或 127.x.x.x）上，以保证转录不出本机。",
+      "openaiKeyMissing": "未配置 OpenAI API Key",
+      "groqKeyMissing": "未配置 Groq API Key"
     },
     "sessions": {
       "newChat": "新对话"
@@ -642,6 +711,44 @@
       "content": "在文件中查找文本"
     }
   },
+  "gitHistory": {
+    "loadingCommits": "加载提交中…",
+    "loadErrorTitle": "无法加载历史记录",
+    "retry": "重试",
+    "unknownError": "未知错误",
+    "noCommitsTitle": "暂无提交",
+    "noCommitsDesc": "此分支尚无提交。",
+    "header": {
+      "sha": "SHA",
+      "subject": "主题",
+      "author": "作者",
+      "date": "日期",
+      "changes": "更改"
+    },
+    "loadingMore": "加载更多中…",
+    "endReached": "已到达末尾",
+    "failedToLoadMore": "加载更多失败",
+    "noSubject": "（无主题）",
+    "unknown": "未知",
+    "filesChanged_one": "更改了 {{count}} 个文件",
+    "filesChanged_other": "更改了 {{count}} 个文件",
+    "loadingFiles": "加载文件列表中…",
+    "noFileChanges": "无文件更改。",
+    "files": "文件",
+    "binary": "二进制",
+    "copied": "已复制",
+    "copySha": "复制 SHA",
+    "viewOnHost": "在 {{host}} 上查看"
+  },
+  "spaces": {
+    "title": "空间",
+    "newSpace": "新建空间",
+    "renameSpace": "重命名空间",
+    "newTab": "新建标签",
+    "deleteSpace": "删除空间",
+    "dropToMoveHere": "拖到此移动",
+    "noTabs": "暂无标签"
+  },
   "lsp": {
     "startForWorkspace": "为此工作区启动 {{command}}",
     "enablePill": "启用 {{name}} LSP",
@@ -660,7 +767,18 @@
     "startingTitle": "语言服务器启动中",
     "activeTitle": "语言服务器已激活",
     "runningStarting": "<1>{{command}}</1> 正在为此工作区启动。",
-    "runningActive": "<1>{{command}}</1> 正在为此工作区运行。"
+    "runningActive": "<1>{{command}}</1> 正在为此工作区运行。",
+    "definitionFailed": "跳转到定义失败",
+    "noDefinition": "未找到定义",
+    "referencesFailed": "查找引用失败",
+    "noReferences": "未找到引用",
+    "definitions": "定义",
+    "references": "引用",
+    "spawnFailed": "{{name}} 语言服务器启动失败",
+    "stopped": "{{name}} 语言服务器已停止",
+    "keepsCrashing": "{{name}} 语言服务器反复崩溃",
+    "giveUp": "已放弃此工作区。",
+    "exited": "{{name}} 语言服务器已退出"
   },
   "markdown": {
     "failedToRead": "读取文件失败：{{message}}",
@@ -692,7 +810,9 @@
     "error": "错误：{{message}}",
     "truncated": "结果已截断",
     "noResults": "无结果",
-    "noWorkspace": "请先打开工作区"
+    "noWorkspace": "请先打开工作区",
+    "replaceEmpty": "替换内容为空",
+    "replaceFailed": "替换失败"
   },
   "terminal": {
     "watermark": {
@@ -718,12 +838,16 @@
       "blockCopied": "块已复制",
       "attachToAi": "附加到 AI 聊天",
       "findInBlock": "在块中查找"
-    }
+    },
+    "closePane": "关闭面板",
+    "dropFileHint": "拖拽文件路径到此处"
   },
   "statusbar": {
     "private": "隐私：对 AI 隐藏",
     "privateTooltip": "AI 无法看到此终端的输出。适用于密钥、SSH 或任何你不想发送给模型的内容。",
     "windows": "Windows",
+    "noSubfolders": "无子文件夹",
+    "showHiddenFolders": "显示隐藏文件夹",
     "workspaceEnv": "工作区环境",
     "windowsLocal": "Windows 本地",
     "loadingWsl": "加载 WSL 发行版中…",
@@ -748,9 +872,13 @@
     "fewerLanguages": "↑ 收起语言",
     "allLanguages": "↓ 全部语言",
     "renameTab": "重命名标签",
+    "gitHistory": "Git 历史",
+    "historyBranch": "历史 · {{branch}}",
     "externalChange": "磁盘已修改",
     "externalReload": "重新加载（放弃本地修改）",
-    "externalKeep": "保留我的版本"
+    "externalKeep": "保留我的版本",
+    "pin": "定位",
+    "unpin": "取消定位"
   },
   "explorer": {
     "noCurrentDir": "没有当前目录",
@@ -767,6 +895,7 @@
     "copyRelativePath": "复制相对路径",
     "copyFile": "复制",
     "cutFile": "剪切",
+    "copyFailed": "复制失败：{{detail}}",
     "paste": "粘贴",
     "attachToAgent": "附加到代理",
     "rename": "重命名",
@@ -807,9 +936,11 @@
     "placeholder": "http://localhost:3000",
     "openInBrowser": "在系统浏览器中打开",
     "embedWarning": "站点响应头（X-Frame-Options / frame-ancestors）禁止嵌入。页面为空时，可在外部打开，或放宽开发服务器的响应头。",
+    "cookieHint": "沙箱预览中，基于 Cookie 的登录可能无法使用。",
     "suspended": "预览已暂停",
     "suspendedDesc": "在后台闲置后释放以节省内存。",
-    "nothingToPreview": "暂无内容可预览"
+    "nothingToPreview": "暂无内容可预览",
+    "title": "预览"
   },
   "shortcutsDialog": {
     "title": "键盘快捷键",
@@ -854,7 +985,8 @@
     "minimize": "最小化",
     "restore": "还原",
     "maximize": "最大化",
-    "close": "关闭"
+    "close": "关闭",
+    "settingsTitle": "设置"
   },
   "workspace": {
     "inputBar": {
@@ -867,6 +999,8 @@
     "nameRequired": "名称为必填项",
     "pathRelative": "路径必须为相对路径",
     "noWorkspaceRoot": "没有工作区根目录",
+    "clearFind": "清空查找",
+    "clearReplace": "清空替换内容",
     "newFile": "新建文件",
     "newFileDesc": "文件名（相对于工作区根目录）。扩展名决定语言模式。",
     "exampleTs": "example.ts",
@@ -885,44 +1019,26 @@
     "formatSkipped": "保存时已跳过格式化",
     "formatSkippedNoFormatterDesc": "当前语言服务器没有格式化器。请在设置中选择外部格式化器（Python 用 Ruff、Prettier、rustfmt 等）。",
     "formatSkippedNoLspDesc": "此文件没有活动的语言服务器。请在状态栏启用一个，或在设置中选择外部格式化器。",
-    "saveToPreview": "保存后可预览"
+    "saveToPreview": "保存后可预览",
+    "formatFailed": "{{formatter}} 格式化失败",
+    "binaryFile": "二进制文件",
+    "fileTooLarge": "文件过大",
+    "syntaxDisabled": "语法功能已禁用",
+    "previewNotSupported": "暂不支持预览",
+    "openAnyway": "仍要打开",
+    "plainText": "纯文本",
+    "formatterLsp": "语言服务器",
+    "formatterCustom": "自定义命令",
+    "noFormatCommand": "未在设置中配置自定义格式化命令。",
+    "cmdClickToOpen": "按住 Cmd/Ctrl 并点击打开链接"
   },
-  "gitHistory": {
-    "loadingCommits": "加载提交中…",
-    "loadErrorTitle": "无法加载历史记录",
-    "retry": "重试",
-    "unknownError": "未知错误",
-    "noCommitsTitle": "暂无提交",
-    "noCommitsDesc": "此分支尚无提交。",
-    "header": {
-      "sha": "SHA",
-      "subject": "主题",
-      "author": "作者",
-      "date": "日期",
-      "changes": "更改"
-    },
-    "loadingMore": "加载更多中…",
-    "endReached": "已到达末尾",
-    "failedToLoadMore": "加载更多失败",
-    "noSubject": "（无主题）",
-    "unknown": "未知",
-    "filesChanged_one": "更改了 {{count}} 个文件",
-    "filesChanged_other": "更改了 {{count}} 个文件",
-    "loadingFiles": "加载文件列表中…",
-    "noFileChanges": "无文件更改。",
-    "files": "文件",
-    "binary": "二进制",
-    "copied": "已复制",
-    "copySha": "复制 SHA"
-  },
-  "spaces": {
-    "title": "空间",
-    "newSpace": "新建空间",
-    "renameSpace": "重命名空间",
-    "newTab": "新建标签",
-    "deleteSpace": "删除空间",
-    "dropToMoveHere": "拖到此移动",
-    "noTabs": "暂无标签"
+  "aiDiff": {
+    "pending": "待审核",
+    "approved": "已应用",
+    "rejected": "已拒绝",
+    "newFile": "新文件",
+    "toggleDiff": "展开/收起 Diff",
+    "reject": "拒绝"
   },
   "sourceControl": {
     "title": "源代码管理",
@@ -979,7 +1095,37 @@
     "openDiff": "打开差异",
     "openFile": "打开文件",
     "revealInFinder": "在访达中显示",
-    "revealInFileManager": "在文件管理器中显示"
+    "revealInFileManager": "在文件管理器中显示",
+    "statusDeleted": "已删除",
+    "statusUntracked": "未跟踪",
+    "generateNoStaged": "请先暂存更改，再生成提交消息",
+    "generateNoProvider": "连接 AI 服务商后即可生成提交消息",
+    "generateBusy": "请等待当前 AI 操作完成",
+    "generateReady": "生成提交消息",
+    "invalidCommitMessage": "AI 返回了无效的提交消息，请重试或切换模型。",
+    "pushNoUpstream": "请先在终端中配置或发布该分支，然后才能推送。",
+    "pushBehind": "请先拉取远程更改，再推送本地提交。",
+    "pushNoCommits": "没有可推送到 {{upstream}} 的本地提交。",
+    "pushWill": "将推送到 {{upstream}}。",
+    "stagedEmpty": "暂存区为空",
+    "unstagedEmpty": "没有未暂存的更改",
+    "committed": "已提交 {{sha}} {{summary}}",
+    "pushedTo": "已推送到 {{upstream}}",
+    "pushCompleted": "推送完成",
+    "divergedTitle": "分支已与上游分叉，请在源代码管理面板或终端中处理。",
+    "pullTitle_other": "拉取 {{count}} 个远程提交（仅限快进）。",
+    "pushTitle_other": "推送 {{count}} 个本地提交。",
+    "syncLabel": "同步",
+    "syncTitle": "获取远程更新。",
+    "nothingStaged": "暂存区没有更改",
+    "stagedCount_other": "已暂存 {{count}} 个文件",
+    "statusAdded": "新增",
+    "statusModified": "已修改",
+    "statusRenamed": "已重命名",
+    "statusCopied": "已复制",
+    "statusTypeChanged": "类型变更",
+    "statusUnmerged": "未合并",
+    "statusUnknown": "状态 {{c}}"
   },
   "sidebar": {
     "files": "文件",
@@ -1062,7 +1208,76 @@
       "editor.undo": "撤销",
       "editor.redo": "重做",
       "editor.aiComplete": "触发 AI 补全",
-      "editor.codeComplete": "触发代码补全"
+      "editor.codeComplete": "触发代码补全",
+      "editor.goBack": "后退",
+      "editor.goForward": "前进"
     }
+  },
+  "terax": {
+    "fs_no_parent": "路径没有父目录",
+    "fs_empty_pattern": "搜索词不能为空",
+    "fs_empty_replacement": "替换内容不能为空",
+    "fs_not_a_directory": "不是目录：{{rest}}",
+    "fs_bad_glob": "无效的 glob {{rest}}",
+    "fs_globset_build": "glob 集构建失败：{{rest}}",
+    "fs_bad_pattern": "无效的表达式：{{rest}}",
+    "fs_replace_error": "替换出错：{{rest}}",
+    "fs_utf8_after_replace": "替换后 UTF-8 校验失败：{{rest}}",
+    "fs_already_exists": "已存在：{{rest}}",
+    "fs_not_found": "未找到：{{rest}}",
+    "fs_invalid_source": "无效的来源路径：{{rest}}",
+    "git_not_installed": "PATH 中找不到 git，请安装 Git 后重试。",
+    "git_too_old": "git 版本过旧：{{rest}}",
+    "git_not_a_directory": "不是目录：{{rest}}",
+    "git_outside_workspace": "路径超出已授权的工作区：{{rest}}",
+    "git_invalid_path": "路径无效：{{rest}}",
+    "git_file_too_large": "文件过大，无法对比：{{rest}}",
+    "git_symlink_rejected": "拒绝跟随符号链接：{{rest}}",
+    "git_no_upstream": "未配置上游分支。请先在终端执行 `git push -u <远程> <分支>`。",
+    "git_auth_required": "需要身份验证：{{rest}}",
+    "git_host_key_unverified": "主机密钥验证失败。请先在终端手动执行一次该命令以信任主机。",
+    "git_timed_out": "{{rest}} 超时",
+    "git_empty_commit_message": "提交信息不能为空",
+    "git_command_failed": "命令执行失败：{{rest}}",
+    "git_spawn": "启动 git 进程失败：{{rest}}",
+    "git_io": "IO 错误：{{rest}}",
+    "git_no_stdout_pipe": "无法获取 stdout 管道",
+    "git_no_stderr_pipe": "无法获取 stderr 管道",
+    "git_wait_disconnected": "git 等待线程已断开",
+    "git_unknown_error": "未知的 git 错误",
+    "git_commit_nothing_staged": "git commit：没有已暂存的变更",
+    "git_invalid_sha": "无效的 commit 标识",
+    "net_dns_error": "DNS 解析失败：{{rest}}",
+    "net_no_addresses": "DNS：未解析到任何地址",
+    "net_invalid_url": "无效的 URL：{{rest}}",
+    "net_scheme_not_allowed": "不支持的协议：{{rest}}",
+    "net_userinfo_not_allowed": "URL 中不允许携带用户信息",
+    "net_missing_host": "缺少主机名",
+    "net_host_not_allowed": "不允许访问的主机：{{rest}}",
+    "net_private_address": "主机 {{rest}} 解析到内网/环回地址；需在设置中允许访问本地网络",
+    "net_no_safe_ips": "主机 {{rest}}：无可用的安全 IP",
+    "net_header_not_allowed": "不允许的请求头：{{rest}}",
+    "net_header_control_bytes": "请求头的值包含控制字符：{{rest}}",
+    "net_empty_base_url": "Base URL 不能为空",
+    "net_too_many_redirects": "重定向次数过多",
+    "pty_missing_id_header": "pty_write：缺少 x-pty-id 请求头",
+    "pty_expected_raw_body": "pty_write：请求体必须是原始字节",
+    "pty_no_session": "PTY 会话不存在",
+    "shell_empty_command": "命令不能为空",
+    "shell_cwd_not_directory": "工作目录不是文件夹：{{rest}}",
+    "lsp_wsl_unsupported": "LSP：暂不支持 WSL 工作区",
+    "lsp_root_required": "LSP：缺少工作区根目录",
+    "lsp_binary_not_found": "LSP：未找到可执行文件：{{rest}}",
+    "lsp_spawn_failed": "无法启动 LSP 进程 {{rest}}",
+    "lsp_no_stdin": "LSP：无法获取 stdin 管道",
+    "lsp_no_stdout": "LSP：无法获取 stdout 管道",
+    "lsp_no_stderr": "LSP：无法获取 stderr 管道",
+    "lsp_memory_limit": "内存占用超出预算，已终止（{{rest}}）",
+    "workspace_cwd_not_accessible": "工作目录不可访问：{{rest}}",
+    "workspace_cwd_not_directory": "工作目录不是文件夹：{{rest}}",
+    "workspace_cwd_outside": "工作目录超出已授权的工作区：{{rest}}",
+    "workspace_wsl_distro_unsafe": "不安全的 WSL 发行版名称：{{rest}}",
+    "workspace_wsl_windows_only": "WSL 仅在 Windows 上可用",
+    "workspace_wsl_home_unresolved": "无法解析 {{rest}} 的 WSL home 目录"
   }
 }

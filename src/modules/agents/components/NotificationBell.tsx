@@ -19,7 +19,7 @@ import { useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { AgentIcon } from "../lib/agentIcon";
 import { displayAgent } from "../lib/format";
-import type { AgentNotification, AgentStatus } from "../lib/types";
+import type { AgentNotification, AgentStatus, NotificationKind } from "../lib/types";
 import { useAgentStore } from "../store/agentStore";
 
 type Props = {
@@ -74,6 +74,12 @@ function StatusRow({
     </button>
   );
 }
+
+const NOTIFICATION_LABEL_KEY: Record<NotificationKind, string> = {
+  attention: "agents.notification.needsInput",
+  finished: "agents.notification.finished",
+  error: "agents.notification.failed",
+};
 
 const HOOK_AGENTS = ["claude", "codex", "gemini", "pi"] as const;
 
@@ -136,7 +142,7 @@ function NotificationRow({
   onClick: () => void;
 }) {
   const { t } = useTranslation();
-  const labelKey = `agents.notification.${n.kind}` as const;
+  const labelKey = NOTIFICATION_LABEL_KEY[n.kind];
   return (
     <button
       type="button"

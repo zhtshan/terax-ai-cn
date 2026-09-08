@@ -27,6 +27,7 @@ const baseProps = {
   onNewGitGraph: vi.fn(),
   onClose: vi.fn(),
   onPin: vi.fn(),
+  onTogglePin: vi.fn(),
   onRename: vi.fn(),
   onReorder: vi.fn(),
 };

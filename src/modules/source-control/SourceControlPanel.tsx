@@ -27,6 +27,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Spinner } from "@/components/ui/spinner";
+import { displayError } from "@/lib/teraxErrors";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import {
@@ -194,7 +195,7 @@ function BranchDropdown({
       setBranches(result.branches);
     } catch (e) {
       if (id !== requestRef.current) return;
-      setError(String(e));
+      setError(displayError(e));
       setBranches([]);
     } finally {
       if (id === requestRef.current) {
@@ -223,7 +224,7 @@ function BranchDropdown({
           position: "top-left",
         });
       } catch (e) {
-        toast.error(String(e), { position: "top-left" });
+        toast.error(displayError(e), { position: "top-left" });
       } finally {
         checkoutInFlight.current = false;
         setCheckingOut(false);
@@ -850,8 +851,8 @@ export const SourceControlPanel = memo(function SourceControlPanel({
                 />
                 <span className="truncate font-medium text-foreground/85">
                   {stagedCount === 0
-                    ? "Nothing staged"
-                    : `${stagedCount} ${stagedCount === 1 ? "file" : "files"} staged`}
+                    ? t("sourceControl.nothingStaged")
+                    : t("sourceControl.stagedCount", { count: stagedCount })}
                 </span>
                 <span className="ml-auto shrink-0 truncate text-muted-foreground/65">
                   {pushStatusLabel}

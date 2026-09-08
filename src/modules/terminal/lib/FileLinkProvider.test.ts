@@ -339,6 +339,48 @@ describe("registerFileLinkProvider", () => {
     expect(toast.error).toHaveBeenCalledWith("文件不存在");
   });
 
+  it("falls back to the workspace root when the cwd-resolved path is missing", async () => {
+    const navOpenFile = vi.fn();
+    vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });
+    vi.mocked(leafCwd).mockReturnValue("/repo/sub");
+    vi.mocked(invoke)
+      .mockRejectedValueOnce(new Error("no such file"))
+      .mockResolvedValue({ kind: "file", is_dir: false });
+    const { term, getLineMock } = makeMockTerm();
+    mockLineContent(getLineMock, "openspec/config.yaml");
+
+    registerFileLinkProvider(term, baseOptions);
+    const call = vi.mocked(term.registerLinkProvider).mock.calls[0]![0];
+    const provider = call as {
+      provideLinks: (y: number, cb: (links: unknown[]) => void) => void;
+    };
+
+    await new Promise<void>((resolve) => {
+      provider.provideLinks(1, (links) => {
+        const arr = links as {
+          activate: (e: MouseEvent, t: string) => Promise<void>;
+        }[];
+        const link = arr[0]!;
+        link.activate(makeClickEvent({ metaKey: true }), "openspec/config.yaml");
+        resolve();
+      });
+    });
+
+    await new Promise((r) => setTimeout(r, 20));
+    expect(invoke).toHaveBeenNthCalledWith(
+      1,
+      "fs_stat",
+      expect.objectContaining({ path: "/repo/sub/openspec/config.yaml" }),
+    );
+    expect(invoke).toHaveBeenNthCalledWith(
+      2,
+      "fs_stat",
+      expect.objectContaining({ path: "/repo/openspec/config.yaml" }),
+    );
+    expect(navOpenFile).toHaveBeenCalledWith("/repo/openspec/config.yaml", 0);
+    expect(toast.error).not.toHaveBeenCalled();
+  });
+
   it("shows toast.error and skips navigator when target is a directory", async () => {
     const navOpenFile = vi.fn();
     vi.mocked(getLspNavigator).mockReturnValue({ openFile: navOpenFile });

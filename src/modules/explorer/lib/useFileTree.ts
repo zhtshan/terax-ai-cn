@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { listenFsChanged, watchAdd, watchRemove } from "./watch";
+import { displayError } from "@/lib/teraxErrors";
 
 export type DirEntry = {
   name: string;
@@ -181,7 +182,7 @@ export function useFileTree(rootPath: string | null, options?: Options) {
     } catch (e) {
       setNodes((s) => ({
         ...s,
-        [path]: { status: "error", message: String(e) },
+        [path]: { status: "error", message: displayError(e) },
       }));
     }
   }, []);

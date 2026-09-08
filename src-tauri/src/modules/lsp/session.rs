@@ -97,22 +97,22 @@ pub fn spawn(
 
     let child = Arc::new(
         SharedChild::spawn(&mut cmd)
-            .map_err(|e| format!("lsp spawn failed for {}: {e}", binary.display()))?,
+            .map_err(|e| format!("terax:lsp_spawn_failed {} ({})", binary.display(), e))?,
     );
     let kill_on_fail = || {
         let _ = child.kill();
     };
     let stdin = child.take_stdin().ok_or_else(|| {
         kill_on_fail();
-        "lsp: no stdin pipe".to_string()
+        "terax:lsp_no_stdin".to_string()
     })?;
     let mut stdout = child.take_stdout().ok_or_else(|| {
         kill_on_fail();
-        "lsp: no stdout pipe".to_string()
+        "terax:lsp_no_stdout".to_string()
     })?;
     let mut stderr = child.take_stderr().ok_or_else(|| {
         kill_on_fail();
-        "lsp: no stderr pipe".to_string()
+        "terax:lsp_no_stderr".to_string()
     })?;
 
     #[cfg(windows)]
@@ -232,7 +232,7 @@ pub fn spawn(
                                 "lsp id={id} rss {rss_mb} MB over budget {cap_mb} MB; killing"
                             );
                             *reason_w.lock().unwrap() = Some(format!(
-                                "Killed after exceeding the {cap_mb} MB memory budget ({rss_mb} MB resident)."
+                                "terax:lsp_memory_limit cap={cap_mb} rss={rss_mb}"
                             ));
                             session_w.kill();
                             return;

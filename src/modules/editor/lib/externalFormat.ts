@@ -1,4 +1,5 @@
 import { quoteShellArg } from "@/lib/shellQuote";
+import i18n from "@/i18n";
 import type { EditorFormatter } from "@/modules/settings/store";
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import type { EditorView } from "@codemirror/view";
@@ -66,8 +67,8 @@ export const FORMATTERS: Record<
 };
 
 export const FORMATTER_LABELS: Record<EditorFormatter, string> = {
-  lsp: "Language server",
-  custom: "Custom command",
+  lsp: i18n.t("editor.formatterLsp"),
+  custom: i18n.t("editor.formatterCustom"),
   ...Object.fromEntries(
     Object.entries(FORMATTERS).map(([id, def]) => [id, def.label]),
   ),
@@ -122,7 +123,7 @@ export async function runExternalFormatter(
 ): Promise<string | null> {
   const command = buildCommand(formatter, path, customTemplate);
   if (!command) {
-    return "No custom format command configured in Settings.";
+    return i18n.t("editor.noFormatCommand");
   }
   try {
     const out = await invoke<CommandOutput>("shell_run_command", {

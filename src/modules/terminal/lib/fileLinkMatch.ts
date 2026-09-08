@@ -32,10 +32,11 @@ function normalizePosix(p: string): string {
  * Supports: `path`, `path:line`, `path:line:col`, plus grep/compiler
  * output where the location is followed by a trailing colon:
  * `path:line: message` and `path:line:col: message`.
+ * Paths may be wrapped in quotes or half/full-width brackets.
  * Requires at least one `/` and a recognized code-file extension.
  */
 const LINK_RE =
-  /(?<![^\s])(['"]?([^\s\t\n\r()<>\[\]{}=:]*\/[^\s\t\n\r()<>\[\]{}=:]*\.[a-zA-Z]{2,5}))(?::(\d+)(?::(\d+))?)?(?=[\s,;)\]>"'":]|$)/g;
+  /(?<![^\s([（【「『《<])(['"]?([^\s\t\n\r()<>\[\]{}=:（）【】「」『』《》，。、；：]*\/[^\s\t\n\r()<>\[\]{}=:（）【】「」『』《》，。、；：]*\.[a-zA-Z]{2,5}))(?::(\d+)(?::(\d+))?)?(?=[\s,;)\]>"'":，。、；：）】」』》]|$)/g;
 
 export function matchFileLinks(line: string): FileLinkCandidate[] {
   const results: FileLinkCandidate[] = [];
@@ -99,4 +100,31 @@ export function isInsideWorkspace(
     ? explorerRoot.slice(0, -1)
     : explorerRoot;
   return absPath === root || absPath.startsWith(root + "/");
+}
+
+/**
+ * Absolute-path candidates for activating a file link, best first. Terminal
+ * output often writes paths relative to the project root while the shell sits
+ * in a subdirectory, so the cwd resolution is tried first and the workspace
+ * root resolution second. Candidates that normalize outside the workspace are
+ * dropped; duplicates collapse.
+ */
+export function resolveActivations(
+  pathStr: string,
+  cwd: string | null,
+  home: string | null,
+  explorerRoot: string,
+): string[] {
+  const out: string[] = [];
+  for (const base of [cwd, explorerRoot]) {
+    const abs = resolvePath(pathStr, base, home);
+    if (
+      abs !== null &&
+      isInsideWorkspace(abs, explorerRoot) &&
+      !out.includes(abs)
+    ) {
+      out.push(abs);
+    }
+  }
+  return out;
 }

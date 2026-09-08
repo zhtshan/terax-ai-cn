@@ -48,10 +48,10 @@ fn build_globset(patterns: &[String]) -> Result<Option<GlobSet>, String> {
     }
     let mut b = GlobSetBuilder::new();
     for p in patterns {
-        let g = Glob::new(p).map_err(|e| format!("bad glob {p:?}: {e}"))?;
+        let g = Glob::new(p).map_err(|e| format!("terax:fs_bad_glob {p:?}: {e}"))?;
         b.add(g);
     }
-    let set = b.build().map_err(|e| format!("globset build: {e}"))?;
+    let set = b.build().map_err(|e| format!("terax:fs_globset_build {e}"))?;
     Ok(Some(set))
 }
 
@@ -100,7 +100,7 @@ fn build_matcher(
         escape_literal(pattern)
     };
 
-    builder.build(&body).map_err(|e| format!("bad pattern: {e}"))
+    builder.build(&body).map_err(|e| format!("terax:fs_bad_pattern {e}"))
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -225,12 +225,12 @@ pub fn fs_grep(
     workspace: Option<WorkspaceEnv>,
 ) -> Result<GrepResponse, String> {
     if pattern.is_empty() {
-        return Err("empty pattern".into());
+        return Err("terax:fs_empty_pattern".into());
     }
     let workspace = WorkspaceEnv::from_option(workspace);
     let root_path = resolve_path(&root, &workspace);
     if !root_path.is_dir() {
-        return Err(format!("not a directory: {root}"));
+        return Err(format!("terax:fs_not_a_directory {root}"));
     }
     let cap = max_results
         .unwrap_or(DEFAULT_MAX_RESULTS)
@@ -263,14 +263,14 @@ pub fn fs_grep_interactive(
     workspace: Option<WorkspaceEnv>,
 ) -> Result<GrepResponse, String> {
     if pattern.trim().is_empty() {
-        return Err("empty pattern".into());
+        return Err("terax:fs_empty_pattern".into());
     }
     let my_gen = state.generation.fetch_add(1, Ordering::SeqCst) + 1;
 
     let workspace = WorkspaceEnv::from_option(workspace);
     let root_path = resolve_path(&root, &workspace);
     if !root_path.is_dir() {
-        return Err(format!("not a directory: {root}"));
+        return Err(format!("terax:fs_not_a_directory {root}"));
     }
     let cap = max_results
         .unwrap_or(DEFAULT_MAX_RESULTS)
@@ -309,12 +309,12 @@ fn fs_search_content_inner(
     workspace: Option<WorkspaceEnv>,
 ) -> Result<GrepResponse, String> {
     if pattern.is_empty() {
-        return Err("empty pattern".into());
+        return Err("terax:fs_empty_pattern".into());
     }
     let workspace = WorkspaceEnv::from_option(workspace);
     let root_path = resolve_path(&root, &workspace);
     if !root_path.is_dir() {
-        return Err(format!("not a directory: {root}"));
+        return Err(format!("terax:fs_not_a_directory {root}"));
     }
     let cap = max_results
         .unwrap_or(DEFAULT_MAX_RESULTS)
@@ -409,16 +409,16 @@ fn fs_replace_all_inner(
     workspace: Option<WorkspaceEnv>,
 ) -> Result<ReplaceResponse, String> {
     if pattern.is_empty() {
-        return Err("empty pattern".into());
+        return Err("terax:fs_empty_pattern".into());
     }
     if replacement.is_empty() {
-        return Err("empty replacement".into());
+        return Err("terax:fs_empty_replacement".into());
     }
 
     let workspace = WorkspaceEnv::from_option(workspace);
     let root_path = resolve_path(&root, &workspace);
     if !root_path.is_dir() {
-        return Err(format!("not a directory: {root}"));
+        return Err(format!("terax:fs_not_a_directory {root}"));
     }
 
     let matcher = build_matcher(&pattern, regex, caseSensitive, wholeWord)?;
@@ -511,9 +511,9 @@ fn fs_replace_all_inner(
                     done = true;
                     false
                 })
-                .map_err(|e| format!("replace error: {e}"))?;
+                .map_err(|e| format!("terax:fs_replace_error {e}"))?;
             dst.extend_from_slice(&lines[idx].as_bytes()[last_end..]);
-            let new_line = String::from_utf8(dst).map_err(|e| format!("utf8 after replace: {e}"))?;
+            let new_line = String::from_utf8(dst).map_err(|e| format!("terax:fs_utf8_after_replace {e}"))?;
             if new_line != lines[idx] {
                 lines[idx] = new_line;
                 count += 1;
@@ -590,19 +590,19 @@ pub fn fs_glob(
     workspace: Option<WorkspaceEnv>,
 ) -> Result<GlobResponse, String> {
     if pattern.is_empty() {
-        return Err("empty pattern".into());
+        return Err("terax:fs_empty_pattern".into());
     }
     let workspace = WorkspaceEnv::from_option(workspace);
     let root_path = resolve_path(&root, &workspace);
     if !root_path.is_dir() {
-        return Err(format!("not a directory: {root}"));
+        return Err(format!("terax:fs_not_a_directory {root}"));
     }
     let cap = max_results.unwrap_or(500).clamp(1, HARD_MAX_RESULTS);
 
-    let glob = Glob::new(&pattern).map_err(|e| format!("bad glob: {e}"))?;
+    let glob = Glob::new(&pattern).map_err(|e| format!("terax:fs_bad_glob {pattern}: {e}"))?;
     let mut gb = GlobSetBuilder::new();
     gb.add(glob);
-    let set = gb.build().map_err(|e| format!("globset build: {e}"))?;
+    let set = gb.build().map_err(|e| format!("terax:fs_globset_build {e}"))?;
 
     let walker = WalkBuilder::new(&root_path)
         .hidden(true)

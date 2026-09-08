@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { GrepResponse, SearchInput } from "../lib/types";
 import { searchContent } from "../lib/api";
+import { displayError } from "@/lib/teraxErrors";
 
 export type UseSearchRunOptions = {
   input: SearchInput | null;
@@ -49,7 +50,7 @@ export function useSearchRun(options: UseSearchRunOptions): UseSearchRunState {
         })
         .catch((err: unknown) => {
           if (generationRef.current !== myGen) return;
-          setError(err instanceof Error ? err.message : String(err));
+          setError(displayError(err));
           setLoading(false);
         });
     }, debounceMs);

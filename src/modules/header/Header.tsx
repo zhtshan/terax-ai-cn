@@ -37,6 +37,8 @@ type Props = {
   onClose: (id: number) => void;
   /** Promote a preview (transient) tab to persistent. */
   onPin: (id: number) => void;
+  /** Toggle pinned (locked in place, skipped during reorder). */
+  onTogglePin: (id: number) => void;
   /** Set a terminal tab's custom label; empty string resets to default. */
   onRename: (id: number, title: string) => void;
   /** Move a dragged tab to a new position (insertion gap index). */
@@ -68,6 +70,7 @@ export function Header({
   onNewGitGraph,
   onClose,
   onPin,
+  onTogglePin,
   onRename,
   onReorder,
   onOverrideLanguage,
@@ -167,6 +170,7 @@ export function Header({
           onNewGitGraph={onNewGitGraph}
           onClose={onClose}
           onPin={onPin}
+          onTogglePin={onTogglePin}
           onRename={onRename}
           onReorder={onReorder}
           onOverrideLanguage={onOverrideLanguage}

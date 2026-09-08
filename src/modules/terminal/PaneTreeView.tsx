@@ -8,6 +8,7 @@ import { Cancel01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import type { SearchAddon } from "@xterm/addon-search";
 import { Fragment } from "react";
+import { useTranslation } from "react-i18next";
 import { useTerminalDropStore } from "./lib/dropStore";
 import { firstLeafSlotId, type PaneNode } from "./lib/panes";
 import { TerminalPane, type TerminalPaneHandle } from "./TerminalPane";
@@ -32,6 +33,7 @@ type Props = {
 
 export function PaneTreeView(props: Props) {
   const { node, onClosePane, isMultiPane } = props;
+  const { t } = useTranslation();
   if (node.kind === "leaf") {
     const { tabVisible, activeLeafId, blocks, onFocusLeaf, getBundle } = props;
     const focused = node.id === activeLeafId;
@@ -67,7 +69,7 @@ export function PaneTreeView(props: Props) {
         {isMultiPane && onClosePane && (
           <button
             type="button"
-            aria-label="Close pane"
+            aria-label={t("terminal.closePane")}
             data-pane-close
             onClick={(e) => {
               e.stopPropagation();
@@ -93,7 +95,9 @@ export function PaneTreeView(props: Props) {
         const slotId = firstLeafSlotId(child);
         return (
           <Fragment key={slotId}>
-            {i > 0 && <ResizableHandle />}
+            {i > 0 && (
+              <ResizableHandle className="transition-colors hover:bg-foreground/25 dark:bg-foreground/25 dark:hover:bg-foreground/40" />
+            )}
             <ResizablePanel id={`pane-slot-${slotId}`} minSize="10%">
               <PaneTreeView {...props} node={child} />
             </ResizablePanel>
@@ -105,11 +109,12 @@ export function PaneTreeView(props: Props) {
 }
 
 function DropOverlay({ leafId }: { leafId: number }) {
+  const { t } = useTranslation();
   const active = useTerminalDropStore((s) => s.targetLeafId === leafId);
   if (!active) return null;
   return (
     <div className="pointer-events-none absolute inset-2 grid place-items-center rounded-lg border border-primary/45 bg-background/70 text-xs font-medium text-foreground shadow-lg backdrop-blur-sm">
-      Drop file path here
+      {t("terminal.dropFileHint")}
     </div>
   );
 }

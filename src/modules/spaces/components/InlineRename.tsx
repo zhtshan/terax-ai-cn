@@ -1,5 +1,6 @@
 import { cn } from "@/lib/utils";
 import { useEffect, useRef } from "react";
+import { useTranslation } from "react-i18next";
 
 type Props = {
   initial: string;
@@ -16,6 +17,7 @@ export function InlineRename({
 }: Props) {
   const ref = useRef<HTMLInputElement>(null);
   const done = useRef(false);
+  const { t } = useTranslation();
 
   useEffect(() => {
     const raf = requestAnimationFrame(() => {
@@ -35,7 +37,7 @@ export function InlineRename({
     <input
       ref={ref}
       defaultValue={initial}
-      aria-label="Rename space"
+      aria-label={t("spaces.renameSpace")}
       className={cn(
         "w-full min-w-0 rounded-sm bg-background px-1.5 py-0.5 text-xs text-foreground outline-none ring-1 ring-border focus:ring-ring",
         className,

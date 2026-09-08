@@ -1,4 +1,5 @@
 const DB_NAME = "terax-bg-images";
+import i18n from "@/i18n";
 const STORE = "images";
 const VERSION = 1;
 
@@ -40,9 +41,7 @@ export async function putBgImage(id: string, blob: Blob): Promise<void> {
     });
   } catch (e) {
     if (e instanceof DOMException && e.name === "QuotaExceededError") {
-      throw new Error(
-        "Not enough storage to save this image. Remove unused themes or backgrounds and try again.",
-      );
+      throw new Error(i18n.t("settings.themes.bgStorageFull"));
     }
     throw e;
   }
@@ -102,7 +101,7 @@ async function isAnimated(file: File): Promise<boolean> {
 
 export async function importBgImageFromFile(file: File): Promise<{ id: string; blob: Blob }> {
   if (!file.type.startsWith("image/")) {
-    throw new Error("This file isn't an image.");
+    throw new Error(i18n.t("settings.themes.bgNotImage"));
   }
   const id = crypto.randomUUID();
   const animated = await isAnimated(file);
@@ -111,8 +110,8 @@ export async function importBgImageFromFile(file: File): Promise<{ id: string; b
     const limitMb = Math.round(limit / 1024 / 1024);
     throw new Error(
       animated
-        ? `Animated images are limited to ${limitMb} MB to keep things smooth. This one is ${formatBytes(file.size)}.`
-        : `Images are limited to ${limitMb} MB. This one is ${formatBytes(file.size)}.`,
+        ? i18n.t("settings.themes.bgTooLargeAnimated", { limit: limitMb, size: formatBytes(file.size) })
+        : i18n.t("settings.themes.bgTooLargeStatic", { limit: limitMb, size: formatBytes(file.size) }),
     );
   }
   if (animated) {
@@ -124,7 +123,7 @@ export async function importBgImageFromFile(file: File): Promise<{ id: string; b
   try {
     bitmap = await createImageBitmap(file);
   } catch {
-    throw new Error("This image couldn't be decoded. Try a different file.");
+    throw new Error(i18n.t("settings.themes.bgDecodeFailed"));
   }
   const { width, height } = bitmap;
   const scale = Math.min(1, MAX_DIM / Math.max(width, height));

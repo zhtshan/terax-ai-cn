@@ -41,6 +41,7 @@ import {
   Globe02Icon,
   IncognitoIcon,
   Message02Icon,
+  Pin02Icon,
   PencilEdit02Icon,
   PlusSignIcon,
   Tick02Icon,
@@ -74,6 +75,8 @@ type Props = {
   onClose: (id: number) => void;
   /** Pin (promote) a preview tab to persistent on double-click. */
   onPin: (id: number) => void;
+  /** Toggle pinned (locked in place, skipped during reorder). */
+  onTogglePin: (id: number) => void;
   /** Set a terminal tab's custom label; empty string resets to default. */
   onRename: (id: number, title: string) => void;
   /** Move a dragged tab to a new position (insertion gap index 0..tabs.length). */
@@ -98,6 +101,7 @@ export function TabBar({
   onNewGitGraph,
   onClose,
   onPin,
+  onTogglePin,
   onRename,
   onReorder,
   onExternalReload,
@@ -520,6 +524,14 @@ export function TabBar({
                     <span className={cn("truncate", isPreview && "italic")}>
                       {labelFor(t)}
                     </span>
+                    {t.pinned ? (
+                      <HugeiconsIcon
+                        icon={Pin02Icon}
+                        size={10}
+                        strokeWidth={2}
+                        className="shrink-0 text-primary/60"
+                      />
+                    ) : null}
                     {t.kind === "editor" && t.externalChange ? (
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
@@ -607,6 +619,19 @@ export function TabBar({
                           strokeWidth={1.75}
                         />
                         <span className="flex-1">{tr('tabs.rename')}</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                        onSelect={() => onTogglePin(t.id)}
+                      >
+                        <HugeiconsIcon
+                          icon={Pin02Icon}
+                          size={13}
+                          strokeWidth={1.75}
+                        />
+                        <span className="flex-1">
+                          {t.pinned ? tr('tabs.unpin') : tr('tabs.pin')}
+                        </span>
                       </ContextMenuItem>
                       {tabs.length > 1 && (
                         <>

@@ -6,6 +6,7 @@ import {
 } from "@/components/ui/context-menu";
 import { Spinner } from "@/components/ui/spinner";
 import { cn } from "@/lib/utils";
+import { displayError } from "@/lib/teraxErrors";
 import { type GitLogEntry, native } from "@/modules/ai/lib/native";
 import { formatRelativeTime } from "@/modules/git-history/lib/relativeTime";
 import { Clock01Icon, GitBranchIcon } from "@hugeicons/core-free-icons";
@@ -91,7 +92,7 @@ export function TimelineSection({
         } catch (err) {
           if (cancelled || requestId !== requestIdRef.current) return;
           setStatus("error");
-          setError(err instanceof Error ? err.message : String(err));
+          setError(displayError(err));
           return;
         }
       }
@@ -110,7 +111,7 @@ export function TimelineSection({
         if (entries.length === 0) setEndReached(true);
       } catch (err) {
         if (cancelled || requestId !== requestIdRef.current) return;
-        setError(err instanceof Error ? err.message : String(err));
+        setError(displayError(err));
         setStatus("error");
       }
     };
@@ -147,7 +148,7 @@ export function TimelineSection({
       if (entries.length < PAGE_SIZE) setEndReached(true);
       setStatus("idle");
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err));
+      setError(displayError(err));
       setStatus("error");
     } finally {
       moreInflightRef.current = false;

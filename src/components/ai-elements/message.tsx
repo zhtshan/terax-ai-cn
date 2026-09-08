@@ -8,6 +8,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import i18n from "@/i18n";
 import { cn } from "@/lib/utils";
 import { resolveImageUrl } from "@/modules/markdown";
 import { ArrowLeft01Icon, ArrowRight01Icon } from "@hugeicons/core-free-icons";
@@ -266,7 +267,7 @@ export const MessageBranchPrevious = ({
 
   return (
     <Button
-      aria-label="Previous branch"
+      aria-label={i18n.t("common.branchPrevious")}
       disabled={totalBranches <= 1}
       onClick={goToPrevious}
       size="icon-sm"
@@ -289,7 +290,7 @@ export const MessageBranchNext = ({
 
   return (
     <Button
-      aria-label="Next branch"
+      aria-label={i18n.t("common.branchNext")}
       disabled={totalBranches <= 1}
       onClick={goToNext}
       size="icon-sm"

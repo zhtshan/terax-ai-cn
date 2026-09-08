@@ -120,7 +120,7 @@ fn make_file(
         staged: is_staged(index_status, worktree_status),
         unstaged: is_unstaged(index_status, worktree_status),
         untracked: index_status == '?' && worktree_status == '?',
-        status_label: status_label(index_status, worktree_status),
+        status_label: String::new(),
     }
 }
 
@@ -132,18 +132,8 @@ fn is_unstaged(index_status: char, worktree_status: char) -> bool {
     worktree_status != ' ' || (index_status == '?' && worktree_status == '?')
 }
 
-fn status_label(index_status: char, worktree_status: char) -> String {
-    match (index_status, worktree_status) {
-        ('?', '?') => "Untracked".into(),
-        ('A', _) => "Added".into(),
-        ('M', _) | (_, 'M') => "Modified".into(),
-        ('D', _) | (_, 'D') => "Deleted".into(),
-        ('R', _) | (_, 'R') => "Renamed".into(),
-        ('C', _) | (_, 'C') => "Copied".into(),
-        ('U', _) | (_, 'U') => "Unmerged".into(),
-        _ => "Changed".into(),
-    }
-}
+// Labels are rendered client-side from the status chars (i18n); the field is
+// kept empty for wire compatibility.
 
 #[cfg(test)]
 mod tests {
@@ -222,7 +212,7 @@ mod tests {
         assert_eq!(parsed.files.len(), 2);
         assert_eq!(parsed.files[0].path, "new.rs");
         assert_eq!(parsed.files[0].original_path.as_deref(), Some("old.rs"));
-        assert_eq!(parsed.files[0].status_label, "Renamed");
+        assert_eq!(parsed.files[0].status_label, "");
         assert_eq!(parsed.files[1].path, "after.rs");
         assert!(parsed.files[1].original_path.is_none());
     }
@@ -235,29 +225,29 @@ mod tests {
         assert_eq!(parsed.files.len(), 1);
         let f = &parsed.files[0];
         assert_eq!(f.path, "conflict.rs");
-        assert_eq!(f.status_label, "Unmerged");
+        assert_eq!(f.status_label, "");
         assert!(f.staged);
         assert!(f.unstaged);
     }
 
     #[test]
     fn staged_unstaged_untracked_matrix() {
-        // (XY, staged, unstaged, untracked, label)
+        // (XY, staged, unstaged, untracked)
         let cases = [
-            (".M", false, true, false, "Modified"), // unstaged edit
-            ("M.", true, false, false, "Modified"), // staged edit
-            ("MM", true, true, false, "Modified"),  // staged then edited again
-            ("A.", true, false, false, "Added"),
-            ("D.", true, false, false, "Deleted"),
-            (".D", false, true, false, "Deleted"),
+            (".M", false, true, false), // unstaged edit
+            ("M.", true, false, false), // staged edit
+            ("MM", true, true, false),  // staged then edited again
+            ("A.", true, false, false),
+            ("D.", true, false, false),
+            (".D", false, true, false),
         ];
-        for (xy, staged, unstaged, untracked, label) in cases {
+        for (xy, staged, unstaged, untracked) in cases {
             let parsed = parse_porcelain_v2(&ordinary(xy, "f.rs"));
             let f = &parsed.files[0];
             assert_eq!(f.staged, staged, "staged for {xy}");
             assert_eq!(f.unstaged, unstaged, "unstaged for {xy}");
             assert_eq!(f.untracked, untracked, "untracked for {xy}");
-            assert_eq!(f.status_label, label, "label for {xy}");
+            assert_eq!(f.status_label, "", "label for {xy}");
         }
     }
 
@@ -268,7 +258,7 @@ mod tests {
         assert!(f.untracked);
         assert!(!f.staged);
         assert!(f.unstaged);
-        assert_eq!(f.status_label, "Untracked");
+        assert_eq!(f.status_label, "");
         assert_eq!(f.index_status, "?");
         assert_eq!(f.worktree_status, "?");
     }

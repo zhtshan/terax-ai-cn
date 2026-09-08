@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet, VecDeque};
 use std::net::{IpAddr, SocketAddr};
 use std::sync::{Arc, Mutex};
 use std::time::Duration;
@@ -99,9 +99,9 @@ async fn resolve_and_classify(host: &str) -> Result<(IpKind, Vec<IpAddr>), Strin
     })
     .await
     .map_err(|e| e.to_string())?
-    .map_err(|e| format!("dns: {e}"))?;
+    .map_err(|e| format!("terax:net_dns_error {e}"))?;
     if lookup.is_empty() {
-        return Err("dns: no addresses".into());
+        return Err("terax:net_no_addresses".into());
     }
     let mut worst = IpKind::Public;
     for ip in &lookup {
@@ -120,19 +120,19 @@ async fn resolve_and_classify(host: &str) -> Result<(IpKind, Vec<IpAddr>), Strin
 use std::net::ToSocketAddrs;
 
 fn validate_url(url: &str, allow_private: bool) -> Result<reqwest::Url, String> {
-    let parsed = reqwest::Url::parse(url).map_err(|e| format!("invalid url: {e}"))?;
+    let parsed = reqwest::Url::parse(url).map_err(|e| format!("terax:net_invalid_url {e}"))?;
     match parsed.scheme() {
         "http" | "https" => {}
-        s => return Err(format!("scheme not allowed: {s}")),
+        s => return Err(format!("terax:net_scheme_not_allowed {s}")),
     }
     if parsed.username() != "" || parsed.password().is_some() {
-        return Err("userinfo in url is not allowed".into());
+        return Err("terax:net_userinfo_not_allowed".into());
     }
     let host = parsed
         .host_str()
-        .ok_or_else(|| "missing host".to_string())?;
+        .ok_or_else(|| "terax:net_missing_host".to_string())?;
     if is_blocked_host_name(host) {
-        return Err(format!("host not allowed: {host}"));
+        return Err(format!("terax:net_host_not_allowed {host}"));
     }
     // The actual IP classification has to be async — caller does it.
     let _ = allow_private;
@@ -151,7 +151,7 @@ async fn classify_and_collect_safe_ips(
         IpKind::BlockedMetadata => return Err(format!("host not allowed: {host}")),
         IpKind::Loopback | IpKind::Private if !allow_private => {
             return Err(format!(
-                "host {host} resolves to a private/loopback address; this endpoint requires explicit opt-in",
+                "terax:net_private_address {host}",
             ));
         }
         _ => {}
@@ -165,7 +165,7 @@ async fn classify_and_collect_safe_ips(
         })
         .collect();
     if safe.is_empty() {
-        return Err(format!("host {host}: no safe IPs"));
+        return Err(format!("terax:net_no_safe_ips {host}"));
     }
     Ok(safe)
 }
@@ -176,11 +176,11 @@ fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMa
     for (k, v) in h {
         let lower = k.to_ascii_lowercase();
         if HEADER_BLOCKLIST.contains(&lower.as_str()) {
-            return Err(format!("header not allowed: {k}"));
+            return Err(format!("terax:net_header_not_allowed {k}"));
         }
         // CRLF injection: header value must not contain CR / LF / NUL.
         if v.as_bytes().iter().any(|b| matches!(b, 0 | b'\r' | b'\n')) {
-            return Err(format!("header value contains control bytes: {k}"));
+            return Err(format!("terax:net_header_control_bytes {k}"));
         }
         let name = HeaderName::from_bytes(k.as_bytes()).map_err(|e| e.to_string())?;
         let value = HeaderValue::from_str(&v).map_err(|e| e.to_string())?;
@@ -193,13 +193,13 @@ fn sanitize_headers(headers: Option<HashMap<String, String>>) -> Result<HeaderMa
 pub async fn lm_ping(base_url: String) -> Result<u16, String> {
     let trimmed = base_url.trim().trim_end_matches('/');
     if trimmed.is_empty() {
-        return Err("empty base url".into());
+        return Err("terax:net_empty_base_url".into());
     }
     let probe = format!("{trimmed}/models");
     let parsed = validate_url(&probe, true)?;
     let host = parsed
         .host_str()
-        .ok_or_else(|| "missing host".to_string())?
+        .ok_or_else(|| "terax:net_missing_host".to_string())?
         .to_string();
     let safe_ips = classify_and_collect_safe_ips(&host, true).await?;
 
@@ -322,7 +322,7 @@ pub async fn ai_http_request(
     let parsed = validate_url(&url, allow_private)?;
     let host = parsed
         .host_str()
-        .ok_or_else(|| "missing host".to_string())?
+        .ok_or_else(|| "terax:net_missing_host".to_string())?
         .to_string();
     let safe_ips = classify_and_collect_safe_ips(&host, allow_private).await?;
 
@@ -357,9 +357,71 @@ pub enum AiStreamEvent {
     },
 }
 
+const TOMBSTONE_CAP: usize = 1024;
+
 #[derive(Default)]
 pub struct AiStreamCancelState {
     inner: Arc<Mutex<HashMap<String, tokio::sync::watch::Sender<bool>>>>,
+    tombstones: Mutex<Tombstones>,
+}
+
+// 注册先于 cancel 到达时落空的孤儿取消：登记后让迟到的同 id stream 入口即短路。
+#[derive(Default)]
+struct Tombstones {
+    set: HashSet<String>,
+    queue: VecDeque<String>,
+}
+
+impl Tombstones {
+    fn add(&mut self, id: String) {
+        if self.set.insert(id.clone()) {
+            self.queue.push_back(id);
+        }
+        while self.queue.len() > TOMBSTONE_CAP {
+            if let Some(old) = self.queue.pop_front() {
+                self.set.remove(&old);
+            }
+        }
+    }
+
+    fn take(&mut self, id: &str) -> bool {
+        if self.set.remove(id) {
+            self.queue.retain(|x| x != id);
+            true
+        } else {
+            false
+        }
+    }
+}
+
+impl AiStreamCancelState {
+    fn cancel(&self, request_id: &str) {
+        let hit = {
+            let inner = self.inner.lock().unwrap();
+            match inner.get(request_id) {
+                Some(tx) => {
+                    let _ = tx.send(true);
+                    true
+                }
+                None => false,
+            }
+        };
+        if !hit {
+            self.tombstones.lock().unwrap().add(request_id.to_string());
+        }
+    }
+
+    fn try_register(
+        &self,
+        request_id: String,
+        cancel_tx: tokio::sync::watch::Sender<bool>,
+    ) -> bool {
+        if self.tombstones.lock().unwrap().take(&request_id) {
+            return false;
+        }
+        self.inner.lock().unwrap().insert(request_id, cancel_tx);
+        true
+    }
 }
 
 struct CancelGuard {
@@ -378,9 +440,7 @@ pub fn ai_http_cancel(
     state: State<'_, AiStreamCancelState>,
     request_id: String,
 ) -> Result<(), String> {
-    if let Some(tx) = state.inner.lock().unwrap().get(&request_id) {
-        let _ = tx.send(true);
-    }
+    state.cancel(&request_id);
     Ok(())
 }
 
@@ -397,11 +457,10 @@ pub async fn ai_http_stream(
     on_event: Channel<AiStreamEvent>,
 ) -> Result<(), String> {
     let (cancel_tx, mut cancel_rx) = tokio::sync::watch::channel(false);
-    state
-        .inner
-        .lock()
-        .unwrap()
-        .insert(request_id.clone(), cancel_tx);
+    if !state.try_register(request_id.clone(), cancel_tx) {
+        // 同 id 孤儿 cancel 先到：该请求已被取消，静默短路且不发任何事件。
+        return Ok(());
+    }
     let _guard = CancelGuard {
         inner: Arc::clone(&state.inner),
         id: request_id,
@@ -417,7 +476,7 @@ pub async fn ai_http_stream(
     let host = match parsed.host_str() {
         Some(h) => h.to_string(),
         None => {
-            let e = "missing host".to_string();
+            let e = "terax:net_missing_host".to_string();
             let _ = on_event.send(AiStreamEvent::Error { message: e.clone() });
             return Err(e);
         }
@@ -612,5 +671,54 @@ mod tests {
 
         drop(guard);
         assert!(!state.inner.lock().unwrap().contains_key("r1"));
+    }
+
+    #[test]
+    fn orphan_cancel_tombstones_and_blocks_late_registration() {
+        let state = AiStreamCancelState::default();
+        state.cancel("r1");
+        let (tx, _rx) = tokio::sync::watch::channel(false);
+        assert!(!state.try_register("r1".to_string(), tx));
+        assert!(state.inner.lock().unwrap().is_empty());
+        assert!(!state.tombstones.lock().unwrap().set.contains("r1"));
+        let (tx2, _rx2) = tokio::sync::watch::channel(false);
+        assert!(state.try_register("r1".to_string(), tx2));
+    }
+
+    #[test]
+    fn registry_hit_cancel_sends_and_skips_tombstone() {
+        let state = AiStreamCancelState::default();
+        let (tx, rx) = tokio::sync::watch::channel(false);
+        assert!(state.try_register("r1".to_string(), tx));
+        state.cancel("r1");
+        assert!(*rx.borrow(), "cancel flag visible to receiver");
+        assert!(state.tombstones.lock().unwrap().set.is_empty());
+    }
+
+    #[test]
+    fn tombstone_capacity_evicts_fifo() {
+        let state = AiStreamCancelState::default();
+        for i in 0..(TOMBSTONE_CAP + 8) {
+            state.cancel(&format!("r{i}"));
+        }
+        {
+            let t = state.tombstones.lock().unwrap();
+            assert_eq!(t.queue.len(), TOMBSTONE_CAP);
+            assert_eq!(t.set.len(), TOMBSTONE_CAP);
+            assert!(!t.set.contains("r0"), "oldest entry evicted");
+            assert!(t.set.contains(&format!("r{}", TOMBSTONE_CAP + 7)));
+        }
+        let (tx, _rx) = tokio::sync::watch::channel(false);
+        assert!(state.try_register("r0".to_string(), tx));
+    }
+
+    #[test]
+    fn duplicate_orphan_cancels_share_one_tombstone_entry() {
+        let state = AiStreamCancelState::default();
+        state.cancel("d");
+        state.cancel("d");
+        let t = state.tombstones.lock().unwrap();
+        assert_eq!(t.queue.len(), 1);
+        assert_eq!(t.set.len(), 1);
     }
 }

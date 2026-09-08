@@ -3,6 +3,7 @@ import {
   ClaudeIcon,
   SparklesIcon,
 } from "@hugeicons/core-free-icons";
+import i18n from "@/i18n";
 import { usePlanStore } from "../store/planStore";
 
 /**
@@ -52,19 +53,19 @@ export const SLASH_COMMANDS: Record<string, SlashCommandMeta> = {
   init: {
     name: "init",
     invocation: "/init",
-    label: "Initialize workspace",
+    label: "initWorkspace",
     icon: SparklesIcon,
   },
   plan: {
     name: "plan",
     invocation: "/plan",
-    label: "Plan mode",
+    label: "planMode",
     icon: CheckListIcon,
   },
   "claude-code": {
     name: "claude-code",
     invocation: "/claude-code",
-    label: "Delegate to Claude Code",
+    label: "delegateToClaude",
     icon: ClaudeIcon,
   },
 };
@@ -89,13 +90,15 @@ export function tryRunSlashCommand(input: string): SlashOutcome {
       const store = usePlanStore.getState();
       if (tail === "off" || tail === "exit") {
         store.disable();
-        return { kind: "handled", toast: "Plan mode off" };
+        return { kind: "handled", toast: i18n.t("ai.slashCommands.planModeOff") };
       }
       store.toggle();
       const nowActive = usePlanStore.getState().active;
       return {
         kind: "handled",
-        toast: nowActive ? "Plan mode on" : "Plan mode off",
+        toast: i18n.t(
+          nowActive ? "ai.slashCommands.planModeOn" : "ai.slashCommands.planModeOff",
+        ),
       };
     }
     case "init": {

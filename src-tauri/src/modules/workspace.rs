@@ -82,13 +82,13 @@ pub fn authorize_spawn_cwd(
     };
     let resolved = resolve_path(cwd, workspace);
     let canonical =
-        std::fs::canonicalize(&resolved).map_err(|e| format!("cwd not accessible: {e}"))?;
+        std::fs::canonicalize(&resolved).map_err(|e| format!("terax:workspace_cwd_not_accessible {e}"))?;
     if !canonical.is_dir() {
-        return Err(format!("cwd is not a directory: {}", canonical.display()));
+        return Err(format!("terax:workspace_cwd_not_directory {}", canonical.display()));
     }
     if !registry.is_authorized(&canonical) {
         return Err(format!(
-            "cwd is outside the authorized workspace: {}",
+            "terax:workspace_cwd_outside {}",
             canonical.display()
         ));
     }
@@ -102,9 +102,9 @@ pub fn authorize_spawn_cwd(
 pub fn probe_spawn_cwd(cwd: &str, workspace: &WorkspaceEnv) -> Result<PathBuf, String> {
     let resolved = resolve_path(cwd, workspace);
     let canonical =
-        std::fs::canonicalize(&resolved).map_err(|e| format!("cwd not accessible: {e}"))?;
+        std::fs::canonicalize(&resolved).map_err(|e| format!("terax:workspace_cwd_not_accessible {e}"))?;
     if !canonical.is_dir() {
-        return Err(format!("cwd is not a directory: {}", canonical.display()));
+        return Err(format!("terax:workspace_cwd_not_directory {}", canonical.display()));
     }
     Ok(canonical)
 }
@@ -379,7 +379,7 @@ pub(crate) fn validate_wsl_distro_name(distro: &str) -> Result<(), String> {
     if is_safe_distro_name(distro) {
         Ok(())
     } else {
-        Err(format!("unsafe WSL distro name: {distro}"))
+        Err(format!("terax:workspace_wsl_distro_unsafe {distro}"))
     }
 }
 
@@ -587,14 +587,14 @@ pub fn wsl_home(distro: String) -> Result<String, String> {
     #[cfg(not(windows))]
     {
         let _ = distro;
-        Err("WSL is only available on Windows".into())
+        Err("terax:workspace_wsl_windows_only".into())
     }
     #[cfg(windows)]
     {
         let out = run_wsl_sh(&distro, "printf %s \"$HOME\"")?;
         let home = normalize_wsl_value(out, "");
         if home.is_empty() {
-            Err(format!("could not resolve WSL home for {distro}"))
+            Err(format!("terax:workspace_wsl_home_unresolved {distro}"))
         } else {
             Ok(home)
         }
@@ -799,7 +799,7 @@ mod auth_tests {
         let s = foreign.to_string_lossy().into_owned();
         let err = authorize_spawn_cwd(&reg, Some(&s), &WorkspaceEnv::Local)
             .expect_err("should reject unauthorized cwd");
-        assert!(err.contains("outside"), "got: {err}");
+        assert!(err.contains("workspace_cwd_outside"), "got: {err}");
     }
 
     #[test]
@@ -817,7 +817,7 @@ mod auth_tests {
         let s = missing.to_string_lossy().into_owned();
         let err = authorize_spawn_cwd(&reg, Some(&s), &WorkspaceEnv::Local)
             .expect_err("should reject missing path");
-        assert!(err.contains("cwd not accessible"), "got: {err}");
+        assert!(err.contains("workspace_cwd_not_accessible"), "got: {err}");
     }
 
     #[test]
@@ -841,7 +841,7 @@ mod auth_tests {
         let s = missing.to_string_lossy().into_owned();
         let err = authorize_user_spawn_cwd(&reg, Some(&s), &WorkspaceEnv::Local)
             .expect_err("missing path must fail");
-        assert!(err.contains("cwd not accessible"), "got: {err}");
+        assert!(err.contains("workspace_cwd_not_accessible"), "got: {err}");
     }
 
     #[test]
@@ -858,7 +858,7 @@ mod auth_tests {
         let s = link.to_string_lossy().into_owned();
         let err = authorize_spawn_cwd(&reg, Some(&s), &WorkspaceEnv::Local)
             .expect_err("symlink-escape must be rejected");
-        assert!(err.contains("outside"), "got: {err}");
+        assert!(err.contains("workspace_cwd_outside"), "got: {err}");
     }
 
     #[test]
@@ -923,7 +923,7 @@ mod auth_tests {
     #[test]
     fn probe_spawn_cwd_rejects_missing_path() {
         let err = probe_spawn_cwd("/no/such/terax/probe-path", &WorkspaceEnv::Local).unwrap_err();
-        assert!(err.contains("not accessible"));
+        assert!(err.contains("workspace_cwd_not_accessible"));
     }
 
     #[test]
@@ -932,7 +932,7 @@ mod auth_tests {
         let file = dir.join("f.txt");
         std::fs::write(&file, "x").unwrap();
         let err = probe_spawn_cwd(file.to_str().unwrap(), &WorkspaceEnv::Local).unwrap_err();
-        assert!(err.contains("not a directory"));
+        assert!(err.contains("workspace_cwd_not_directory"));
     }
 }
 

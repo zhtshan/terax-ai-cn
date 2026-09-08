@@ -48,7 +48,7 @@ pub async fn shell_run_command(
 ) -> Result<CommandOutput, String> {
     let trimmed = command.trim().to_string();
     if trimmed.is_empty() {
-        return Err("empty command".into());
+        return Err("terax:shell_empty_command".into());
     }
 
     let workspace = WorkspaceEnv::from_option(workspace);
@@ -140,11 +140,11 @@ fn run_blocking(
     });
     let mut stdout_pipe = child.take_stdout().ok_or_else(|| {
         let _ = child.kill();
-        "no stdout pipe".to_string()
+        "terax:shell_no_stdout_pipe".to_string()
     })?;
     let mut stderr_pipe = child.take_stderr().ok_or_else(|| {
         let _ = child.kill();
-        "no stderr pipe".to_string()
+        "terax:shell_no_stderr_pipe".to_string()
     })?;
 
     let stdout_handle = thread::spawn(move || drain(&mut stdout_pipe));
@@ -165,7 +165,7 @@ fn run_blocking(
             (None, true)
         }
         Err(mpsc::RecvTimeoutError::Disconnected) => {
-            return Err("shell wait thread disconnected".into());
+            return Err("terax:shell_wait_thread_disconnected".into());
         }
     };
 

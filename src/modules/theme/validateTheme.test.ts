@@ -14,7 +14,7 @@ describe("validateTheme", () => {
   it("rejects a non-object payload", () => {
     expect(validateTheme("nope")).toEqual({
       ok: false,
-      error: "Theme must be a JSON object",
+      error: "主题必须是 JSON 对象",
     });
   });
 
@@ -35,7 +35,7 @@ describe("validateTheme", () => {
     expect(validateTheme(baseTheme({ variants: undefined })).ok).toBe(false);
     expect(validateTheme(baseTheme({ variants: {} }))).toEqual({
       ok: false,
-      error: "variants must contain at least one of: light, dark",
+      error: "variants 至少需要 light 或 dark 之一",
     });
   });
 
@@ -54,7 +54,7 @@ describe("validateTheme", () => {
     );
     expect(result).toEqual({
       ok: false,
-      error: "variants.dark.colors.nope is not a recognized color key",
+      error: "variants.dark.colors：无法识别的颜色键 nope",
     });
   });
 
@@ -71,7 +71,7 @@ describe("validateTheme", () => {
     );
     expect(result).toEqual({
       ok: false,
-      error: "variants.dark.terminal.ansi must be an array of 16 strings",
+      error: "variants.dark.terminal.ansi 必须是包含 16 个字符串的数组",
     });
   });
 
