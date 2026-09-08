@@ -25,6 +25,8 @@ type TabBase = {
   spaceId: string;
   /** Restored from disk, not yet activated: rendered as a placeholder, not mounted. */
   cold?: boolean;
+  /** User-pinned: stays in place during reorder/drag. */
+  pinned?: boolean;
 };
 
 export type TerminalTab = TabBase & {
@@ -190,7 +192,7 @@ export function reorderTabsByGap(
   toGapIndex: number,
 ): Tab[] {
   const moved = tabs.find((t) => t.id === fromId);
-  if (!moved) return tabs;
+  if (!moved || moved.pinned) return tabs;
   const sameSpace = tabs.filter((t) => t.spaceId === moved.spaceId);
   const spaceFrom = sameSpace.findIndex((t) => t.id === fromId);
   let spaceTarget = toGapIndex > spaceFrom ? toGapIndex - 1 : toGapIndex;
@@ -1185,6 +1187,12 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     setTabs((prev) => reorderTabsByGap(prev, fromId, toGapIndex));
   }, []);
 
+  const togglePinTab = useCallback((id: number) => {
+    setTabs((curr) =>
+      curr.map((t) => (t.id === id ? { ...t, pinned: !t.pinned } : t)),
+    );
+  }, []);
+
   return {
     tabs,
     activeId,
@@ -1205,6 +1213,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     newPrivateTab,
     openFileTab,
     pinTab,
+    togglePinTab,
     newPreviewTab,
     newMarkdownTab,
     setMarkdownView,

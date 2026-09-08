@@ -557,17 +557,17 @@
       "terminalSelection": "Terminal selection"
     },
     "customEndpoint": "Custom endpoint",
-      "chatCode": {
-        "generating": "Generating code…",
-        "generatingLang": "Generating {{lang}}…",
-        "runInTerminal": "Run in active terminal"
-      },
-      "context": {
-        "input": "Input",
-        "output": "Output",
-        "reasoning": "Reasoning",
-        "cache": "Cache"
-      },
+    "chatCode": {
+      "generating": "Generating code…",
+      "generatingLang": "Generating {{lang}}…",
+      "runInTerminal": "Run in active terminal"
+    },
+    "context": {
+      "input": "Input",
+      "output": "Output",
+      "reasoning": "Reasoning",
+      "cache": "Cache"
+    },
     "errors": {
       "modelUnavailable": "Model unavailable",
       "authFailed": "Authentication failed",
@@ -872,7 +872,9 @@
     "historyBranch": "History · {{branch}}",
     "externalChange": "Changed on disk",
     "externalReload": "Reload (discard local changes)",
-    "externalKeep": "Keep my version"
+    "externalKeep": "Keep my version",
+    "pin": "Pin",
+    "unpin": "Unpin"
   },
   "explorer": {
     "noCurrentDir": "No current directory",

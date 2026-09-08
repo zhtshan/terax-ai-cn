@@ -557,17 +557,17 @@
       "terminalSelection": "终端选区"
     },
     "customEndpoint": "自定义端点",
-      "chatCode": {
-        "generating": "正在生成代码…",
-        "generatingLang": "正在生成 {{lang}}…",
-        "runInTerminal": "在活动终端运行"
-      },
-      "context": {
-        "input": "输入",
-        "output": "输出",
-        "reasoning": "推理",
-        "cache": "缓存"
-      },
+    "chatCode": {
+      "generating": "正在生成代码…",
+      "generatingLang": "正在生成 {{lang}}…",
+      "runInTerminal": "在活动终端运行"
+    },
+    "context": {
+      "input": "输入",
+      "output": "输出",
+      "reasoning": "推理",
+      "cache": "缓存"
+    },
     "errors": {
       "modelUnavailable": "模型不可用",
       "authFailed": "认证失败",
@@ -867,7 +867,9 @@
     "historyBranch": "历史 · {{branch}}",
     "externalChange": "磁盘已修改",
     "externalReload": "重新加载（放弃本地修改）",
-    "externalKeep": "保留我的版本"
+    "externalKeep": "保留我的版本",
+    "pin": "定位",
+    "unpin": "取消定位"
   },
   "explorer": {
     "noCurrentDir": "没有当前目录",

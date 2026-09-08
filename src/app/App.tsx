@@ -157,6 +157,7 @@ export default function App() {
     newPrivateTab,
     openFileTab,
     pinTab,
+    togglePinTab,
     newPreviewTab,
     newMarkdownTab,
     setMarkdownView,
@@ -1420,6 +1421,7 @@ export default function App() {
               onNewGitGraph={openGitGraphFromContext}
               onClose={handleClose}
               onPin={pinTab}
+              onTogglePin={togglePinTab}
               onRename={handleRenameTab}
               onReorder={reorderTabByGap}
               onToggleSidebar={toggleSidebar}
