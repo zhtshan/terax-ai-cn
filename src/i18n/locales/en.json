@@ -844,7 +844,8 @@
       "attachToAi": "Attach to AI chat",
       "findInBlock": "Find in block"
     },
-    "closePane": "Close pane"
+    "closePane": "Close pane",
+    "dropFileHint": "Drop file path here"
   },
   "statusbar": {
     "private": "Private: hidden from AI",
@@ -1210,7 +1211,9 @@
       "editor.undo": "Undo",
       "editor.redo": "Redo",
       "editor.aiComplete": "Trigger AI completion",
-      "editor.codeComplete": "Trigger code completion"
+      "editor.codeComplete": "Trigger code completion",
+      "editor.goBack": "Go back",
+      "editor.goForward": "Go forward"
     }
   },
   "terax": {

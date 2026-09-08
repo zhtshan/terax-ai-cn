@@ -839,7 +839,8 @@
       "attachToAi": "附加到 AI 聊天",
       "findInBlock": "在块中查找"
     },
-    "closePane": "关闭面板"
+    "closePane": "关闭面板",
+    "dropFileHint": "拖拽文件路径到此处"
   },
   "statusbar": {
     "private": "隐私：对 AI 隐藏",
@@ -1207,7 +1208,9 @@
       "editor.undo": "撤销",
       "editor.redo": "重做",
       "editor.aiComplete": "触发 AI 补全",
-      "editor.codeComplete": "触发代码补全"
+      "editor.codeComplete": "触发代码补全",
+      "editor.goBack": "后退",
+      "editor.goForward": "前进"
     }
   },
   "terax": {

@@ -109,11 +109,12 @@ export function PaneTreeView(props: Props) {
 }
 
 function DropOverlay({ leafId }: { leafId: number }) {
+  const { t } = useTranslation();
   const active = useTerminalDropStore((s) => s.targetLeafId === leafId);
   if (!active) return null;
   return (
     <div className="pointer-events-none absolute inset-2 grid place-items-center rounded-lg border border-primary/45 bg-background/70 text-xs font-medium text-foreground shadow-lg backdrop-blur-sm">
-      Drop file path here
+      {t("terminal.dropFileHint")}
     </div>
   );
 }
