@@ -99,7 +99,7 @@ async fn resolve_and_classify(host: &str) -> Result<(IpKind, Vec<IpAddr>), Strin
     })
     .await
     .map_err(|e| e.to_string())?
-    .map_err(|e| format!("dns: {e}"))?;
+    .map_err(|e| format!("terax:net_dns_error {e}"))?;
     if lookup.is_empty() {
         return Err("terax:net_no_addresses".into());
     }

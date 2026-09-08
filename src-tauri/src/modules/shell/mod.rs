@@ -140,11 +140,11 @@ fn run_blocking(
     });
     let mut stdout_pipe = child.take_stdout().ok_or_else(|| {
         let _ = child.kill();
-        "no stdout pipe".to_string()
+        "terax:shell_no_stdout_pipe".to_string()
     })?;
     let mut stderr_pipe = child.take_stderr().ok_or_else(|| {
         let _ = child.kill();
-        "no stderr pipe".to_string()
+        "terax:shell_no_stderr_pipe".to_string()
     })?;
 
     let stdout_handle = thread::spawn(move || drain(&mut stdout_pipe));

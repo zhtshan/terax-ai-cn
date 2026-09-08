@@ -119,11 +119,11 @@ pub fn spawn(
     };
     let stdout_pipe = shared.take_stdout().ok_or_else(|| {
         kill_on_fail();
-        "no stdout pipe".to_string()
+        "terax:shell_no_stdout_pipe".to_string()
     })?;
     let stderr_pipe = shared.take_stderr().ok_or_else(|| {
         kill_on_fail();
-        "no stderr pipe".to_string()
+        "terax:shell_no_stderr_pipe".to_string()
     })?;
     let child = shared;
 
