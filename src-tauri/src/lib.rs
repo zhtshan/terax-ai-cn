@@ -155,6 +155,45 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+const QUIT_MENU_ID: &str = "terax-quit";
+
+/// Default menu with Cmd+Q rerouted: the predefined Quit sends `terminate:`,
+/// which exits without `CloseRequested`, bypassing the frontend quit guard.
+#[cfg(target_os = "macos")]
+fn macos_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{Menu, MenuItem, MenuItemKind};
+    let menu = Menu::default(app)?;
+    if let Some(app_menu) = menu.items()?.first().and_then(MenuItemKind::as_submenu) {
+        let items = app_menu.items()?;
+        if let Some(MenuItemKind::Predefined(_)) = items.last() {
+            app_menu.remove_at(items.len() - 1)?;
+            let label = format!("Quit {}", app.package_info().name);
+            app_menu.append(&MenuItem::with_id(
+                app,
+                QUIT_MENU_ID,
+                label,
+                true,
+                Some("CmdOrCtrl+Q"),
+            )?)?;
+        }
+    }
+    Ok(menu)
+}
+
+#[cfg(target_os = "macos")]
+fn request_quit(app: &tauri::AppHandle) {
+    match app.get_webview_window("main") {
+        Some(main) => {
+            let _ = main.unminimize();
+            let _ = main.show();
+            let _ = main.set_focus();
+            let _ = main.close();
+        }
+        None => app.exit(0),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(windows)]
@@ -177,6 +216,12 @@ pub fn run() {
     workspace::init_launch_cwd(cli_dir.as_deref());
 
     let builder = tauri::Builder::default();
+    #[cfg(target_os = "macos")]
+    let builder = builder.menu(macos_menu).on_menu_event(|app, event| {
+        if event.id() == QUIT_MENU_ID {
+            request_quit(app);
+        }
+    });
     #[cfg(target_os = "linux")]
     let builder = builder.plugin(tauri_plugin_clipboard_manager::init());
     builder
@@ -203,14 +248,12 @@ pub fn run() {
         .setup(|_app| {
             // macOS skips parent() for the settings window, so tie its lifecycle
             // to the main window here instead. Other platforms keep parent().
+            // Destroyed only: CloseRequested may be vetoed by the quit dialog.
             #[cfg(target_os = "macos")]
             if let Some(main) = _app.get_webview_window("main") {
                 let handle = _app.handle().clone();
                 main.on_window_event(move |event| {
-                    if matches!(
-                        event,
-                        WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed
-                    ) {
+                    if matches!(event, WindowEvent::Destroyed) {
                         if let Some(settings) = handle.get_webview_window("settings") {
                             let _ = settings.close();
                         }

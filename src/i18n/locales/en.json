@@ -984,7 +984,9 @@
     "closeTerminalDesc": "A process is running. Closing this tab will terminate it.",
     "closePaneDesc": "A process is running. Closing this pane will terminate it.",
     "quitTitle": "Quit Terax?",
-    "quitAnyway": "Quit Anyway"
+    "quitAnyway": "Quit Anyway",
+    "quit": "Quit",
+    "quitConfirm": "Are you sure you want to quit Terax?"
   },
   "window": {
     "minimize": "Minimize",

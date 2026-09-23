@@ -29,7 +29,7 @@ type Props = {
   onConfirmAppClose: () => void;
 };
 
-/** Confirmation dialogs for closing dirty editors and terminals with live processes. */
+/** Confirmation dialogs for closing dirty editors, terminals with live processes, and quitting the app. */
 export function CloseDialogs({
   tabs,
   pendingCloseTab,
@@ -55,8 +55,13 @@ export function CloseDialogs({
     if (blocker.dirtyEditors > 0) {
       return t("app.closeDirty", { count: blocker.dirtyEditors });
     }
-    return t("app.closeBusy");
+    if (blocker.busyTerminal) return t("app.closeBusy");
+    return t("app.quitConfirm");
   };
+
+  const appCloseHasBlocker =
+    pendingAppClose !== null &&
+    (pendingAppClose.dirtyEditors > 0 || pendingAppClose.busyTerminal);
 
   return (
     <>
@@ -155,7 +160,7 @@ export function CloseDialogs({
               {t("common.cancel")}
             </AlertDialogCancel>
             <AlertDialogAction onClick={onConfirmAppClose}>
-              {t("app.quitAnyway")}
+              {appCloseHasBlocker ? t("app.quitAnyway") : t("app.quit")}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

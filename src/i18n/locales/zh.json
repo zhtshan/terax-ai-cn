@@ -979,7 +979,9 @@
     "closeTerminalDesc": "有进程正在运行。关闭此标签页将终止它。",
     "closePaneDesc": "有进程正在运行。关闭此分屏将终止它。",
     "quitTitle": "退出 Terax？",
-    "quitAnyway": "仍然退出"
+    "quitAnyway": "仍然退出",
+    "quit": "退出",
+    "quitConfirm": "确定要退出 Terax 吗？"
   },
   "window": {
     "minimize": "最小化",

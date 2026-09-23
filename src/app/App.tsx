@@ -106,7 +106,6 @@ import { ThemeProvider, useThemeFileEditing } from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
 import { useWorkspaceEnvStore, type WorkspaceEnv } from "@/modules/workspace";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { SearchAddon } from "@xterm/addon-search";
 import {
   useCallback,
@@ -509,7 +508,7 @@ export default function App() {
     handlePathDeleted,
   } = useTabCloseGuards({ tabs, disposeTab, closePane: closePaneByLeaf });
 
-  const { pendingAppClose, confirmAppClose, cancelAppClose } =
+  const { pendingAppClose, confirmAppClose, cancelAppClose, quitNow } =
     useAppCloseGuard(tabsRef);
 
   useEffect(() => {
@@ -1179,14 +1178,14 @@ export default function App() {
         (t) => t.kind === "terminal" && hasLeaf(t.paneTree, leafId),
       );
       if (!tab || tab.kind !== "terminal") return;
-      // Last pane of the last tab: quit instead of respawning a shell.
+      // Last pane of the last tab: the user typed `exit`, so quit without asking.
       if (leafIds(tab.paneTree).length === 1 && all.length === 1) {
-        void getCurrentWindow().close();
+        quitNow();
       } else {
         closePaneByLeaf(leafId);
       }
     },
-    [closePaneByLeaf],
+    [closePaneByLeaf, quitNow],
   );
 
   const handleEditorDirty = useCallback(

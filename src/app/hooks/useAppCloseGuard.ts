@@ -34,12 +34,7 @@ export function useAppCloseGuard(tabsRef: RefObject<Tab[]>) {
         const dirtyEditors = tabsRef.current.filter(
           (t) => t.kind === "editor" && t.dirty,
         ).length;
-        if (dirtyEditors > 0 || busyTerminal) {
-          setPendingAppClose({ dirtyEditors, busyTerminal });
-        } else {
-          forceClose.current = true;
-          void getCurrentWindow().close();
-        }
+        setPendingAppClose({ dirtyEditors, busyTerminal });
       })
       .then((un) => {
         if (disposed) un();
@@ -51,13 +46,17 @@ export function useAppCloseGuard(tabsRef: RefObject<Tab[]>) {
     };
   }, [tabsRef]);
 
-  const confirmAppClose = useCallback(() => {
-    setPendingAppClose(null);
+  const quitNow = useCallback(() => {
     forceClose.current = true;
     void getCurrentWindow().close();
   }, []);
 
+  const confirmAppClose = useCallback(() => {
+    setPendingAppClose(null);
+    quitNow();
+  }, [quitNow]);
+
   const cancelAppClose = useCallback(() => setPendingAppClose(null), []);
 
-  return { pendingAppClose, confirmAppClose, cancelAppClose };
+  return { pendingAppClose, confirmAppClose, cancelAppClose, quitNow };
 }
