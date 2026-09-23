@@ -970,6 +970,7 @@ export default function App() {
         else searchInlineRef.current?.focus();
       },
       "search.focusPanel": () => {
+        setSearchOptions((prev) => ({ ...prev, pattern: "", replacement: "" }));
         const panel = sidebarRef.current;
         if (panel && panel.getSize().asPercentage <= 0) {
           panel.resize(`${sidebarWidthRef.current}px`);

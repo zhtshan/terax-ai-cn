@@ -87,6 +87,12 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
 
     const expanded = !compact || openInCompact;
 
+    const clearTarget = useCallback(() => {
+      if (!target) return;
+      if (target.kind === "terminal") target.addon.clearDecorations();
+      else target.handle.clearQuery();
+    }, [target]);
+
     const focus = useCallback(() => {
       pendingFocusRef.current = true;
       if (compact) setOpenInCompact(true);
@@ -96,13 +102,14 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
       }
     }, [compact]);
 
-    useImperativeHandle(ref, () => ({ focus }), [focus]);
+    const resetAndFocus = useCallback(() => {
+      setQ("");
+      clearTarget();
+      focus();
+    }, [clearTarget, focus]);
 
-    const clearTarget = useCallback(() => {
-      if (!target) return;
-      if (target.kind === "terminal") target.addon.clearDecorations();
-      else target.handle.clearQuery();
-    }, [target]);
+    // 外部触发（Cmd+F / 命令面板）一律开启新查找：清空旧词再聚焦
+    useImperativeHandle(ref, () => ({ focus: resetAndFocus }), [resetAndFocus]);
 
     const restoreTargetFocus = useCallback(() => {
       if (!target) return;
@@ -216,11 +223,7 @@ export const SearchInline = forwardRef<SearchInlineHandle, Props>(
               <button
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
-                onClick={() => {
-                  setQ("");
-                  clearTarget();
-                  inputRef.current?.focus();
-                }}
+                onClick={resetAndFocus}
                 className="absolute top-1/2 right-1.5 -translate-y-1/2 rounded p-0.5 text-muted-foreground hover:bg-accent hover:text-foreground"
                 aria-label={t('search.clearSearch')}
                 title={t('search.clearSearch')}

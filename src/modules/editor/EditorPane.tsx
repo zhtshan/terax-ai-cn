@@ -14,6 +14,7 @@ import { redo, undo } from "@codemirror/commands";
 import {
   findNext,
   findPrevious,
+  getSearchQuery,
   gotoLine,
   openSearchPanel,
   SearchQuery,
@@ -632,7 +633,22 @@ export const EditorPane = memo(
         },
         openSearch: () => {
           const view = cmRef.current?.view;
-          if (view) openSearchPanel(view);
+          if (!view) return;
+          openSearchPanel(view);
+          // openSearchPanel 会预填选区或旧词；在其后清空文本并保留匹配开关
+          const prev = getSearchQuery(view.state);
+          view.dispatch({
+            effects: setSearchQuery.of(
+              new SearchQuery({
+                search: "",
+                replace: "",
+                literal: prev.literal,
+                caseSensitive: prev.caseSensitive,
+                regexp: prev.regexp,
+                wholeWord: prev.wholeWord,
+              }),
+            ),
+          });
         },
         focus: () => {
           cmRef.current?.view?.focus();
