@@ -49,6 +49,7 @@ import {
   Pin02Icon,
   PencilEdit02Icon,
   PlusSignIcon,
+  SplitIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -65,7 +66,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { labelFor } from "./lib/tabLabel";
 import { nextScrollLeftForTab } from "./lib/tabScroll";
-import type { EditorTab, Tab } from "./lib/useTabs";
+import { MAX_PANES_PER_TAB, type EditorTab, type Tab } from "./lib/useTabs";
 
 type Props = {
   tabs: Tab[];
@@ -91,6 +92,8 @@ type Props = {
   /** Keep the local version and clear the external-change badge. */
   onExternalKeep?: (id: number) => void;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
+  /** Split a terminal tab's active pane in the given direction. */
+  onSplitPane?: (id: number, dir: "row" | "col") => void;
   /** Workspace root used to compute relative paths for the copy menu items. */
   workspaceRoot?: string | null;
   compact?: boolean;
@@ -114,6 +117,7 @@ export function TabBar({
   onExternalReload,
   onExternalKeep,
   onOverrideLanguage,
+  onSplitPane,
   workspaceRoot,
   compact,
 }: Props) {
@@ -609,6 +613,10 @@ export function TabBar({
                 </TabsTrigger>
               );
 
+              const atMaxPanes =
+                t.kind === "terminal" &&
+                leafIds(t.paneTree).length >= MAX_PANES_PER_TAB;
+
               const copyPathItems = (path: string) => (
                 <>
                   <ContextMenuItem
@@ -674,6 +682,32 @@ export function TabBar({
                           {t.pinned ? tr('tabs.unpin') : tr('tabs.pin')}
                         </span>
                       </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                        disabled={atMaxPanes}
+                        onSelect={() => onSplitPane?.(t.id, "row")}
+                      >
+                        <HugeiconsIcon
+                          icon={SplitIcon}
+                          size={13}
+                          strokeWidth={1.75}
+                        />
+                        <span className="flex-1">{tr('tabs.splitRight')}</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                        disabled={atMaxPanes}
+                        onSelect={() => onSplitPane?.(t.id, "col")}
+                      >
+                        <HugeiconsIcon
+                          icon={SplitIcon}
+                          size={13}
+                          strokeWidth={1.75}
+                          className="rotate-90"
+                        />
+                        <span className="flex-1">{tr('tabs.splitDown')}</span>
+                      </ContextMenuItem>
                       {t.cwd ? (
                         <>
                           <ContextMenuSeparator />
@@ -725,7 +759,16 @@ export function TabBar({
               perfMonitor.mark("tab-items-render-end");
               perfMonitor.measure("tab-items-render", "tab-items-render-start");
               return result;
-            }, [tabs, activeId, draggingId, dropGap, firstRender, seen, workspaceRoot])}
+            }, [
+              tabs,
+              activeId,
+              draggingId,
+              dropGap,
+              firstRender,
+              seen,
+              workspaceRoot,
+              onSplitPane,
+            ])}
           </TabsList>
         </Tabs>
         <DropdownMenu>

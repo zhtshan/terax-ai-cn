@@ -1424,6 +1424,7 @@ export default function App() {
               onTogglePin={togglePinTab}
               onRename={handleRenameTab}
               onReorder={reorderTabByGap}
+              onSplitPane={splitActivePane}
               onToggleSidebar={toggleSidebar}
               onOpenCommandPalette={() => openCommandPalette("commands")}
               onActivateAgent={onActivateAgent}

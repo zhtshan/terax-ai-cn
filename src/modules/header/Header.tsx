@@ -44,6 +44,8 @@ type Props = {
   /** Move a dragged tab to a new position (insertion gap index). */
   onReorder: (fromId: number, toGapIndex: number) => void;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
+  /** Split a terminal tab's active pane in the given direction. */
+  onSplitPane?: (id: number, dir: "row" | "col") => void;
   onExternalReload?: (id: number) => void;
   onExternalKeep?: (id: number) => void;
   /** Workspace root for the tab context menu's copy-path items. */
@@ -76,6 +78,7 @@ export function Header({
   onRename,
   onReorder,
   onOverrideLanguage,
+  onSplitPane,
   onExternalReload,
   onExternalKeep,
   workspaceRoot,
@@ -177,6 +180,7 @@ export function Header({
           onRename={onRename}
           onReorder={onReorder}
           onOverrideLanguage={onOverrideLanguage}
+          onSplitPane={onSplitPane}
           onExternalReload={onExternalReload}
           onExternalKeep={onExternalKeep}
           workspaceRoot={workspaceRoot}

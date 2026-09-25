@@ -880,7 +880,9 @@
     "pin": "定位",
     "unpin": "取消定位",
     "copyPath": "复制路径",
-    "copyRelativePath": "复制相对路径"
+    "copyRelativePath": "复制相对路径",
+    "splitRight": "向右分屏",
+    "splitDown": "向下分屏"
   },
   "explorer": {
     "noCurrentDir": "没有当前目录",

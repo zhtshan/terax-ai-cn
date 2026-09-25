@@ -885,7 +885,9 @@
     "pin": "Pin",
     "unpin": "Unpin",
     "copyPath": "Copy Path",
-    "copyRelativePath": "Copy Relative Path"
+    "copyRelativePath": "Copy Relative Path",
+    "splitRight": "Split right",
+    "splitDown": "Split down"
   },
   "explorer": {
     "noCurrentDir": "No current directory",
