@@ -1435,6 +1435,7 @@ export default function App() {
               onOverrideLanguage={setOverrideLanguage}
               onExternalReload={handleExternalReload}
               onExternalKeep={handleExternalKeep}
+              workspaceRoot={explorerRoot}
             />
           )}
 

@@ -22,6 +22,10 @@ import {
   EXPOSED_LANGUAGES,
 } from "@/modules/editor/lib/languageDefinitions";
 import { resolveDisplayName } from "@/modules/editor/lib/languageResolver";
+import {
+  copyToClipboard,
+  relativePath,
+} from "@/modules/explorer/lib/contextActions";
 import { fileIconUrl } from "@/modules/explorer/lib/iconResolver";
 import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
@@ -36,6 +40,7 @@ import {
   CheckmarkCircle01Icon,
   Clock01Icon,
   ComputerTerminal02Icon,
+  Copy01Icon,
   GitBranchIcon,
   GitCompareIcon,
   Globe02Icon,
@@ -86,6 +91,8 @@ type Props = {
   /** Keep the local version and clear the external-change badge. */
   onExternalKeep?: (id: number) => void;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
+  /** Workspace root used to compute relative paths for the copy menu items. */
+  workspaceRoot?: string | null;
   compact?: boolean;
 };
 
@@ -107,6 +114,7 @@ export function TabBar({
   onExternalReload,
   onExternalKeep,
   onOverrideLanguage,
+  workspaceRoot,
   compact,
 }: Props) {
   const { t: tr } = useTranslation();
@@ -601,6 +609,39 @@ export function TabBar({
                 </TabsTrigger>
               );
 
+              const copyPathItems = (path: string) => (
+                <>
+                  <ContextMenuItem
+                    className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                    onSelect={() => void copyToClipboard(path)}
+                  >
+                    <HugeiconsIcon
+                      icon={Copy01Icon}
+                      size={13}
+                      strokeWidth={1.75}
+                    />
+                    <span className="flex-1">{tr('tabs.copyPath')}</span>
+                  </ContextMenuItem>
+                  {workspaceRoot ? (
+                    <ContextMenuItem
+                      className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                      onSelect={() =>
+                        void copyToClipboard(relativePath(workspaceRoot, path))
+                      }
+                    >
+                      <HugeiconsIcon
+                        icon={Copy01Icon}
+                        size={13}
+                        strokeWidth={1.75}
+                      />
+                      <span className="flex-1">
+                        {tr('tabs.copyRelativePath')}
+                      </span>
+                    </ContextMenuItem>
+                  ) : null}
+                </>
+              );
+
               const tabNode =
                 t.kind === "terminal" ? (
                   <ContextMenu>
@@ -633,6 +674,12 @@ export function TabBar({
                           {t.pinned ? tr('tabs.unpin') : tr('tabs.pin')}
                         </span>
                       </ContextMenuItem>
+                      {t.cwd ? (
+                        <>
+                          <ContextMenuSeparator />
+                          {copyPathItems(t.cwd)}
+                        </>
+                      ) : null}
                       {tabs.length > 1 && (
                         <>
                           <ContextMenuSeparator />
@@ -649,6 +696,16 @@ export function TabBar({
                           </ContextMenuItem>
                         </>
                       )}
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ) : t.kind === "editor" ? (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>{trigger}</ContextMenuTrigger>
+                    <ContextMenuContent
+                      className="min-w-32 p-1"
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
+                      {copyPathItems(t.path)}
                     </ContextMenuContent>
                   </ContextMenu>
                 ) : (
@@ -668,7 +725,7 @@ export function TabBar({
               perfMonitor.mark("tab-items-render-end");
               perfMonitor.measure("tab-items-render", "tab-items-render-start");
               return result;
-            }, [tabs, activeId, draggingId, dropGap, firstRender, seen])}
+            }, [tabs, activeId, draggingId, dropGap, firstRender, seen, workspaceRoot])}
           </TabsList>
         </Tabs>
         <DropdownMenu>

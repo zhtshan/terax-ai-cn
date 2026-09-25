@@ -883,7 +883,9 @@
     "externalReload": "Reload (discard local changes)",
     "externalKeep": "Keep my version",
     "pin": "Pin",
-    "unpin": "Unpin"
+    "unpin": "Unpin",
+    "copyPath": "Copy Path",
+    "copyRelativePath": "Copy Relative Path"
   },
   "explorer": {
     "noCurrentDir": "No current directory",

@@ -46,6 +46,8 @@ type Props = {
   onOverrideLanguage?: (id: number, lang: string | null) => void;
   onExternalReload?: (id: number) => void;
   onExternalKeep?: (id: number) => void;
+  /** Workspace root for the tab context menu's copy-path items. */
+  workspaceRoot?: string | null;
   onToggleSidebar: () => void;
   onOpenCommandPalette: () => void;
   onActivateAgent: (tabId: number, leafId: number) => void;
@@ -76,6 +78,7 @@ export function Header({
   onOverrideLanguage,
   onExternalReload,
   onExternalKeep,
+  workspaceRoot,
   onToggleSidebar,
   onOpenCommandPalette,
   onActivateAgent,
@@ -176,6 +179,7 @@ export function Header({
           onOverrideLanguage={onOverrideLanguage}
           onExternalReload={onExternalReload}
           onExternalKeep={onExternalKeep}
+          workspaceRoot={workspaceRoot}
           compact={compact}
         />
         <div data-tauri-drag-region className="h-full min-w-2 flex-1" />

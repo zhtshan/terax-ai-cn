@@ -878,7 +878,9 @@
     "externalReload": "重新加载（放弃本地修改）",
     "externalKeep": "保留我的版本",
     "pin": "定位",
-    "unpin": "取消定位"
+    "unpin": "取消定位",
+    "copyPath": "复制路径",
+    "copyRelativePath": "复制相对路径"
   },
   "explorer": {
     "noCurrentDir": "没有当前目录",
