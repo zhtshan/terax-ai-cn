@@ -74,6 +74,7 @@ import {
   acquireDocExtension,
   lspRawRequest,
   requestDocumentSymbols,
+  stopPresetSessions,
 } from "./sessionManager";
 
 const FILE = "/repo/src/widget.ts";
@@ -169,7 +170,7 @@ describe("lspRawRequest", () => {
   });
 
   it("returns null when the session exits while the request is pending", async () => {
-    const handle = await acquireDocExtension(FILE, "ts");
+    await acquireDocExtension(FILE, "ts");
     let resolveRaw!: (v: unknown) => void;
     rawRequestMock.mockReturnValue(
       new Promise((r) => {
@@ -177,8 +178,12 @@ describe("lspRawRequest", () => {
       }),
     );
     const pending = lspRawRequest(FILE, "ts", "textDocument/inlayHint", {});
-    handle?.release();
-    resolveRaw(null);
+    // release() only arms the idle timer, so exit the session via
+    // closeSession (through stopPresetSessions), which flips `closing` and
+    // drops the map entry while the request is still in flight.
+    void stopPresetSessions("typescript");
+    resolveRaw([{ range: {} }]);
     expect(await pending).toBeNull();
+    expect(rawRequestMock).not.toHaveBeenCalled();
   });
 });
