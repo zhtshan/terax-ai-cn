@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -14,6 +15,10 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import {
+  type OsNotificationResult,
+  testAgentOsNotification,
+} from "@/modules/agents/lib/notify";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { ThemePref } from "@/modules/settings/store";
 import {
@@ -78,6 +83,13 @@ const SHELL_AUTO = "auto";
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.05;
+const NOTIFICATION_TEST_DELAY_MS = 2_000;
+
+type NotificationTestState =
+  | OsNotificationResult
+  | "idle"
+  | "waiting"
+  | "sending";
 
 export function GeneralSection() {
   const { t, i18n } = useTranslation();
@@ -107,6 +119,19 @@ export function GeneralSection() {
   const terminalScrollback = usePreferencesStore((s) => s.terminalScrollback);
   const zoomLevel = usePreferencesStore((s) => s.zoomLevel);
   const agentNotifications = usePreferencesStore((s) => s.agentNotifications);
+  const [notificationTest, setNotificationTest] =
+    useState<NotificationTestState>("idle");
+  const notificationTestPending =
+    notificationTest === "waiting" || notificationTest === "sending";
+
+  const testNotification = async () => {
+    setNotificationTest("waiting");
+    await new Promise((resolve) =>
+      setTimeout(resolve, NOTIFICATION_TEST_DELAY_MS),
+    );
+    setNotificationTest("sending");
+    setNotificationTest(await testAgentOsNotification());
+  };
 
   useEffect(() => {
     let alive = true;
@@ -489,10 +514,26 @@ export function GeneralSection() {
           title={t("settings.general.agentNotifications")}
           description={t("settings.general.agentNotificationsDesc")}
         >
-          <Switch
-            checked={agentNotifications}
-            onCheckedChange={(v) => void setAgentNotifications(v)}
-          />
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              disabled={!agentNotifications || notificationTestPending}
+              title={notificationTestTitle(notificationTest)}
+              onClick={() => void testNotification()}
+            >
+              {notificationTestLabel(notificationTest)}
+            </Button>
+            <Switch
+              checked={agentNotifications}
+              disabled={notificationTestPending}
+              onCheckedChange={(v) => {
+                setNotificationTest("idle");
+                void setAgentNotifications(v);
+              }}
+            />
+          </div>
         </SettingRow>
       </div>
 
@@ -529,6 +570,40 @@ function Label({ children }: { children: React.ReactNode }) {
       {children}
     </span>
   );
+}
+
+function notificationTestLabel(status: NotificationTestState): string {
+  const { t } = useTranslation();
+  switch (status) {
+    case "waiting":
+      return t("settings.general.agentNotificationSwitching");
+    case "sending":
+      return t("settings.general.agentNotificationSending");
+    case "requested":
+      return t("settings.general.agentNotificationRequested");
+    case "denied":
+      return t("settings.general.agentNotificationDenied");
+    case "failed":
+      return t("settings.general.agentNotificationFailed");
+    default:
+      return t("settings.general.agentNotificationTestIdle");
+  }
+}
+
+function notificationTestTitle(status: NotificationTestState): string {
+  const { t } = useTranslation();
+  switch (status) {
+    case "waiting":
+      return t("settings.general.agentNotificationWaitTitle");
+    case "requested":
+      return t("settings.general.agentNotificationRequestedTitle");
+    case "denied":
+      return t("settings.general.agentNotificationDeniedTitle");
+    case "failed":
+      return t("settings.general.agentNotificationFailedTitle");
+    default:
+      return t("settings.general.agentNotificationTestTitle");
+  }
 }
 
 function FontFamilyInput({

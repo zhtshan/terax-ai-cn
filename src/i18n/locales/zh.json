@@ -104,7 +104,18 @@
       "cursorStyleDesc": "终端光标的形状。",
       "cursorStyleBar": "竖线",
       "cursorStyleBlock": "块状",
-      "cursorStyleUnderline": "下划线"
+      "cursorStyleUnderline": "下划线",
+      "agentNotificationSwitching": "切换到应用…",
+      "agentNotificationSending": "发送中…",
+      "agentNotificationRequested": "已请求",
+      "agentNotificationDenied": "已阻止",
+      "agentNotificationFailed": "失败",
+      "agentNotificationTestIdle": "2 秒后测试",
+      "agentNotificationWaitTitle": "请切换到其他应用以验证原生投递",
+      "agentNotificationRequestedTitle": "已请求原生通知",
+      "agentNotificationDeniedTitle": "系统已禁用通知",
+      "agentNotificationFailedTitle": "Terax 无法请求原生通知",
+      "agentNotificationTestTitle": "两秒后发送原生测试通知"
     },
     "shortcuts": {
       "title": "快捷键",

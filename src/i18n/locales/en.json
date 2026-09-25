@@ -104,7 +104,18 @@
       "cursorStyleDesc": "Shape of the terminal cursor.",
       "cursorStyleBar": "Bar",
       "cursorStyleBlock": "Block",
-      "cursorStyleUnderline": "Underline"
+      "cursorStyleUnderline": "Underline",
+      "agentNotificationSwitching": "Switch apps...",
+      "agentNotificationSending": "Sending...",
+      "agentNotificationRequested": "Requested",
+      "agentNotificationDenied": "Blocked",
+      "agentNotificationFailed": "Failed",
+      "agentNotificationTestIdle": "Test in 2s",
+      "agentNotificationWaitTitle": "Switch to another app to verify native delivery",
+      "agentNotificationRequestedTitle": "The native notification was requested",
+      "agentNotificationDeniedTitle": "Notifications are disabled by the system",
+      "agentNotificationFailedTitle": "Terax could not request a native notification",
+      "agentNotificationTestTitle": "Send a native test notification after two seconds"
     },
     "shortcuts": {
       "title": "Shortcuts",
