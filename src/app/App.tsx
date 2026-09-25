@@ -1448,6 +1448,10 @@ export default function App() {
             <ResizablePanelGroup
               orientation="horizontal"
               className="min-h-0 flex-1"
+              onLayoutChanged={(_, { isUserInteraction }) => {
+                const width = sidebarRef.current?.getSize().inPixels ?? 0;
+                persistSidebarWidth(width, isUserInteraction);
+              }}
             >
               <ResizablePanel
                 id="sidebar"
@@ -1462,7 +1466,6 @@ export default function App() {
                 collapsible
                 collapsedSize={0}
                 onResize={(size) => {
-                  if (size.inPixels > 0) persistSidebarWidth(size.inPixels);
                   persistSidebarCollapsed(size.inPixels <= 0);
                 }}
               >

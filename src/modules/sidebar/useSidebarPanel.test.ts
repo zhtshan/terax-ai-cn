@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { openSidebarViewCore } from "./useSidebarPanel";
+import { openSidebarViewCore, shouldPersistSidebarWidth } from "./useSidebarPanel";
 
 type FakePanel = {
   getSize: () => { asPercentage: number };
@@ -47,5 +47,13 @@ describe("openSidebarViewCore", () => {
     openSidebarViewCore(panel, 260, "source-control", "explorer", persist);
     expect(panel.resize).toHaveBeenCalled();
     expect(persist).toHaveBeenCalledWith("source-control");
+  });
+});
+
+describe("shouldPersistSidebarWidth", () => {
+  it("only persists a positive width from direct user interaction", () => {
+    expect(shouldPersistSidebarWidth(320, true)).toBe(true);
+    expect(shouldPersistSidebarWidth(320, false)).toBe(false);
+    expect(shouldPersistSidebarWidth(0, true)).toBe(false);
   });
 });
