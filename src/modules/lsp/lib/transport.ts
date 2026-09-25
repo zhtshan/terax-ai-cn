@@ -1,6 +1,7 @@
 import { currentWorkspaceEnv } from "@/modules/workspace";
 import { Channel, invoke } from "@tauri-apps/api/core";
 import type { Transport } from "codemirror-languageserver";
+import { type LspProgressEvent, parseProgressEvent } from "./progress";
 
 export type LspSpawnConfig = {
   command: string;
@@ -41,6 +42,7 @@ export class TauriLspTransport implements Transport {
   private onErrorCb: ((error: Error) => void) | null = null;
   private backlog: string[] = [];
   exitInfo: LspExitInfo | null = null;
+  onProgress: ((event: LspProgressEvent) => void) | null = null;
 
   async start(config: LspSpawnConfig): Promise<void> {
     const decoder = new TextDecoder();
@@ -48,6 +50,10 @@ export class TauriLspTransport implements Transport {
     onMessage.onmessage = (buf) => {
       const text = decoder.decode(buf);
       this.answerServerRequest(text);
+      if (this.onProgress) {
+        const event = parseProgressEvent(text);
+        if (event) this.onProgress(event);
+      }
       if (this.onMsg) this.onMsg(text);
       else this.backlog.push(text);
     };

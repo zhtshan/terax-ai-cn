@@ -9,6 +9,8 @@ let resolveInitialize: () => void;
 let initializePromise: Promise<void>;
 const textDocumentSymbol = vi.fn();
 const rawRequestMock = vi.fn();
+const setProgressMock = vi.fn();
+const transportInstances: Array<{ onProgress?: unknown }> = [];
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...a: unknown[]) => invoke(...a),
@@ -39,14 +41,20 @@ vi.mock("./runtimeStore", () => ({
       setFailed: vi.fn(),
       clearFailed: vi.fn(),
       bumpGeneration: vi.fn(),
+      progress: {},
+      setProgress: setProgressMock,
     }),
   },
 }));
 vi.mock("./transport", () => ({
   TauriLspTransport: class {
-    exitInfo = null;
+    exitInfo: null = null;
+    onProgress: ((e: unknown) => void) | null = null;
     start = transportStart;
     close = vi.fn();
+    constructor() {
+      transportInstances.push(this);
+    }
   },
 }));
 vi.mock("./client", () => ({
@@ -185,5 +193,36 @@ describe("lspRawRequest", () => {
     resolveRaw([{ range: {} }]);
     expect(await pending).toBeNull();
     expect(rawRequestMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("progress wiring", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    transportInstances.length = 0;
+    capabilities = { documentSymbolProvider: true };
+    initializePromise = Promise.resolve();
+    detectBinary.mockResolvedValue(true);
+    invoke.mockImplementation((cmd: string) =>
+      cmd === "lsp_resolve_root"
+        ? Promise.resolve("/repo")
+        : Promise.resolve(1),
+    );
+    transportStart.mockResolvedValue(undefined);
+  });
+
+  it("routes $/progress events into the runtime store", async () => {
+    const handle = await acquireDocExtension(FILE, "ts");
+    const transport = transportInstances[transportInstances.length - 1];
+    expect(transport).toBeDefined();
+    expect(typeof transport?.onProgress).toBe("function");
+    const notify = transport!.onProgress as (e: unknown) => void;
+    notify({ token: "t1", kind: "begin", title: "Indexing", percentage: 5 });
+    expect(setProgressMock).toHaveBeenCalledWith("typescript\u0000/repo", {
+      token: "t1",
+      title: "Indexing",
+      percentage: 5,
+    });
+    handle?.release();
   });
 });

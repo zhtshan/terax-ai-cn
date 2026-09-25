@@ -10,6 +10,7 @@ import type { RawDocumentSymbol, TeraxLspClient } from "./client";
 import { detectBinary } from "./detect";
 import { getLspNavigator } from "./navigator";
 import { type LspPreset, serverForLanguage } from "./presets";
+import { applyProgress } from "./progress";
 import { useLspRuntimeStore } from "./runtimeStore";
 import type { TauriLspTransport } from "./transport";
 import { fileUriToPath, pathToFileUri } from "./uri";
@@ -211,6 +212,11 @@ async function createSession(
     });
     return null;
   }
+
+  transport.onProgress = (event) => {
+    const rt = useLspRuntimeStore.getState();
+    rt.setProgress(key, applyProgress(rt.progress[key] ?? null, event));
+  };
 
   const rootUri = pathToFileUri(root);
   const client = new TeraxLspClient({
