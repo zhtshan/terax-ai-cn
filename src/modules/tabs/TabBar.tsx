@@ -17,6 +17,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmtShortcut, MOD_KEY, SHIFT_KEY } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { perfMonitor } from "@/lib/perf-monitor";
+import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
   ALL_LANGUAGES,
   EXPOSED_LANGUAGES,
@@ -27,7 +28,6 @@ import {
   relativePath,
 } from "@/modules/explorer/lib/contextActions";
 import { fileIconUrl } from "@/modules/explorer/lib/iconResolver";
-import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
   leafIds,
   ptyIdForLeaf,
@@ -446,6 +446,11 @@ export function TabBar({
                             role="button"
                             tabIndex={-1}
                             data-no-drag
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
                             className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm p-1 -m-1 transition-all hover:bg-accent hover:text-accent-foreground hover:ring-1 hover:ring-primary/30 hover:shadow-[0_0_4px_var(--color-popover-foreground)]"
                           >
                             <TabIcon tab={t} />
@@ -597,6 +602,14 @@ export function TabBar({
                       role="button"
                       aria-label={tr('tabs.closeTab')}
                       data-no-drag
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onClose(t.id);
@@ -971,7 +984,9 @@ const TabIconComponent = ({ tab }: { tab: Tab }) => {
     );
   }
   if (agentStatus.state === "working" && agentStatus.agent) {
-    return <AgentIcon agent={agentStatus.agent} size={14} className="shrink-0" />;
+    return (
+      <AgentIcon agent={agentStatus.agent} size={14} className="shrink-0" />
+    );
   }
   return (
     <HugeiconsIcon
