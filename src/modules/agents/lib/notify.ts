@@ -16,10 +16,13 @@ async function ensurePermission(): Promise<boolean> {
   return ok;
 }
 
-export async function osNotify(title: string, body: string): Promise<void> {
+export async function osNotify(title: string, body: string): Promise<boolean> {
   try {
-    if (await ensurePermission()) sendNotification({ title, body });
+    if (!(await ensurePermission())) return false;
+    sendNotification({ title, body });
+    return true;
   } catch (e) {
     console.warn("[terax] os notification failed:", e);
+    return false;
   }
 }
