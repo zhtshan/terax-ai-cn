@@ -58,6 +58,24 @@ function readSidebarCollapsed(): boolean {
   }
 }
 
+type PanelLike = { getSize: () => { asPercentage: number }; resize: (v: string) => void };
+
+export function openSidebarViewCore(
+  panel: PanelLike | null,
+  sidebarWidth: number,
+  view: SidebarViewId,
+  currentView: SidebarViewId,
+  persistView: (v: SidebarViewId) => void,
+): void {
+  const collapsed = panel ? panel.getSize().asPercentage <= 0 : false;
+  if (collapsed) {
+    panel?.resize(`${sidebarWidth}px`);
+    if (view !== currentView) persistView(view);
+    return;
+  }
+  if (view !== currentView) persistView(view);
+}
+
 type FocusableExplorer = {
   focus: () => void;
   isFocused: () => boolean;
@@ -120,6 +138,21 @@ export function useSidebarPanel(
       persistSidebarView(view);
     },
     [persistSidebarView, sidebarView],
+  );
+
+  // Open-direction only: never collapses. Cycle semantics (same view closes)
+  // live in cycleSidebarView; this serves fixed view shortcuts.
+  const openSidebarView = useCallback(
+    (view: SidebarViewId) => {
+      openSidebarViewCore(
+        sidebarRef.current,
+        sidebarWidthRef.current,
+        view,
+        sidebarView,
+        persistSidebarView,
+      );
+    },
+    [sidebarView],
   );
 
   const persistSidebarWidth = useCallback((next: number) => {
@@ -186,6 +219,7 @@ export function useSidebarPanel(
     persistSidebarCollapsed,
     toggleSidebar,
     cycleSidebarView,
+    openSidebarView,
     persistSidebarWidth,
     toggleExplorerFocus,
   };

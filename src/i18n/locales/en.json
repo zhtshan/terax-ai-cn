@@ -1209,6 +1209,7 @@
       "ai.askSelection": "Ask AI about selection",
       "agent.focusAttention": "Jump to agent needing attention",
       "sidebar.toggle": "Toggle file explorer",
+      "sidebar.openSourceControl": "Open source control",
       "explorer.focus": "Toggle file explorer focus",
       "view.zoomIn": "Zoom in",
       "view.zoomOut": "Zoom out",

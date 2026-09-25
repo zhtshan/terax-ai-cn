@@ -46,6 +46,7 @@ export type ShortcutId =
   | "agent.focusAttention"
   | "settings.open"
   | "sidebar.toggle"
+  | "sidebar.openSourceControl"
   | "editor.undo"
   | "editor.redo"
   | "editor.aiComplete"
@@ -305,11 +306,14 @@ export const SHORTCUTS: Shortcut[] = [
     group: "View",
     // Plain Mod+B toggles the sidebar everywhere EXCEPT a focused terminal,
     // where it's handed to the shell / Claude Code (its "run in background"
-    // key). Mod+Shift+B always toggles, including from inside a terminal.
-    defaultBindings: [
-      { [MOD_PROP]: true, key: "b" },
-      { [MOD_PROP]: true, shift: true, key: "b" },
-    ],
+    // key). Mod+Shift+B is now bound to sidebar.openSourceControl (fixed open).
+    defaultBindings: [{ [MOD_PROP]: true, key: "b" }],
+  },
+  {
+    id: "sidebar.openSourceControl",
+    label: "Open source control",
+    group: "View",
+    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "b" }],
   },
   {
     id: "explorer.focus",

@@ -1206,6 +1206,7 @@
       "ai.askSelection": "向 AI 询问选区",
       "agent.focusAttention": "跳转到需要关注的代理",
       "sidebar.toggle": "切换文件浏览器",
+      "sidebar.openSourceControl": "打开源代码管理",
       "explorer.focus": "切换文件浏览器焦点",
       "view.zoomIn": "放大",
       "view.zoomOut": "缩小",
