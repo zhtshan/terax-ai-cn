@@ -96,25 +96,27 @@ export function lspSelectionRanges(opts: {
 
   const expand = (view: EditorView): boolean => {
     if (!supported()) return false;
-    void requestChains(view).then((chains) => {
-      if (!chains) return;
-      const sel = view.state.selection;
-      const spans = new Map<number, Span>();
-      const index: Array<number | null> = [];
-      sel.ranges.forEach((r, i) => {
-        const chain = chains[i];
-        const next = chain ? expandIndex(chain, r.from, r.to) : -1;
-        if (next < 0) {
-          index.push(null);
-          return;
-        }
-        spans.set(i, chain[next]);
-        index.push(next);
-      });
-      if (spans.size === 0) return;
-      selectAt(view, spans);
-      state.set(view, { doc: view.state.doc, chains, index });
-    });
+    void requestChains(view)
+      .then((chains) => {
+        if (!chains) return;
+        const sel = view.state.selection;
+        const spans = new Map<number, Span>();
+        const index: Array<number | null> = [];
+        sel.ranges.forEach((r, i) => {
+          const chain = chains[i];
+          const next = chain ? expandIndex(chain, r.from, r.to) : -1;
+          if (next < 0) {
+            index.push(null);
+            return;
+          }
+          spans.set(i, chain[next]);
+          index.push(next);
+        });
+        if (spans.size === 0) return;
+        selectAt(view, spans);
+        state.set(view, { doc: view.state.doc, chains, index });
+      })
+      .catch(() => {});
     return true;
   };
 
@@ -123,11 +125,14 @@ export function lspSelectionRanges(opts: {
     if (!saved || saved.doc !== view.state.doc) return false;
     const spans = new Map<number, Span>();
     const index: Array<number | null> = [...saved.index];
-    view.state.selection.ranges.forEach((_r, i) => {
+    view.state.selection.ranges.forEach((r, i) => {
       const cur = saved.index[i];
       const prev = (cur ?? -1) - 1;
       const chain = saved.chains[i];
       if (cur == null || prev < 0 || !chain) return;
+      // doc 未变但用户手动改过选区时，不再对应保存的链，跳过该光标。
+      const [curFrom, curTo] = chain[cur];
+      if (curFrom > r.from || r.to > curTo) return;
       spans.set(i, chain[prev]);
       index[i] = prev;
     });

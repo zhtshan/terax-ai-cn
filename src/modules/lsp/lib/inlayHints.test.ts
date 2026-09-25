@@ -21,7 +21,7 @@ describe("inlayHintLabel", () => {
 describe("inlayHintDecorations", () => {
   const doc = Text.of(["const value = compute(1, 2);"]);
 
-  it("maps hint positions to widget decorations and clamps to line end", () => {
+  it("drops out-of-range hints and keeps the in-range one", () => {
     const hints: LspInlayHint[] = [
       { position: { line: 0, character: 11 }, label: ": number" },
       { position: { line: 9, character: 0 }, label: "out of range" },

@@ -200,6 +200,10 @@ async function createSession(
   }
 
   const transport = new TauriLspTransport();
+  transport.onProgress = (event) => {
+    const rt = useLspRuntimeStore.getState();
+    rt.setProgress(key, applyProgress(rt.progress[key] ?? null, event));
+  };
   try {
     await transport.start({
       command: preset.command,
@@ -216,11 +220,6 @@ async function createSession(
     });
     return null;
   }
-
-  transport.onProgress = (event) => {
-    const rt = useLspRuntimeStore.getState();
-    rt.setProgress(key, applyProgress(rt.progress[key] ?? null, event));
-  };
 
   const rootUri = pathToFileUri(root);
   const client = new TeraxLspClient({
