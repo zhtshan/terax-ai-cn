@@ -99,7 +99,12 @@
       "restoreWindowDesc": "Reopen the main window where you left it. Applies on next launch.",
       "shellNoBlocks": "Command blocks and directory tracking are unavailable for this shell.",
       "shellWsl": "Shell for the integrated terminal. WSL spaces use the distro login shell. Existing tabs keep their shell.",
-      "shellDefault": "Shell for new terminal tabs. Existing tabs keep their shell."
+      "shellDefault": "Shell for new terminal tabs. Existing tabs keep their shell.",
+      "cursorStyle": "Cursor style",
+      "cursorStyleDesc": "Shape of the terminal cursor.",
+      "cursorStyleBar": "Bar",
+      "cursorStyleBlock": "Block",
+      "cursorStyleUnderline": "Underline"
     },
     "shortcuts": {
       "title": "Shortcuts",
