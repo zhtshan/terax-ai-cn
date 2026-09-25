@@ -28,7 +28,7 @@ function ctxWithTabs(
     splitPaneDown: () => {},
     focusSearch: () => {},
     focusExplorerSearch: () => {},
-    toggleSidebar: () => {},
+    toggleExplorerView: () => {},
     toggleAi: () => {},
     askAiSelection: () => {},
     openSettings: () => {},

@@ -304,9 +304,10 @@ export const SHORTCUTS: Shortcut[] = [
     id: "sidebar.toggle",
     label: "Toggle file explorer",
     group: "View",
-    // Plain Mod+B toggles the sidebar everywhere EXCEPT a focused terminal,
-    // where it's handed to the shell / Claude Code (its "run in background"
-    // key). Mod+Shift+B is now bound to sidebar.openSourceControl (fixed open).
+    // Mod+B cycles the explorer view: hidden -> expand on explorer, another
+    // view shown -> switch to explorer, explorer shown -> collapse. In a
+    // focused terminal it is still handed to the shell (its "run in
+    // background" key). Mod+Shift+B opens source control (fixed open).
     defaultBindings: [{ [MOD_PROP]: true, key: "b" }],
   },
   {

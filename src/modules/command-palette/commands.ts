@@ -51,7 +51,7 @@ export type CommandPaletteActionContext = {
   splitPaneDown: () => void;
   focusSearch: () => void;
   focusExplorerSearch: () => void;
-  toggleSidebar: () => void;
+  toggleExplorerView: () => void;
   toggleAi: () => void;
   askAiSelection: () => void;
   openSettings: () => void;
@@ -291,7 +291,7 @@ export function createCommandItems(
       keywords: ["sidebar", "files", "explorer"],
       icon: SidebarLeftIcon,
       shortcutId: "sidebar.toggle",
-      run: ctx.toggleSidebar,
+      run: ctx.toggleExplorerView,
     },
     {
       id: "ai.toggle",
