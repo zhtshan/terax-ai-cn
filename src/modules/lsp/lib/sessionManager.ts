@@ -121,7 +121,10 @@ export async function acquireDocExtension(
 
   const uri = pathToFileUri(path);
   const languageId = preset.languages[langId] ?? langId;
-  const mod = await import("./client");
+  const [mod, inlay] = await Promise.all([
+    import("./client"),
+    import("./inlayHints"),
+  ]);
   const extension: Extension = [
     mod.lspInteractions({
       client: managed.client,
@@ -132,6 +135,7 @@ export async function acquireDocExtension(
         if (target) getLspNavigator()?.openFile(target, line);
       },
     }),
+    inlay.lspInlayHints({ client: managed.client, documentUri: uri }),
     mod.languageServerWithTransport({
       client: managed.client,
       transport: managed.transport,

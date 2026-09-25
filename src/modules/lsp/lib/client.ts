@@ -5,7 +5,6 @@ import {
   type Extension,
   StateEffect,
   StateField,
-  type Text,
 } from "@codemirror/state";
 import {
   Decoration,
@@ -27,14 +26,12 @@ import {
   openLocationsPanel,
 } from "./locationsPanel";
 import { fileUriToPath } from "./uri";
+import { offsetOf, type LspPos, type LspRange } from "./positions";
 
 export {
   languageServerWithTransport,
   SynchronizationMethod,
 } from "codemirror-languageserver";
-
-type LspPos = { line: number; character: number };
-type LspRange = { start: LspPos };
 
 type LspLocation = { uri: string; range: LspRange };
 type LspLocationLink = {
@@ -83,12 +80,6 @@ function normalizeLocations(result: DefinitionResult): LspLocation[] {
     }
   }
   return out;
-}
-
-function offsetOf(doc: Text, pos: LspPos): number {
-  if (pos.line >= doc.lines) return doc.length;
-  const line = doc.line(pos.line + 1);
-  return Math.min(line.from + pos.character, line.to);
 }
 
 export type LspFormatResult = "done" | "unsupported";
@@ -459,6 +450,7 @@ export class TeraxLspClient extends LanguageServerClient {
           ],
         },
       },
+      inlayHint: { dynamicRegistration: false },
     };
     return params;
   }
