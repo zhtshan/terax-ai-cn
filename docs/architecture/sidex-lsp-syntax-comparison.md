@@ -1,6 +1,6 @@
 # SideX LSP / 语法引擎横向对比
 
-> 外部参考文档。SideX 是 VSCode workbench 的 Tauri 移植（[SideX README](../../../../../../work/sidex/README.md)），与 Terax 定位不同。
+> 外部参考文档。SideX 是 VSCode workbench 的 Tauri 移植（[SideX README](../../../sidex/README.md)），与 Terax 定位不同。
 > 本文不参与 `TERAX.md` 优先级排序；与该文件冲突时以 `TERAX.md` 为准。
 
 ## 目的
@@ -29,9 +29,9 @@
 |---|---|---|
 | LSP 协议智能位置 | 全部在 Rust（`crates/sidex-lsp`，8071 行，21 模块） | 全部在前端（`src/modules/lsp/lib`，2214 行 TS） |
 | Rust 侧职责 | 完整 LSP 客户端（21 类能力） | 仅 Content-Length 帧解析（`framing.rs`，243 行）+ 进程生命周期 |
-| Tauri 命令数 | 6 个，含通用 `lsp_send_request(method, params)` | 5 个专用命令 |
+| Tauri 命令数 | 6 个，含通用 `lsp_send_request(method, params)` | 6 个专用命令 |
 
-SideX 的 5 个 Tauri 命令（`src-tauri/src/commands/lsp.rs`）：
+SideX 的 6 个 Tauri 命令（`src-tauri/src/commands/lsp.rs`）：
 
 - `lsp_get_server_registry`
 - `lsp_get_supported_languages`
@@ -83,7 +83,7 @@ SideX 在 `crates/sidex-lsp/src/lib.rs:7-46` 声明的能力完整列表：
 
 | 维度 | SideX | Terax |
 |---|---|---|
-| 默认服务器 | `registry.rs:64-85`：6 种（rust-analyzer、tsls、pylsp、gopls、clangd c/cpp） | `presets.ts`：typescript、rust-analyzer、pyright、ruff、gopls + 自定义 |
+| 默认服务器 | `registry.rs:64-85`：6 种（rust-analyzer、tsls、pylsp、gopls、clangd c/cpp） | `presets.ts`：typescript、rust-analyzer、pyright、ruff、gopls、clangd、zls、lua-ls、ruby-lsp、intelephense、yaml-ls、bash-ls、json-ls、css-ls、html-ls、svelte-ls、vue-ls、sourcekit + 自定义 |
 | 每服务器最大会话数 | 无明确限制 | 硬上限 4 个（`TERAX.md:96`） |
 | 空闲超时 | 无 | 3 分钟空闲杀 |
 | 崩溃退避 | 无 | 5 分钟内 3 次崩溃 → 放弃 + toast 带 stderr 尾部 |

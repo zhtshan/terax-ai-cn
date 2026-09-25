@@ -484,7 +484,11 @@ export class TeraxLspClient extends LanguageServerClient {
   }
 
   // 稳定扩展面：新增 LSP 能力直接调用本方法，无需再加 typed wrapper。
-  rawRequest(method: string, params: unknown, timeoutMs = 10_000): Promise<unknown> {
+  rawRequest(
+    method: string,
+    params: unknown,
+    timeoutMs = 10_000,
+  ): Promise<unknown> {
     return this.raw.request(method, params, timeoutMs);
   }
 
