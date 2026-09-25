@@ -4,12 +4,18 @@ import { useWorkspaceEnvStore } from "@/modules/workspace";
 import { useEffect, useState } from "react";
 import { detectBinary } from "./detect";
 import { type LspPreset, serverForLanguage } from "./presets";
+import type { LspWorkDone } from "./progress";
 import { type LspSessionStatus, useLspRuntimeStore } from "./runtimeStore";
 
 export type LspHint =
   | { kind: "enable"; preset: LspPreset }
   | { kind: "install"; preset: LspPreset }
-  | { kind: "active"; preset: LspPreset; status: LspSessionStatus }
+  | {
+      kind: "active";
+      preset: LspPreset;
+      status: LspSessionStatus;
+      progress: LspWorkDone | null;
+    }
   | { kind: "error"; preset: LspPreset; reason: string };
 
 export function useLspHint(filePath: string | null): LspHint | null {
@@ -47,6 +53,9 @@ export function useLspHint(filePath: string | null): LspHint | null {
   const failure = useLspRuntimeStore((s) =>
     preset ? s.failed[preset.id] : undefined,
   );
+  const progress = useLspRuntimeStore((s) =>
+    session ? (s.progress[session.key] ?? null) : null,
+  );
 
   useEffect(() => {
     if (preset && envKind === "local" && activation === undefined) {
@@ -57,7 +66,7 @@ export function useLspHint(filePath: string | null): LspHint | null {
   if (!preset || envKind !== "local") return null;
   if (activation === "dismissed") return null;
   if (activation === "enabled") {
-    if (session) return { kind: "active", preset, status: session.status };
+    if (session) return { kind: "active", preset, status: session.status, progress };
     if (failure) return { kind: "error", preset, reason: failure };
     return null;
   }

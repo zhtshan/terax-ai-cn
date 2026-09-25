@@ -10,6 +10,7 @@ let initializePromise: Promise<void>;
 const textDocumentSymbol = vi.fn();
 const rawRequestMock = vi.fn();
 const setProgressMock = vi.fn();
+const storeProgress: Record<string, unknown> = {};
 const transportInstances: Array<{ onProgress?: unknown }> = [];
 
 vi.mock("@tauri-apps/api/core", () => ({
@@ -41,8 +42,11 @@ vi.mock("./runtimeStore", () => ({
       setFailed: vi.fn(),
       clearFailed: vi.fn(),
       bumpGeneration: vi.fn(),
-      progress: {},
-      setProgress: setProgressMock,
+      progress: storeProgress,
+      setProgress: (key: string, value: unknown) => {
+        storeProgress[key] = value;
+        setProgressMock(key, value);
+      },
     }),
   },
 }));
@@ -209,6 +213,7 @@ describe("progress wiring", () => {
         : Promise.resolve(1),
     );
     transportStart.mockResolvedValue(undefined);
+    for (const k of Object.keys(storeProgress)) delete storeProgress[k];
   });
 
   it("routes $/progress events into the runtime store", async () => {
@@ -222,6 +227,22 @@ describe("progress wiring", () => {
       token: "t1",
       title: "Indexing",
       percentage: 5,
+    });
+    handle?.release();
+  });
+
+  it("keeps the begin title when a later report omits it", async () => {
+    await stopPresetSessions("typescript");
+    const handle = await acquireDocExtension(FILE, "ts");
+    const transport = transportInstances[transportInstances.length - 1];
+    expect(transport).toBeDefined();
+    const notify = transport!.onProgress as (e: unknown) => void;
+    notify({ token: "t1", kind: "begin", title: "Indexing", percentage: 0 });
+    notify({ token: "t1", kind: "report", percentage: 50 });
+    expect(storeProgress["typescript\u0000/repo"]).toEqual({
+      token: "t1",
+      title: "Indexing",
+      percentage: 50,
     });
     handle?.release();
   });

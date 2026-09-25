@@ -18,6 +18,7 @@ import { useState } from "react";
 import { Trans, useTranslation } from "react-i18next";
 import { redetectBinary } from "../lib/detect";
 import type { LspPreset } from "../lib/presets";
+import type { LspWorkDone } from "../lib/progress";
 import { restartPresetSessions } from "../lib/sessionManager";
 import { useLspHint } from "../lib/useLspHint";
 
@@ -71,6 +72,7 @@ export function LspStatusPill({ filePath }: Props) {
       key={`active-${hint.preset.id}`}
       preset={hint.preset}
       starting={hint.status === "starting"}
+      progress={hint.progress}
     />
   );
 }
@@ -224,14 +226,26 @@ function InstallPill({ preset }: { preset: LspPreset }) {
   );
 }
 
+function progressLabel(progress: LspWorkDone): string {
+  const head = progress.title ?? progress.message;
+  const pct =
+    progress.percentage != null
+      ? `${Math.round(progress.percentage)}%`
+      : null;
+  return [head, pct].filter(Boolean).join(" ");
+}
+
 function ActivePill({
   preset,
   starting,
+  progress,
 }: {
   preset: LspPreset;
   starting: boolean;
+  progress: LspWorkDone | null;
 }) {
   const { t } = useTranslation();
+  const busy = starting || progress != null;
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -240,7 +254,7 @@ function ActivePill({
           className={PILL_CLASS}
           title={starting ? t("lsp.startingTitle") : t("lsp.activeTitle")}
         >
-          {starting ? (
+          {busy ? (
             <HugeiconsIcon
               icon={Loading03Icon}
               size={11}
@@ -250,7 +264,11 @@ function ActivePill({
           ) : (
             <span className="size-1.5 rounded-full bg-emerald-500" />
           )}
-          <span>{preset.name} LSP</span>
+          {progress ? (
+            <span className="max-w-40 truncate">{progressLabel(progress)}</span>
+          ) : (
+            <span>{preset.name} LSP</span>
+          )}
         </button>
       </PopoverTrigger>
       <PopoverContent
@@ -268,6 +286,11 @@ function ActivePill({
             components={{ 1: <code className="text-foreground" /> }}
           />
         </p>
+        {progress ? (
+          <p className="mb-2 text-muted-foreground">
+            {t("lsp.progressLine", { label: progressLabel(progress) })}
+          </p>
+        ) : null}
         <div className="flex items-center gap-1.5">
           <button
             type="button"

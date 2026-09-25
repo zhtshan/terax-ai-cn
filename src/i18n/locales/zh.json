@@ -768,6 +768,7 @@
     "activeTitle": "语言服务器已激活",
     "runningStarting": "<1>{{command}}</1> 正在为此工作区启动。",
     "runningActive": "<1>{{command}}</1> 正在为此工作区运行。",
+    "progressLine": "当前任务：{{label}}",
     "definitionFailed": "跳转到定义失败",
     "noDefinition": "未找到定义",
     "referencesFailed": "查找引用失败",

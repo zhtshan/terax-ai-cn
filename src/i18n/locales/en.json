@@ -773,6 +773,7 @@
     "activeTitle": "Language server active",
     "runningStarting": "<1>{{command}}</1> is starting for this workspace.",
     "runningActive": "<1>{{command}}</1> is running for this workspace.",
+    "progressLine": "Current task: {{label}}",
     "definitionFailed": "Go to definition failed",
     "noDefinition": "No definition found",
     "referencesFailed": "Find references failed",
