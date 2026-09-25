@@ -8,6 +8,7 @@ let capabilities: Record<string, unknown> | undefined;
 let resolveInitialize: () => void;
 let initializePromise: Promise<void>;
 const textDocumentSymbol = vi.fn();
+const rawRequestMock = vi.fn();
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...a: unknown[]) => invoke(...a),
@@ -58,6 +59,7 @@ vi.mock("./client", () => ({
       return initializePromise;
     }
     textDocumentSymbol = textDocumentSymbol;
+    rawRequest = rawRequestMock;
     textDocumentDidClose = vi.fn();
     textDocumentDidSave = vi.fn();
     close = vi.fn();
@@ -68,7 +70,11 @@ vi.mock("./client", () => ({
   SynchronizationMethod: { Incremental: 1 },
 }));
 
-import { acquireDocExtension, requestDocumentSymbols } from "./sessionManager";
+import {
+  acquireDocExtension,
+  lspRawRequest,
+  requestDocumentSymbols,
+} from "./sessionManager";
 
 const FILE = "/repo/src/widget.ts";
 
@@ -125,5 +131,54 @@ describe("requestDocumentSymbols during server startup", () => {
     await expect(pending).resolves.toBeNull();
     expect(textDocumentSymbol).not.toHaveBeenCalled();
     handle?.release();
+  });
+});
+
+describe("lspRawRequest", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capabilities = { documentSymbolProvider: true };
+    initializePromise = Promise.resolve();
+    detectBinary.mockResolvedValue(true);
+    invoke.mockImplementation((cmd: string) =>
+      cmd === "lsp_resolve_root"
+        ? Promise.resolve("/repo")
+        : Promise.resolve(1),
+    );
+    transportStart.mockResolvedValue(undefined);
+  });
+
+  it("returns null when no session is open for the path", async () => {
+    expect(
+      await lspRawRequest(FILE, "ts", "textDocument/inlayHint", {}),
+    ).toBeNull();
+    expect(rawRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("routes method and params to the client rawRequest", async () => {
+    rawRequestMock.mockResolvedValue([{ range: {} }]);
+    const handle = await acquireDocExtension(FILE, "ts");
+    const result = await lspRawRequest(FILE, "ts", "textDocument/inlayHint", {
+      range: { start: { line: 0, character: 0 } },
+    });
+    expect(result).toEqual([{ range: {} }]);
+    expect(rawRequestMock).toHaveBeenCalledWith("textDocument/inlayHint", {
+      range: { start: { line: 0, character: 0 } },
+    });
+    handle?.release();
+  });
+
+  it("returns null when the session exits while the request is pending", async () => {
+    const handle = await acquireDocExtension(FILE, "ts");
+    let resolveRaw!: (v: unknown) => void;
+    rawRequestMock.mockReturnValue(
+      new Promise((r) => {
+        resolveRaw = r;
+      }),
+    );
+    const pending = lspRawRequest(FILE, "ts", "textDocument/inlayHint", {});
+    handle?.release();
+    resolveRaw(null);
+    expect(await pending).toBeNull();
   });
 });

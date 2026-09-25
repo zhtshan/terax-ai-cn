@@ -386,6 +386,35 @@ export async function requestDocumentSymbols(
   return managed.client.textDocumentSymbol({ textDocument: { uri } });
 }
 
+// 稳定扩展面：任意 LSP 方法经现有会话透传，新增能力（如 inlay hints）无需
+// 改本模块或 Rust。null 表示无可用会话或未启用；请求失败 reject 由调用方
+// 分类，不做 per-method capabilities 预检（通用通道无法枚举 provider 字段）。
+export async function lspRawRequest(
+  path: string,
+  langId: string,
+  method: string,
+  params: unknown,
+): Promise<unknown | null> {
+  const prefs = usePreferencesStore.getState();
+  const preset = serverForLanguage(
+    langId,
+    prefs.lspCustomServers,
+    prefs.lspActivation,
+  );
+  if (!preset || prefs.lspActivation[preset.id] !== "enabled") return null;
+
+  const uri = pathToFileUri(path);
+  const managed = [...sessions.values()].find(
+    (m) => m.preset.id === preset.id && !m.closing && m.refs.has(uri),
+  );
+  if (!managed) return null;
+
+  await managed.client.initializePromise;
+  if (managed.closing || !sessions.has(managed.key)) return null;
+
+  return managed.client.rawRequest(method, params);
+}
+
 export function notifyDocumentSaved(path: string): void {
   const uri = pathToFileUri(path);
   for (const managed of sessions.values()) {
