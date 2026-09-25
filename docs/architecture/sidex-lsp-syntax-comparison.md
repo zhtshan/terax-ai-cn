@@ -64,14 +64,14 @@ SideX 在 `crates/sidex-lsp/src/lib.rs:7-46` 声明的能力完整列表：
 | Definition / declaration / type-def / references + peek + back/forward | `go_to.rs` | 部分（Shift-F12 references） |
 | Rename（prepare/execute/preview） | `rename_engine.rs`，490 行 | 是 |
 | Code actions | `code_action_engine.rs` | 是 |
-| **Inlay hints** | `inlay_hints.rs` | 否 |
-| Progress（`$/progress`） | `progress.rs` | 否 |
+| **Inlay hints** | `inlay_hints.rs` | 是（视口拉取 + widget 渲染，`lib/inlayHints.ts`） |
+| Progress（`$/progress`） | `progress.rs` | 是（transport 分流 + pill 展示，`lib/progress.ts`） |
 | Format（document/range/on-type） | `format.rs` | 是 |
 | **Call hierarchy** | `call_hierarchy.rs` | 否 |
 | **Type hierarchy** | `type_hierarchy.rs` | 否 |
 | **Document links** | `document_link.rs` | 否 |
 | **Folding from server** | `folding.rs` | 否 |
-| **Selection ranges**（智能选区扩展） | `selection_range.rs`，203 行 | 否 |
+| **Selection ranges**（智能选区扩展） | `selection_range.rs`，203 行 | 是（Shift-Alt 方向键，`lib/selectionRanges.ts`） |
 | **Document colors + color picker** | `document_color.rs` | 否 |
 | **Workspace edit + undo** | `workspace_edit.rs`，641 行 | 否 |
 | Diagnostics | `diagnostics.rs` | 是（publishDiagnostics 自实现，因 tsls 不会自动发） |
@@ -116,11 +116,11 @@ Terax 用前端 WASM 已稳定可用，不建议引入，除非将来要支持�
 | 能力 | 是否借鉴 | 路径 |
 |---|---|---|
 | **通用 raw_request 通道** | 已落地（形态调整） | Terax 的 `lsp_send(id, message)` 本就是通用 JSON-RPC 帧通道，无需照搬 SideX 的 Rust 侧 pending 匹配（会与 `codemirror-languageserver` 前端请求管线形成双管线）。落地为前端稳定扩展面：`TeraxLspClient.rawRequest(method, params)` + `sessionManager.lspRawRequest(path, langId, method, params)`，后续新增 LSP 能力零改动 Rust 与 client 类定义 |
-| **Inlay hints（参数 / 类型提示）** | 加 | 纯前端能力，对 AI 编码场景特别有用 |
-| **Selection ranges（智能选区扩展）** | 加 | CodeMirror 6 自带单词级 / 行级选区，但 LSP 服务端的"按语义节点扩展"是不同能力 |
+| **Inlay hints（参数 / 类型提示）** | 已落地 | 纯前端能力，经 `rawRequest` 视口拉取，CodeMirror widget 渲染 |
+| **Selection ranges（智能选区扩展）** | 已落地 | Shift-Alt-ArrowRight/Left 按 LSP 语义节点扩展收缩选区 |
 | **Document color / Color picker** | 加 | CSS / 前端编辑场景 |
 | **Workspace edit undo** | 加 | 与 AI 工具的"应用 edit"流程强相关 |
-| **$/progress 状态栏进度** | 加 | 通用 progress listener 不复杂 |
+| **$/progress 状态栏进度** | 已落地 | transport 原始流预检分流 `$/progress`，写入 runtimeStore，状态 pill 展示 |
 | 把 LSP 客户端逻辑迁到 Rust | 不建议 | 与 Terax"薄 Rust / 厚前端 + 复用 CM 生态"策略相反；现有架构在前端已自洽 |
 | SideX 的 Rust TextMate | 不建议 | 还在早期；小文件场景性能优势不显著 |
 | Call / Type hierarchy / Peek references | 可选 | 与 AI 编程场景弱相关 |
@@ -129,7 +129,7 @@ Terax 用前端 WASM 已稳定可用，不建议引入，除非将来要支持�
 ## 建议优先级
 
 1. **短期**（架构性改进，已落地）：建立 LSP 能力的稳定扩展面。核实后 `lsp_send` 已是通用帧通道，实际落地在前端：`TeraxLspClient.rawRequest(method, params)` + `lspRawRequest(path, langId, method, params)`，不照搬 SideX 的 Rust 侧请求-响应匹配。
-2. **中期**（功能补全）：加 inlay hints、selection ranges、$/progress 三类与 AI 场景强相关的能力。
+2. **中期**（功能补全，已落地）：inlay hints、selection ranges、$/progress 三类与 AI 场景强相关的能力已实现，全部走前端 `rawRequest` / transport 分流扩展面，零 Rust 改动。
 3. **不动**：LSP 客户端逻辑迁到 Rust、改用 Monaco、引入 SideX 的 Rust TextMate。
 
 ## 关联文件
