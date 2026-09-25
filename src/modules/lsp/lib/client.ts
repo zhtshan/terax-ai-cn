@@ -1,11 +1,7 @@
-import { highlightingFor, indentUnit, language } from "@codemirror/language";
 import i18n from "@/i18n";
 import { displayError } from "@/lib/teraxErrors";
-import {
-  type Extension,
-  StateEffect,
-  StateField,
-} from "@codemirror/state";
+import { highlightingFor, indentUnit, language } from "@codemirror/language";
+import { type Extension, StateEffect, StateField } from "@codemirror/state";
 import {
   Decoration,
   type DecorationSet,
@@ -25,8 +21,9 @@ import {
   locationsPanel,
   openLocationsPanel,
 } from "./locationsPanel";
+import { type LspPos, type LspRange, offsetOf } from "./positions";
+import { lspSelectionRanges } from "./selectionRanges";
 import { fileUriToPath } from "./uri";
-import { offsetOf, type LspPos, type LspRange } from "./positions";
 
 export {
   languageServerWithTransport,
@@ -332,7 +329,9 @@ export function lspInteractions(opts: {
         position: positionAt(view, pos),
       });
     } catch (e) {
-      toast.error(i18n.t("lsp.definitionFailed"), { description: displayError(e) });
+      toast.error(i18n.t("lsp.definitionFailed"), {
+        description: displayError(e),
+      });
       return;
     }
     const locs = normalizeLocations(result);
@@ -355,7 +354,9 @@ export function lspInteractions(opts: {
         context: { includeDeclaration: true },
       });
     } catch (e) {
-      toast.error(i18n.t("lsp.referencesFailed"), { description: displayError(e) });
+      toast.error(i18n.t("lsp.referencesFailed"), {
+        description: displayError(e),
+      });
       return;
     }
     const locs = result ?? [];
@@ -370,6 +371,7 @@ export function lspInteractions(opts: {
     locationsPanel,
     hoverCodeHighlight,
     linkHover,
+    lspSelectionRanges({ client: opts.client, documentUri: opts.documentUri }),
     keymap.of([
       {
         key: "F12",
@@ -451,6 +453,7 @@ export class TeraxLspClient extends LanguageServerClient {
         },
       },
       inlayHint: { dynamicRegistration: false },
+      selectionRange: { dynamicRegistration: false },
     };
     return params;
   }
@@ -460,19 +463,17 @@ export class TeraxLspClient extends LanguageServerClient {
     position: LspPos;
     context: { includeDeclaration: boolean };
   }): Promise<LspLocation[] | null> {
-    return this.rawRequest(
-      "textDocument/references",
-      params,
-    ) as Promise<LspLocation[] | null>;
+    return this.rawRequest("textDocument/references", params) as Promise<
+      LspLocation[] | null
+    >;
   }
 
   textDocumentSymbol(params: {
     textDocument: { uri: string };
   }): Promise<RawDocumentSymbol[] | null> {
-    return this.rawRequest(
-      "textDocument/documentSymbol",
-      params,
-    ) as Promise<RawDocumentSymbol[] | null>;
+    return this.rawRequest("textDocument/documentSymbol", params) as Promise<
+      RawDocumentSymbol[] | null
+    >;
   }
 
   // 稳定扩展面：新增 LSP 能力直接调用本方法，无需再加 typed wrapper。
