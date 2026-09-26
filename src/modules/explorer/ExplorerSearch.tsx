@@ -308,6 +308,22 @@ export const ExplorerSearch = forwardRef<ExplorerSearchHandle, Props>(function E
                           Open Git History
                         </ContextMenuItem>
                       )}
+                      {hit.is_dir && onOpenInSourceControl && (
+                        <ContextMenuItem
+                          className={COMPACT_ITEM}
+                          onSelect={() => onOpenInSourceControl(hit.path)}
+                        >
+                          Open in Source Control
+                        </ContextMenuItem>
+                      )}
+                      {hit.is_dir && onOpenGitHistory && (
+                        <ContextMenuItem
+                          className={COMPACT_ITEM}
+                          onSelect={() => onOpenGitHistory(hit.path)}
+                        >
+                          Open Git History
+                        </ContextMenuItem>
+                      )}
                       <ContextMenuItem
                         className={COMPACT_ITEM}
                         onSelect={() => void revealInFinder(hit.path)}

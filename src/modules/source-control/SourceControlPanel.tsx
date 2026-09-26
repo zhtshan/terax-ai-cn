@@ -78,6 +78,10 @@ import {
   type ReactNode,
 } from "react";
 import { useTranslation } from "react-i18next";
+import {
+  repositoryTargetIsPending,
+  type SourceControlRepositoryTarget,
+} from "./repositoryTarget";
 import type { SourceControlSummary } from "./useSourceControl";
 import {
   useSourceControlPanel,
@@ -98,6 +102,8 @@ type Props = {
   }) => void;
   onOpenFile?: (absolutePath: string) => void;
   onNavigateToPath?: (path: string) => void;
+  repositoryTarget: SourceControlRepositoryTarget;
+  onFollowRepositoryContext: () => void;
 };
 
 const SOURCE_CONTROL_TOOLTIP_CLASS =
@@ -162,11 +168,17 @@ function checkboxValue(state: CheckState): boolean | "indeterminate" {
 function BranchDropdown({
   repoRoot,
   repoLabel,
+  displayRepoRoot,
+  repositoryTarget,
+  onFollowRepositoryContext,
   onNavigateToPath,
   onRefresh,
 }: {
   repoRoot: string | null;
   repoLabel: string;
+  displayRepoRoot: string | null;
+  repositoryTarget: SourceControlRepositoryTarget;
+  onFollowRepositoryContext: () => void;
   onNavigateToPath?: (path: string) => void;
   onRefresh: () => void;
 }) {
@@ -248,6 +260,7 @@ function BranchDropdown({
         <button
           type="button"
           disabled={checkingOut}
+          title={displayRepoRoot ?? repoLabel}
           className="inline-flex min-w-0 cursor-pointer items-center gap-1.5 rounded-md bg-foreground/5 px-2 py-1 text-[11.5px] font-medium leading-none text-foreground transition-colors hover:bg-foreground/10 disabled:cursor-default disabled:opacity-70"
         >
           <HugeiconsIcon
@@ -256,10 +269,43 @@ function BranchDropdown({
             strokeWidth={1.9}
             className="shrink-0 text-muted-foreground"
           />
-          <span className="max-w-35 truncate">{repoLabel}</span>
+          {displayRepoRoot ? (
+            <>
+              <span className="max-w-22 truncate">
+                {basename(displayRepoRoot)}
+              </span>
+              <span className="text-muted-foreground/60">/</span>
+            </>
+          ) : null}
+          <span className="max-w-24 truncate">{repoLabel}</span>
         </button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="start" className="w-56">
+        {displayRepoRoot ? (
+          <>
+            <DropdownMenuLabel className="text-[10.5px] font-semibold uppercase tracking-[0.12em] text-muted-foreground/85">
+              {t("sourceControl.repositoryLabel")}
+            </DropdownMenuLabel>
+            <div
+              className="truncate px-2 pb-1.5 text-[11px] text-muted-foreground"
+              title={displayRepoRoot}
+            >
+              {displayRepoRoot}
+            </div>
+            {repositoryTarget.mode === "fixed" ? (
+              <DropdownMenuItem
+                onSelect={() => {
+                  onFollowRepositoryContext();
+                  setOpen(false);
+                }}
+                className="cursor-pointer text-[12px]"
+              >
+                {t("sourceControl.followActiveContext")}
+              </DropdownMenuItem>
+            ) : null}
+            <DropdownMenuSeparator />
+          </>
+        ) : null}
         {loading ? (
           <div className="flex items-center gap-2 px-3 py-3 text-[11px] text-muted-foreground">
             <Spinner className="size-3" />
@@ -354,6 +400,8 @@ export const SourceControlPanel = memo(function SourceControlPanel({
   onOpenDiff,
   onOpenFile,
   onNavigateToPath,
+  repositoryTarget,
+  onFollowRepositoryContext,
 }: Props) {
   const { t } = useTranslation();
   const scm = useSourceControlPanel(open, sourceControl, onOpenDiff);
@@ -371,17 +419,26 @@ export const SourceControlPanel = memo(function SourceControlPanel({
     };
   }, []);
 
-  const isRefreshing = scm.panelState === "loading";
+  const fixedTargetPending = repositoryTargetIsPending({
+    target: repositoryTarget,
+    loadedContextPath: sourceControl.contextPath,
+    loadedRepoRoot: sourceControl.repo?.repoRoot ?? null,
+    isLoading: sourceControl.isLoading,
+  });
+  const panelState = fixedTargetPending ? "loading" : scm.panelState;
+  const isRefreshing = panelState === "loading";
   const repoLabel = useMemo(() => {
+    if (fixedTargetPending) return t("sourceControl.loadingRepo");
     if (!scm.status) return t("sourceControl.title");
     return scm.status.isDetached ? t("sourceControl.detached") : scm.status.branch;
-  }, [scm.status, t]);
+  }, [fixedTargetPending, scm.status, t]);
 
   const commitShortcut = IS_MAC ? "⌘↩" : "Ctrl+Enter";
   const generateShortcut = IS_MAC ? "⌘G" : "Ctrl+G";
   const canCommit =
     scm.stagedEntries.length > 0 &&
     scm.commitMessage.trim().length > 0 &&
+    !fixedTargetPending &&
     !scm.actionBusy;
   const commitDisabledReason = scm.actionBusy
     ? t("sourceControl.waitForGit")
@@ -392,11 +449,14 @@ export const SourceControlPanel = memo(function SourceControlPanel({
         : null;
   const commitHint = canCommit
     ? t("sourceControl.commitHint", { shortcut: commitShortcut })
-    : (commitDisabledReason ?? t("sourceControl.commitHint", { shortcut: commitShortcut }));
+    : (commitDisabledReason ??
+      t("sourceControl.commitHint", { shortcut: commitShortcut }));
   const pushHint = scm.pushHint ?? t("sourceControl.pushUnavailable");
-  const pushDisabledReason = scm.actionBusy
-    ? t("sourceControl.waitForGit")
-    : pushHint;
+  const pushDisabledReason = fixedTargetPending
+    ? t("sourceControl.repositoryTargetFixedLoading")
+    : scm.actionBusy
+      ? t("sourceControl.waitForGit")
+      : pushHint;
   const stagedCount = scm.stagedEntries.length;
   const changedCount = scm.fileEntries.length;
   const pushStatusLabel = upstreamBadgeLabel(scm.status?.upstream, t);
@@ -409,9 +469,14 @@ export const SourceControlPanel = memo(function SourceControlPanel({
     !!scm.status &&
     scm.status.behind > 0 &&
     !isDiverged &&
+    !fixedTargetPending &&
     !scm.actionBusy &&
     !sourceControl.busyAction;
-  const canFetch = hasUpstream && !scm.actionBusy && !sourceControl.busyAction;
+  const canFetch =
+    hasUpstream &&
+    !fixedTargetPending &&
+    !scm.actionBusy &&
+    !sourceControl.busyAction;
 
   const footerFeedback = useMemo(() => {
     if (scm.actionError)
@@ -626,8 +691,17 @@ export const SourceControlPanel = memo(function SourceControlPanel({
         <header className="flex shrink-0 items-center justify-between gap-2 border-b border-border/50 px-3 pb-2.5 pt-3">
           <div className="flex min-w-0 items-center gap-1.5">
             <BranchDropdown
-              repoRoot={scm.repo?.repoRoot ?? null}
+              repoRoot={
+                fixedTargetPending ? null : (scm.repo?.repoRoot ?? null)
+              }
               repoLabel={repoLabel}
+              displayRepoRoot={
+                repositoryTarget.mode === "fixed"
+                  ? repositoryTarget.repoRoot
+                  : (scm.repo?.repoRoot ?? null)
+              }
+              repositoryTarget={repositoryTarget}
+              onFollowRepositoryContext={onFollowRepositoryContext}
               onNavigateToPath={onNavigateToPath}
               onRefresh={handleRefresh}
             />
@@ -746,18 +820,18 @@ export const SourceControlPanel = memo(function SourceControlPanel({
           </button>
         ) : null}
 
-        {scm.panelState === "loading" ? (
+        {panelState === "loading" ? (
           <PanelCenter title={t("sourceControl.loadingRepo")} />
         ) : null}
 
-        {scm.panelState === "no-repo" ? (
+        {panelState === "no-repo" ? (
           <PanelCenter
             title={t("sourceControl.noRepo")}
             body={t("sourceControl.noRepoDesc")}
           />
         ) : null}
 
-        {scm.panelState === "error" ? (
+        {panelState === "error" ? (
           <PanelCenter
             title={t("sourceControl.errorTitle")}
             body={scm.statusError ?? t("sourceControl.unknownError")}
@@ -769,7 +843,7 @@ export const SourceControlPanel = memo(function SourceControlPanel({
           />
         ) : null}
 
-        {scm.panelState === "ready" && scm.status ? (
+        {panelState === "ready" && scm.status ? (
           <>
             <div className="relative shrink-0 space-y-2 border-b border-border/40 bg-gradient-to-b from-card/65 to-card/30 px-2.5 pb-2.5 pt-2.5">
               <div
@@ -887,7 +961,9 @@ export const SourceControlPanel = memo(function SourceControlPanel({
                       size="xs"
                       variant="secondary"
                       className="h-7 cursor-pointer text-[11.5px] font-medium disabled:cursor-not-allowed"
-                      disabled={!scm.canPush || !!scm.actionBusy}
+                      disabled={
+                        !scm.canPush || fixedTargetPending || !!scm.actionBusy
+                      }
                       onClick={() => void scm.push()}
                     >
                       {scm.actionBusy === "push" ? t("sourceControl.pushing") : t("sourceControl.push")}

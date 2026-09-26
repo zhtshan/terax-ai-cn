@@ -38,6 +38,7 @@ describe("serializeTabs", () => {
         repoRoot: "/a",
         mode: "+",
         originalPath: null,
+        preview: false,
       },
       {
         id: 7,
