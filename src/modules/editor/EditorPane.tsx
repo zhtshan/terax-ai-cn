@@ -98,6 +98,8 @@ export type EditorPaneHandle = {
   /** Apply CodeMirror's undo/redo commands. */
   undo: () => void;
   redo: () => void;
+  /** Persist the buffer (format-on-save + write), same as Mod+S / :w. */
+  save: () => Promise<void>;
   /** Request an AI ghost suggestion at the cursor. */
   triggerAiComplete: () => void;
   /** Open CodeMirror's completion popup. */
@@ -727,6 +729,7 @@ export const EditorPane = memo(
           const view = cmRef.current?.view;
           if (view) redo(view);
         },
+        save: () => performSaveRef.current(),
         triggerAiComplete: () => {
           const view = cmRef.current?.view;
           if (view) triggerInlineCompletion(view);

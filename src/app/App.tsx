@@ -1093,6 +1093,9 @@ export default function App() {
       "view.zenMode": () => setZenMode((v) => !v),
       "editor.undo": () => editorRefs.current.get(activeId)?.undo(),
       "editor.redo": () => editorRefs.current.get(activeId)?.redo(),
+      "editor.save": () => {
+        void editorRefs.current.get(activeId)?.save();
+      },
       "editor.aiComplete": () =>
         editorRefs.current.get(activeId)?.triggerAiComplete(),
       "editor.codeComplete": () =>
@@ -1154,6 +1157,7 @@ export default function App() {
       if (
         id === "editor.undo" ||
         id === "editor.redo" ||
+        id === "editor.save" ||
         id === "editor.aiComplete" ||
         id === "editor.codeComplete"
       ) {

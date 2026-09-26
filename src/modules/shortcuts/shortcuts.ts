@@ -50,6 +50,7 @@ export type ShortcutId =
   | "sidebar.openSourceControl"
   | "editor.undo"
   | "editor.redo"
+  | "editor.save"
   | "editor.aiComplete"
   | "editor.codeComplete"
   | "editor.goBack"
@@ -379,6 +380,14 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Redo",
     group: "Editor",
     defaultBindings: [{ [MOD_PROP]: true, key: "y" }],
+  },
+  // Mod+S at the app layer so WKWebView cannot steal "Save Page" (#969).
+  // CodeMirror also binds Mod-s; the global handler preventDefaults first.
+  {
+    id: "editor.save",
+    label: "Save file",
+    group: "Editor",
+    defaultBindings: [{ [MOD_PROP]: true, key: "s" }],
   },
   {
     id: "editor.aiComplete",
