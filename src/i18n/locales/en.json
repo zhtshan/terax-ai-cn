@@ -904,7 +904,11 @@
     "copyPath": "Copy Path",
     "copyRelativePath": "Copy Relative Path",
     "splitRight": "Split right",
-    "splitDown": "Split down"
+    "splitDown": "Split down",
+    "closeRight": "Close Tabs to the Right",
+    "closeOthers": "Close Other Tabs",
+    "closeAnyway": "Close Anyway",
+    "checking": "Checking..."
   },
   "explorer": {
     "noCurrentDir": "No current directory",

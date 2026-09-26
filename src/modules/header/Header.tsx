@@ -35,6 +35,10 @@ type Props = {
   onNewEditor: () => void;
   onNewGitGraph: () => void;
   onClose: (id: number) => void;
+  /** Chrome-style: close every tab to the right of the given tab. */
+  onCloseTabsToRight: (id: number) => void;
+  /** Chrome-style: close every tab except the given tab. */
+  onCloseOtherTabs: (id: number) => void;
   /** Promote a preview (transient) tab to persistent. */
   onPin: (id: number) => void;
   /** Toggle pinned (locked in place, skipped during reorder). */
@@ -73,6 +77,8 @@ export function Header({
   onNewEditor,
   onNewGitGraph,
   onClose,
+  onCloseTabsToRight,
+  onCloseOtherTabs,
   onPin,
   onTogglePin,
   onRename,
@@ -175,6 +181,8 @@ export function Header({
           onNewEditor={onNewEditor}
           onNewGitGraph={onNewGitGraph}
           onClose={onClose}
+          onCloseTabsToRight={onCloseTabsToRight}
+          onCloseOtherTabs={onCloseOtherTabs}
           onPin={onPin}
           onTogglePin={onTogglePin}
           onRename={onRename}

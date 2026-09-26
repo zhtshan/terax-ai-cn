@@ -79,6 +79,8 @@ import {
 } from "@/modules/spaces";
 import { StatusBar } from "@/modules/statusbar";
 import {
+  planCloseOtherTabs,
+  planCloseTabsToRight,
   TabSwitcherHud,
   useTabSwitcher,
   useTabs,
@@ -168,6 +170,7 @@ export default function App() {
     openCommitHistoryTab,
     openCommitFileDiffTab,
     closeTab,
+    closeTabs,
     updateTab,
     selectByIndex,
     setLeafCwd,
@@ -512,6 +515,20 @@ export default function App() {
 
   const { pendingAppClose, confirmAppClose, cancelAppClose, quitNow } =
     useAppCloseGuard(tabsRef);
+
+  const handleCloseTabsToRight = useCallback(
+    (id: number) => {
+      closeTabs(id, planCloseTabsToRight(spaceTabs, id, activeId));
+    },
+    [closeTabs, planCloseTabsToRight, spaceTabs, activeId],
+  );
+
+  const handleCloseOtherTabs = useCallback(
+    (id: number) => {
+      closeTabs(id, planCloseOtherTabs(spaceTabs, id, activeId));
+    },
+    [closeTabs, planCloseOtherTabs, spaceTabs, activeId],
+  );
 
   useEffect(() => {
     const live = new Set<number>();
@@ -1447,6 +1464,8 @@ export default function App() {
               onNewEditor={() => setNewEditorOpen(true)}
               onNewGitGraph={openGitGraphFromContext}
               onClose={handleClose}
+              onCloseTabsToRight={handleCloseTabsToRight}
+              onCloseOtherTabs={handleCloseOtherTabs}
               onPin={pinTab}
               onTogglePin={togglePinTab}
               onRename={handleRenameTab}

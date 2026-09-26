@@ -36,7 +36,9 @@ import {
 } from "@/modules/terminal";
 import {
   Alert02Icon,
+  ArrowRight01Icon,
   Cancel01Icon,
+  CancelCircleIcon,
   CheckmarkCircle01Icon,
   Clock01Icon,
   ComputerTerminal02Icon,
@@ -79,6 +81,10 @@ type Props = {
   onNewEditor: () => void;
   onNewGitGraph: () => void;
   onClose: (id: number) => void;
+  /** Chrome-style: close every tab to the right of the given tab. */
+  onCloseTabsToRight: (id: number) => void;
+  /** Chrome-style: close every tab except the given tab. */
+  onCloseOtherTabs: (id: number) => void;
   /** Pin (promote) a preview tab to persistent on double-click. */
   onPin: (id: number) => void;
   /** Toggle pinned (locked in place, skipped during reorder). */
@@ -110,6 +116,8 @@ export function TabBar({
   onNewEditor,
   onNewGitGraph,
   onClose,
+  onCloseTabsToRight,
+  onCloseOtherTabs,
   onPin,
   onTogglePin,
   onRename,
@@ -741,6 +749,36 @@ export function TabBar({
                             />
                             <span className="flex-1">{tr('common.close')}</span>
                           </ContextMenuItem>
+                          {i < tabs.length - 1 && (
+                            <ContextMenuItem
+                              className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                              onSelect={() => onCloseTabsToRight(t.id)}
+                            >
+                              <HugeiconsIcon
+                                icon={ArrowRight01Icon}
+                                size={13}
+                                strokeWidth={1.75}
+                              />
+                              <span className="flex-1">
+                                {tr("tabs.closeRight")}
+                              </span>
+                            </ContextMenuItem>
+                          )}
+                          {tabs.length > 1 && (
+                            <ContextMenuItem
+                              className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                              onSelect={() => onCloseOtherTabs(t.id)}
+                            >
+                              <HugeiconsIcon
+                                icon={CancelCircleIcon}
+                                size={13}
+                                strokeWidth={1.75}
+                              />
+                              <span className="flex-1">
+                                {tr("tabs.closeOthers")}
+                              </span>
+                            </ContextMenuItem>
+                          )}
                         </>
                       )}
                     </ContextMenuContent>

@@ -132,6 +132,81 @@ export type Tab =
   | GitHistoryTab
   | GitCommitFileDiffTab;
 
+export type CloseTabsPlan = {
+  closeIds: number[];
+  nextActiveId: number;
+};
+
+type CloseTabsPlanResult = {
+  tabs: Tab[];
+  closeIds: number[];
+  disposeLeafIds: number[];
+  nextActiveId: number;
+};
+
+export function planCloseTabsToRight(
+  tabs: Tab[],
+  anchorId: number,
+  activeId: number,
+): CloseTabsPlan {
+  const anchor = tabs.find((t) => t.id === anchorId);
+  if (!anchor) return { closeIds: [], nextActiveId: activeId };
+  const sameSpace = tabs.filter((t) => t.spaceId === anchor.spaceId);
+  const idx = sameSpace.findIndex((t) => t.id === anchorId);
+  const closeIds = sameSpace.slice(idx + 1).map((t) => t.id);
+  if (closeIds.length === 0) return { closeIds, nextActiveId: activeId };
+  return {
+    closeIds,
+    nextActiveId: closeIds.includes(activeId) ? anchorId : activeId,
+  };
+}
+
+export function planCloseOtherTabs(
+  tabs: Tab[],
+  anchorId: number,
+  activeId: number,
+): CloseTabsPlan {
+  const anchor = tabs.find((t) => t.id === anchorId);
+  if (!anchor) return { closeIds: [], nextActiveId: activeId };
+  const sameSpace = tabs.filter((t) => t.spaceId === anchor.spaceId);
+  const closeIds = sameSpace.filter((t) => t.id !== anchorId).map((t) => t.id);
+  if (closeIds.length === 0) return { closeIds, nextActiveId: activeId };
+  return {
+    closeIds,
+    nextActiveId: closeIds.includes(activeId) ? anchorId : activeId,
+  };
+}
+
+export function applyCloseTabsPlan(
+  tabs: Tab[],
+  anchorId: number,
+  plan: CloseTabsPlan,
+): CloseTabsPlanResult | null {
+  const anchor = tabs.find((tab) => tab.id === anchorId);
+  if (!anchor) return null;
+
+  const requested = new Set(plan.closeIds);
+  const closing = tabs.filter(
+    (tab) =>
+      tab.id !== anchorId &&
+      tab.spaceId === anchor.spaceId &&
+      requested.has(tab.id),
+  );
+  if (closing.length === 0) return null;
+
+  const closeIds = closing.map((tab) => tab.id);
+  const close = new Set(closeIds);
+  const next = tabs.filter((tab) => !close.has(tab.id));
+  const nextActiveId = next.some((tab) => tab.id === plan.nextActiveId)
+    ? plan.nextActiveId
+    : anchorId;
+  const disposeLeafIds = closing
+    .filter((tab) => tab.kind === "terminal")
+    .flatMap((tab) => leafIds(tab.paneTree));
+
+  return { tabs: next, closeIds, disposeLeafIds, nextActiveId };
+}
+
 export type TabPatch = Partial<{
   title: string;
   cwd: string;
@@ -1023,6 +1098,20 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     );
   }, []);
 
+  const closeTabs = useCallback(
+    (anchorId: number, plan: CloseTabsPlan): number[] => {
+      const result = applyCloseTabsPlan(tabsRef.current, anchorId, plan);
+      if (!result) return [];
+      tabsRef.current = result.tabs;
+      activeIdRef.current = result.nextActiveId;
+      setTabs(result.tabs);
+      setActiveId(result.nextActiveId);
+      for (const leafId of result.disposeLeafIds) disposeSession(leafId);
+      return result.closeIds;
+    },
+    [],
+  );
+
   const selectByIndex = useCallback(
     (idx: number, spaceId?: string) => {
       const t = spaceId
@@ -1225,6 +1314,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     setAiDiffStatus,
     closeAiDiffTab,
     closeTab,
+    closeTabs,
     updateTab,
     selectByIndex,
     setLeafCwd,

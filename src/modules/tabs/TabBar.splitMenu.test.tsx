@@ -42,6 +42,8 @@ const baseProps = {
   onNewEditor: vi.fn(),
   onNewGitGraph: vi.fn(),
   onClose: vi.fn(),
+  onCloseTabsToRight: vi.fn(),
+  onCloseOtherTabs: vi.fn(),
   onPin: vi.fn(),
   onTogglePin: vi.fn(),
   onRename: vi.fn(),
