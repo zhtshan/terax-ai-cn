@@ -1554,7 +1554,7 @@ export default function App() {
                   persistSidebarCollapsed(size.inPixels <= 0);
                 }}
               >
-                <div className="h-full min-h-0 py-2 pl-2 pr-1">
+                <div className="h-full min-h-0 pl-2 pr-0.5">
                   <div className="terax-pane flex h-full min-h-0 flex-col">
                     <div
                       key={sidebarView}
@@ -1626,7 +1626,7 @@ export default function App() {
                 className="w-1 rounded-full bg-transparent transition-colors duration-[var(--dur-fast)] after:w-4 hover:bg-border"
               />
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
-                <div ref={workspaceContainerRef} className="h-full min-h-0 py-2 pl-1 pr-2">
+                <div ref={workspaceContainerRef} className="h-full min-h-0 pl-0.5 pr-2">
                   <div className="terax-pane flex h-full min-h-0 flex-col">
                     <div className="relative min-h-0 flex-1">
                       <WorkspaceSurface
