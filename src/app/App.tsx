@@ -106,7 +106,11 @@ import {
   writeToSession,
   getIsLeafBusy,
 } from "@/modules/terminal";
-import { ThemeProvider, useThemeFileEditing } from "@/modules/theme";
+import {
+  ThemeProvider,
+  useThemeFileEditing,
+  WindowVibrancyBridge,
+} from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
 import {
   useWorkspaceEnvStore,
@@ -1703,6 +1707,8 @@ export default function App() {
               }
             />
           )}
+
+          <WindowVibrancyBridge />
 
           <AgentNotificationsBridge
             tabs={tabs}

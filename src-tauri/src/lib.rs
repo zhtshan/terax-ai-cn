@@ -1,6 +1,6 @@
 pub mod modules;
 
-use modules::{agent, agent_alias_state, fs, git, history, lsp, net, pty, secrets, shell, workspace};
+use modules::{agent, agent_alias_state, control, fs, git, history, lsp, net, pty, secrets, shell, vibrancy, workspace};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
@@ -214,6 +214,8 @@ pub fn run() {
     let launch = parse_launch_target();
     let cli_dir = launch.dir.clone();
     workspace::init_launch_cwd(cli_dir.as_deref());
+    let control_state = control::ControlState::default();
+    let control_for_setup = control_state.clone();
 
     let builder = tauri::Builder::default();
     #[cfg(target_os = "macos")]
@@ -245,7 +247,8 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .setup(|_app| {
+        .setup(move |_app| {
+            control::start(_app.handle().clone(), control_for_setup.clone())?;
             // macOS skips parent() for the settings window, so tie its lifecycle
             // to the main window here instead. Other platforms keep parent().
             // Destroyed only: CloseRequested may be vetoed by the quit dialog.
@@ -263,6 +266,7 @@ pub fn run() {
             Ok(())
         })
         .manage(pty::PtyState::default())
+        .manage(control_state)
         .manage(shell::ShellState::default())
         .manage(net::AiStreamCancelState::default())
         .manage(secrets::SecretsState::default())
@@ -283,6 +287,8 @@ pub fn run() {
         .manage(LaunchFiles(Mutex::new(launch.files)))
         .invoke_handler(tauri::generate_handler![
             agent_alias_state::update_agent_aliases,
+            control::control_frontend_ready,
+            control::control_respond,
             pty::pty_open,
             pty::pty_write,
             pty::pty_resize,
@@ -371,6 +377,8 @@ pub fn run() {
             history::history_commands,
             history::history_record,
             history::history_list,
+            vibrancy::window_backdrop_kind,
+            vibrancy::window_set_backdrop,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
