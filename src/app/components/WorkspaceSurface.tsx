@@ -47,10 +47,15 @@ type Props = {
   onJumpToHeading?: (line: number) => void;
 };
 
+const LAYER = "absolute inset-0";
+
 /**
  * Stacks every tab-kind surface absolutely on top of each other and toggles
  * visibility off the active tab, so panes keep their mounted state (terminal
  * buffers, editor scroll, ...) when switching tabs.
+ *
+ * Layers sit flush inside the workspace pane; only the terminal layer is inset,
+ * because xterm draws glyphs right up to its container edge.
  */
 export function WorkspaceSurface({
   tabs,
@@ -92,7 +97,8 @@ export function WorkspaceSurface({
     <div className="relative h-full min-h-0">
       <div
         className={cn(
-          "absolute inset-0 px-3 pt-2 pb-2",
+          LAYER,
+          "px-3 pt-2 pb-2",
           !isTerminalTab && "invisible pointer-events-none",
         )}
         aria-hidden={!isTerminalTab}
@@ -109,10 +115,7 @@ export function WorkspaceSurface({
         />
       </div>
       <div
-        className={cn(
-          "absolute inset-0 px-3 pt-2 pb-2",
-          !isEditorTab && "invisible pointer-events-none",
-        )}
+        className={cn(LAYER, !isEditorTab && "invisible pointer-events-none")}
         aria-hidden={!isEditorTab}
       >
         <EditorStack
@@ -131,10 +134,7 @@ export function WorkspaceSurface({
         />
       </div>
       <div
-        className={cn(
-          "absolute inset-0 px-3 pt-2 pb-2",
-          !isPreviewTab && "invisible pointer-events-none",
-        )}
+        className={cn(LAYER, !isPreviewTab && "invisible pointer-events-none")}
         aria-hidden={!isPreviewTab}
       >
         <PreviewStack
@@ -145,10 +145,7 @@ export function WorkspaceSurface({
         />
       </div>
       <div
-        className={cn(
-          "absolute inset-0 px-3 pt-2 pb-2",
-          !isMarkdownTab && "invisible pointer-events-none",
-        )}
+        className={cn(LAYER, !isMarkdownTab && "invisible pointer-events-none")}
         aria-hidden={!isMarkdownTab}
       >
         <MarkdownStack
@@ -158,10 +155,7 @@ export function WorkspaceSurface({
         />
       </div>
       <div
-        className={cn(
-          "absolute inset-0 px-3 pt-2 pb-2",
-          !isAiDiffTab && "invisible pointer-events-none",
-        )}
+        className={cn(LAYER, !isAiDiffTab && "invisible pointer-events-none")}
         aria-hidden={!isAiDiffTab}
       >
         <AiDiffStack
@@ -172,17 +166,14 @@ export function WorkspaceSurface({
         />
       </div>
       <div
-        className={cn(
-          "absolute inset-0 px-3 pt-2 pb-2",
-          !isGitDiffTab && "invisible pointer-events-none",
-        )}
+        className={cn(LAYER, !isGitDiffTab && "invisible pointer-events-none")}
         aria-hidden={!isGitDiffTab}
       >
         <GitDiffStack tabs={tabs} activeId={activeId} />
       </div>
       <div
         className={cn(
-          "absolute inset-0",
+          LAYER,
           !isGitHistoryTab && "invisible pointer-events-none",
         )}
         aria-hidden={!isGitHistoryTab}

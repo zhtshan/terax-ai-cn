@@ -1494,7 +1494,7 @@ export default function App() {
   const shell = (
     <ThemeProvider>
       <TooltipProvider>
-        <div className="relative flex h-screen flex-col overflow-hidden bg-background text-foreground">
+        <div className="relative flex h-screen flex-col overflow-hidden bg-frame text-foreground">
           {!zenMode && (
             <Header
               tabs={spaceTabs}
@@ -1554,128 +1554,134 @@ export default function App() {
                   persistSidebarCollapsed(size.inPixels <= 0);
                 }}
               >
-                <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-card">
-                  <div
-                    key={sidebarView}
-                    className="min-h-0 flex-1 terax-panel-in"
-                  >
-                    {sidebarView === "explorer" ? (
-                      <FileExplorer
-                        ref={explorerRef}
-                        rootPath={explorerRoot}
-                        gitStatus={
-                          explorerGitDecorations ? sourceControl.status : null
-                        }
-                        activeFilePath={explorerActiveFilePath}
-                        outlineItems={outlineItems}
-                        outlineUnavailableReason={outlineUnavailableReason}
-                        outlineLoading={outlineLoading}
-                        activeHeadingLine={activeHeadingLine}
-                        onJumpToHeading={handleJumpToHeading}
-                        onOpenFile={handleOpenFile}
-                        onPathRenamed={handlePathRenamed}
-                        onPathDeleted={handlePathDeleted}
-                        onRevealInTerminal={cdInNewTab}
-                        onOpenInSourceControl={
-                          handleOpenRepositoryInSourceControl
-                        }
-                        onOpenGitHistory={handleOpenGitHistoryForPath}
-                        onAttachToAgent={handleAttachFileToAgent}
-                        onNavigate={sendCd}
-                        pathDropTarget={terminalPathDropTarget}
-                        onOpenCommitFile={openCommitFileDiffTab}
-                      />
-                    ) : sidebarView === "search" ? (
-                      <SearchPanel
-                        ref={searchPanelRef}
-                        rootPath={explorerRoot}
-                        options={searchOptions}
-                        onOptionsChange={setSearchOptions}
-                        results={searchRun.results}
-                        loading={searchRun.loading}
-                        error={searchRun.error}
-                        replaceState={replaceRun.state}
-                        onReplace={() => void replaceRun.replace()}
-                        onOpenHit={openContentHit}
-                      />
-                    ) : (
-                      <SourceControlPanel
-                        open
-                        sourceControl={sourceControl}
-                        onOpenDiff={openGitDiffTab}
-                        onOpenGitGraph={openGitGraphFromContext}
-                        onOpenFile={handleOpenFile}
-                        onNavigateToPath={cdInNewTab}
-                        repositoryTarget={sourceControlRepositoryTarget}
-                        onFollowRepositoryContext={
-                          handleFollowRepositoryContext
-                        }
-                      />
-                    )}
+                <div className="h-full min-h-0 py-2 pl-2 pr-1">
+                  <div className="terax-pane flex h-full min-h-0 flex-col">
+                    <div
+                      key={sidebarView}
+                      className="min-h-0 flex-1 terax-panel-in"
+                    >
+                      {sidebarView === "explorer" ? (
+                        <FileExplorer
+                          ref={explorerRef}
+                          rootPath={explorerRoot}
+                          gitStatus={
+                            explorerGitDecorations ? sourceControl.status : null
+                          }
+                          activeFilePath={explorerActiveFilePath}
+                          outlineItems={outlineItems}
+                          outlineUnavailableReason={outlineUnavailableReason}
+                          outlineLoading={outlineLoading}
+                          activeHeadingLine={activeHeadingLine}
+                          onJumpToHeading={handleJumpToHeading}
+                          onOpenFile={handleOpenFile}
+                          onPathRenamed={handlePathRenamed}
+                          onPathDeleted={handlePathDeleted}
+                          onRevealInTerminal={cdInNewTab}
+                          onOpenInSourceControl={
+                            handleOpenRepositoryInSourceControl
+                          }
+                          onOpenGitHistory={handleOpenGitHistoryForPath}
+                          onAttachToAgent={handleAttachFileToAgent}
+                          onNavigate={sendCd}
+                          pathDropTarget={terminalPathDropTarget}
+                          onOpenCommitFile={openCommitFileDiffTab}
+                        />
+                      ) : sidebarView === "search" ? (
+                        <SearchPanel
+                          ref={searchPanelRef}
+                          rootPath={explorerRoot}
+                          options={searchOptions}
+                          onOptionsChange={setSearchOptions}
+                          results={searchRun.results}
+                          loading={searchRun.loading}
+                          error={searchRun.error}
+                          replaceState={replaceRun.state}
+                          onReplace={() => void replaceRun.replace()}
+                          onOpenHit={openContentHit}
+                        />
+                      ) : (
+                        <SourceControlPanel
+                          open
+                          sourceControl={sourceControl}
+                          onOpenDiff={openGitDiffTab}
+                          onOpenGitGraph={openGitGraphFromContext}
+                          onOpenFile={handleOpenFile}
+                          onNavigateToPath={cdInNewTab}
+                          repositoryTarget={sourceControlRepositoryTarget}
+                          onFollowRepositoryContext={
+                            handleFollowRepositoryContext
+                          }
+                        />
+                      )}
+                    </div>
+                    <SidebarRail
+                      activeView={sidebarView}
+                      onSelectView={persistSidebarView}
+                      changedCount={sourceControl.changedCount}
+                    />
                   </div>
-                  <SidebarRail
-                    activeView={sidebarView}
-                    onSelectView={persistSidebarView}
-                    changedCount={sourceControl.changedCount}
-                  />
                 </div>
               </ResizablePanel>
-              <ResizableHandle withHandle />
+              <ResizableHandle
+                className="w-1 rounded-full bg-transparent transition-colors duration-[var(--dur-fast)] after:w-4 hover:bg-border"
+              />
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
-                <div ref={workspaceContainerRef} className="flex h-full min-h-0 flex-col">
-                  <div className="relative min-h-0 flex-1">
-                    <WorkspaceSurface
-                      tabs={tabs}
-                      activeId={activeId}
-                      activeTab={activeTab}
-                      registerTerminalHandle={registerTerminalHandle}
-                      onSearchReady={handleSearchReady}
-                      onCwd={handleTerminalCwd}
-                      onExit={handleLeafExit}
-                      onFocusLeaf={handleFocusLeaf}
-                      onClosePane={handlePaneCloseByLeaf}
-                      registerEditorHandle={registerEditorHandle}
-                      onEditorDirtyChange={handleEditorDirty}
-                      onEditorExternalChange={handleEditorExternalChange}
-                      onEditorCloseTab={disposeTab}
-                      registerPreviewHandle={registerPreviewHandle}
-                      onPreviewUrlChange={handlePreviewUrl}
-                      onAiDiffAccept={(id) => respondToApproval(id, true)}
-                      onAiDiffReject={(id) => respondToApproval(id, false)}
-                      onOpenCommitFile={openCommitFileDiffTab}
-                      onGitHistorySearchHandle={setGitHistoryHandle}
-                      onSetMarkdownView={setMarkdownView}
-                      onOutlineChange={handleOutlineChange}
-                      onOutlineUnavailable={handleOutlineUnavailable}
-                      onOutlineLoading={handleOutlineLoading}
-                      onActiveHeadingChange={handleActiveHeadingChange}
-                      onJumpToHeading={handleJumpToHeading}
-                    />
-                  </div>
-
-                  {inputBarOpen && (
-                    <div
-                      onPointerDown={onInputBarHandlePointerDown}
-                      className="group relative h-1.5 shrink-0 cursor-ns-resize touch-none select-none"
-                    >
-                      <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-foreground/30" />
+                <div ref={workspaceContainerRef} className="h-full min-h-0 py-2 pl-1 pr-2">
+                  <div className="terax-pane flex h-full min-h-0 flex-col">
+                    <div className="relative min-h-0 flex-1">
+                      <WorkspaceSurface
+                        tabs={tabs}
+                        activeId={activeId}
+                        activeTab={activeTab}
+                        registerTerminalHandle={registerTerminalHandle}
+                        onSearchReady={handleSearchReady}
+                        onCwd={handleTerminalCwd}
+                        onExit={handleLeafExit}
+                        onFocusLeaf={handleFocusLeaf}
+                        onClosePane={handlePaneCloseByLeaf}
+                        registerEditorHandle={registerEditorHandle}
+                        onEditorDirtyChange={handleEditorDirty}
+                        onEditorExternalChange={handleEditorExternalChange}
+                        onEditorCloseTab={disposeTab}
+                        registerPreviewHandle={registerPreviewHandle}
+                        onPreviewUrlChange={handlePreviewUrl}
+                        onAiDiffAccept={(id) => respondToApproval(id, true)}
+                        onAiDiffReject={(id) => respondToApproval(id, false)}
+                        onOpenCommitFile={openCommitFileDiffTab}
+                        onGitHistorySearchHandle={setGitHistoryHandle}
+                        onSetMarkdownView={setMarkdownView}
+                        onOutlineChange={handleOutlineChange}
+                        onOutlineUnavailable={handleOutlineUnavailable}
+                        onOutlineLoading={handleOutlineLoading}
+                        onActiveHeadingChange={handleActiveHeadingChange}
+                        onJumpToHeading={handleJumpToHeading}
+                      />
                     </div>
-                  )}
-                  <div
-                    ref={inputBarWrapperRef}
-                    className="min-h-0 shrink-0 overflow-y-auto"
-                  >
-                    <WorkspaceInputBar
-                      isBlockTab={isBlockTab}
-                      isTerminalTab={isTerminalTab}
-                      activeLeafId={activeLeafId}
-                      cwd={activeCwd}
-                      home={home}
-                      hasComposer={hasComposer}
-                      panelOpen={panelOpen}
-                      keysLoaded={keysLoaded}
-                      onConnect={() => void openSettingsWindow("models")}
-                    />
+
+                    {inputBarOpen && (
+                      <div
+                        onPointerDown={onInputBarHandlePointerDown}
+                        className="group relative h-1.5 shrink-0 cursor-ns-resize touch-none select-none"
+                      >
+                        <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-foreground/30" />
+                      </div>
+                    )}
+                    <div
+                      ref={inputBarWrapperRef}
+                      className="min-h-0 shrink-0 overflow-y-auto"
+                    >
+                      <WorkspaceInputBar
+                        isBlockTab={isBlockTab}
+                        isTerminalTab={isTerminalTab}
+                        activeLeafId={activeLeafId}
+                        cwd={activeCwd}
+                        home={home}
+                        hasComposer={hasComposer}
+                        panelOpen={panelOpen}
+                        keysLoaded={keysLoaded}
+                        onConnect={() => void openSettingsWindow("models")}
+                      />
+                    </div>
                   </div>
                 </div>
               </ResizablePanel>
