@@ -1173,7 +1173,8 @@
   },
   "themes": {
     "descriptions": {
-      "terax-default": "Terax 默认外观 —— 干净玻璃质感叠加中性色面板。",
+      "terax-default": "干净的中性灰,搭配全彩终端。",
+      "xcode": "Apple 系统配色,以 systemBlue 为强调色。",
       "claude": "暖色调陶土点缀于纸面。",
       "kanagawa": "灵感来自北斋的深墨黑;搭配温暖的 Lotus 浅色。",
       "kanagawa-dragon": "Kanagawa 的 Dragon 变体,深沉近黑、低对比。",

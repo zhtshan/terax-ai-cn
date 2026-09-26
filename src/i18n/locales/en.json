@@ -1176,7 +1176,8 @@
   },
   "themes": {
     "descriptions": {
-      "terax-default": "The default Terax look — clean glass over neutral surfaces.",
+      "terax-default": "Clean neutral greys with a full-color terminal.",
+      "xcode": "Apple's system colors with a systemBlue accent.",
       "claude": "Warm clay accent on paper.",
       "kanagawa": "Inky dark inspired by Hokusai; warm Lotus light.",
       "kanagawa-dragon": "The muted, near-black Dragon variant of Kanagawa.",
