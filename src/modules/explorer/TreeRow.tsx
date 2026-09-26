@@ -1,5 +1,5 @@
-import { cn } from "@/lib/utils";
 import { isPrimaryModifierPressed } from "@/lib/platform";
+import { cn } from "@/lib/utils";
 import { ArrowRight01Icon } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { memo } from "react";
@@ -178,7 +178,9 @@ export function PendingRow({
       />
       <InlineInput
         initial=""
-        placeholder={kind === "dir" ? t("explorer.newFolder") : t("explorer.newFile")}
+        placeholder={
+          kind === "dir" ? t("explorer.newFolder") : t("explorer.newFile")
+        }
         onCommit={onCommit}
         onCancel={onCancel}
       />

@@ -1,18 +1,26 @@
 import { Button } from "@/components/ui/button";
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
-import {
   ContextMenu,
   ContextMenuContent,
   ContextMenuItem,
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from "@/components/ui/context-menu";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { IS_MAC, IS_WINDOWS } from "@/lib/platform";
+import { displayError } from "@/lib/teraxErrors";
+import { cn } from "@/lib/utils";
+import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
+import { usePreferencesStore } from "@/modules/settings/preferences";
+import { useGlobalShortcuts } from "@/modules/shortcuts";
+import type { TerminalPathDropTarget } from "@/modules/terminal";
+import { currentWorkspaceEnv } from "@/modules/workspace";
 import {
   FileAddIcon,
   Folder01Icon,
@@ -22,6 +30,7 @@ import {
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { useVirtualizer } from "@tanstack/react-virtual";
+import { invoke } from "@tauri-apps/api/core";
 import {
   forwardRef,
   memo,
@@ -34,24 +43,14 @@ import {
 } from "react";
 import { useTranslation } from "react-i18next";
 import { toast } from "sonner";
-import { IS_MAC, IS_WINDOWS } from "@/lib/platform";
-import { cn } from "@/lib/utils";
-import { displayError } from "@/lib/teraxErrors";
 import { ExplorerSearch, type ExplorerSearchHandle } from "./ExplorerSearch";
-import {
-  EntryRow,
-  PendingRow,
-  StatusRow,
-  type RowActions,
-  type SelectModifiers,
-} from "./TreeRow";
 import { InlineInput } from "./InlineInput";
-import { SectionHeader } from "./SectionHeader";
 import {
   copyToClipboard,
   relativePath,
   revealInFinder,
 } from "./lib/contextActions";
+import type { GitStatusCode } from "./lib/gitStatusUtils";
 import { fileIconUrl, folderIconUrl } from "./lib/iconResolver";
 import { COMPACT_CONTENT, COMPACT_ITEM } from "./lib/menuItemClass";
 import { useExplorerDnd } from "./lib/useExplorerDnd";
@@ -59,13 +58,14 @@ import { useExplorerFileDrop } from "./lib/useExplorerFileDrop";
 import { useFileClipboard } from "./lib/useFileClipboard";
 import { useFileTree } from "./lib/useFileTree";
 import { useGitStatus } from "./lib/useGitStatus";
-import type { GitStatusCode } from "./lib/gitStatusUtils";
-import { currentWorkspaceEnv } from "@/modules/workspace";
-import { useGlobalShortcuts } from "@/modules/shortcuts";
-import { usePreferencesStore } from "@/modules/settings/preferences";
-import type { GitStatusSnapshot } from "@/modules/ai/lib/native";
-import type { TerminalPathDropTarget } from "@/modules/terminal";
-import { invoke } from "@tauri-apps/api/core";
+import { SectionHeader } from "./SectionHeader";
+import {
+  EntryRow,
+  PendingRow,
+  type RowActions,
+  type SelectModifiers,
+  StatusRow,
+} from "./TreeRow";
 
 export type FileTreeSectionHandle = {
   focus: () => void;
@@ -323,7 +323,9 @@ export const FileTreeSection = memo(
             tree.refresh(destDir);
             if (clip.mode === "cut") clipboard.clear();
           })
-          .catch((e) => toast.error(t("explorer.copyFailed", { detail: displayError(e) })));
+          .catch((e) =>
+            toast.error(t("explorer.copyFailed", { detail: displayError(e) })),
+          );
       },
       [clipboard, tree],
     );
@@ -341,10 +343,7 @@ export const FileTreeSection = memo(
       setAnchorPath(path);
     }, []);
 
-    const getSelectedPaths = useCallback(
-      () => selectedPathsRef.current,
-      [],
-    );
+    const getSelectedPaths = useCallback(() => selectedPathsRef.current, []);
 
     // Stable identity (reads fresh state off refs) so the memoized EntryRow
     // doesn't re-render on every selection change.
@@ -457,7 +456,12 @@ export const FileTreeSection = memo(
       lastSyncedActivePathRef.current = activeFilePath;
       collapseSelectionTo(activeFilePath);
       requestAnimationFrame(() => scrollEntryIntoView(activeFilePath));
-    }, [activeFilePath, entryIndexByPath, scrollEntryIntoView, collapseSelectionTo]);
+    }, [
+      activeFilePath,
+      entryIndexByPath,
+      scrollEntryIntoView,
+      collapseSelectionTo,
+    ]);
 
     useImperativeHandle(
       ref,
@@ -660,7 +664,9 @@ export const FileTreeSection = memo(
               isRenaming={row.kind === "rename"}
               isDropTarget={dropTargetDir === row.path}
               multiSelectActive={selectedPaths.size > 1}
-              isCut={clipboard.mode === "cut" && clipboard.paths.includes(row.path)}
+              isCut={
+                clipboard.mode === "cut" && clipboard.paths.includes(row.path)
+              }
               onOpenFile={onOpenFile}
               onSelectPath={handleEntrySelect}
               gitStatusCode={row.gitStatusCode}

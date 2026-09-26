@@ -1,10 +1,10 @@
+import { displayError } from "@/lib/teraxErrors";
+import { usePreferencesStore } from "@/modules/settings/preferences";
+import { currentWorkspaceEnv } from "@/modules/workspace";
 import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
-import { currentWorkspaceEnv } from "@/modules/workspace";
-import { usePreferencesStore } from "@/modules/settings/preferences";
 import { listenFsChanged, watchAdd, watchRemove } from "./watch";
-import { displayError } from "@/lib/teraxErrors";
 
 export type DirEntry = {
   name: string;
@@ -175,7 +175,9 @@ export function useFileTree(rootPath: string | null, options?: Options) {
       }
 
       const liveDirs = new Set(
-        entries.filter((e) => e.kind === "dir").map((e) => joinPath(path, e.name)),
+        entries
+          .filter((e) => e.kind === "dir")
+          .map((e) => joinPath(path, e.name)),
       );
       const removedRoots: string[] = [];
       for (const key of Object.keys(nodesRef.current)) {
@@ -208,7 +210,8 @@ export function useFileTree(rootPath: string | null, options?: Options) {
           return changed ? n : c;
         });
         const toUnwatch: string[] = [];
-        for (const d of dead) if (watchedRef.current.delete(d)) toUnwatch.push(d);
+        for (const d of dead)
+          if (watchedRef.current.delete(d)) toUnwatch.push(d);
         watchRemove(toUnwatch);
       }
     } catch (e) {
@@ -335,7 +338,11 @@ export function useFileTree(rootPath: string | null, options?: Options) {
       const current = nodesRef.current;
       void fetchChildren(path);
       for (const key of Object.keys(current)) {
-        if (key !== path && isUnder(key, path) && current[key]?.status === "loaded") {
+        if (
+          key !== path &&
+          isUnder(key, path) &&
+          current[key]?.status === "loaded"
+        ) {
           void fetchChildren(key);
         }
       }
@@ -539,16 +546,14 @@ export function useFileTree(rootPath: string | null, options?: Options) {
       }
 
       for (const item of conflicting) {
-        const resolution = await new Promise<"replace" | "skip">(
-          (resolve) => {
-            toast.warning(`"${item.name}" already exists`, {
-              duration: Infinity,
-              action: { label: "Replace", onClick: () => resolve("replace") },
-              cancel: { label: "Skip", onClick: () => resolve("skip") },
-              onDismiss: () => resolve("skip"),
-            });
-          },
-        );
+        const resolution = await new Promise<"replace" | "skip">((resolve) => {
+          toast.warning(`"${item.name}" already exists`, {
+            duration: Infinity,
+            action: { label: "Replace", onClick: () => resolve("replace") },
+            cancel: { label: "Skip", onClick: () => resolve("skip") },
+            onDismiss: () => resolve("skip"),
+          });
+        });
         if (resolution === "skip") continue;
         try {
           await invoke("fs_delete", {

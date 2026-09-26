@@ -56,8 +56,7 @@ export function finishExplorerDrag(
   onMove: (from: string[], toDir: string) => void,
 ): void {
   const handledByPathTarget =
-    commit &&
-    (pathDropTarget?.dropPath(sources, clientX, clientY) ?? false);
+    commit && (pathDropTarget?.dropPath(sources, clientX, clientY) ?? false);
   if (commit && !handledByPathTarget && moveTarget) {
     onMove(sources, moveTarget);
   }
