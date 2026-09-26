@@ -383,6 +383,35 @@ html *::-webkit-scrollbar {
   display: none;
 }
 
+.terax-code-editor .cm-scroller {
+  margin-right: -4px;
+  scrollbar-width: thin !important;
+  scrollbar-color: color-mix(in srgb, var(--foreground) 18%, transparent)
+    transparent !important;
+}
+.terax-code-editor .cm-scroller::-webkit-scrollbar {
+  width: 7px !important;
+  height: 7px !important;
+  display: block !important;
+}
+.terax-code-editor .cm-scroller::-webkit-scrollbar-track,
+.terax-code-editor .cm-scroller::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.terax-code-editor .cm-scroller::-webkit-scrollbar-thumb {
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--foreground) 18%, transparent);
+  background-clip: padding-box;
+}
+.terax-code-editor .cm-scroller::-webkit-scrollbar-thumb:hover {
+  background-color: color-mix(
+    in srgb,
+    var(--foreground) 30%,
+    transparent
+  );
+}
+
 /* Motion tokens. Reduced-motion zeroes the durations as a global snap. */
 :root {
   --dur-fast: 160ms;
