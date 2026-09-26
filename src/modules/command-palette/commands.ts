@@ -13,6 +13,7 @@ import {
   LayoutTwoRowIcon,
   PaintBoardIcon,
   Search01Icon,
+  ViewIcon,
   Settings01Icon,
   SidebarLeftIcon,
   SourceCodeIcon,
@@ -46,6 +47,7 @@ export type CommandPaletteActionContext = {
   openNewPreview: () => void;
   openGitGraph: () => void;
   toggleSourceControl: () => void;
+  toggleHiddenFiles: () => void;
   closeActiveTabOrPane: () => void;
   splitPaneRight: () => void;
   splitPaneDown: () => void;
@@ -243,6 +245,15 @@ export function createCommandItems(
       icon: SourceCodeIcon,
       shortcutId: "pane.source",
       run: ctx.toggleSourceControl,
+    },
+    {
+      id: "explorer.toggleHidden",
+      title: i18next.t("commandPalette.item.toggleHiddenFiles"),
+      group: "View",
+      keywords: ["dotfiles", "hidden", "explorer", "gitignore", "env"],
+      icon: ViewIcon,
+      shortcutId: "explorer.toggleHidden",
+      run: ctx.toggleHiddenFiles,
     },
     {
       id: "search.content",

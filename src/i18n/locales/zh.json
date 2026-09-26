@@ -717,7 +717,8 @@
       "explorerFindFiles": "按名称搜索文件",
       "sidebarToggle": "切换文件浏览器",
       "aiToggle": "切换 AI 代理",
-      "aiAskSelection": "向 AI 询问选区"
+      "aiAskSelection": "向 AI 询问选区",
+      "toggleHiddenFiles": "切换隐藏文件"
     },
     "disabled": {
       "blocksTab": "Blocks 标签页",

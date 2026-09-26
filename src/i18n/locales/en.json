@@ -722,7 +722,8 @@
       "explorerFindFiles": "Search files by name",
       "sidebarToggle": "Toggle file explorer",
       "aiToggle": "Toggle AI agent",
-      "aiAskSelection": "Ask AI about selection"
+      "aiAskSelection": "Ask AI about selection",
+      "toggleHiddenFiles": "Toggle hidden files"
     },
     "disabled": {
       "blocksTab": "Blocks tab",

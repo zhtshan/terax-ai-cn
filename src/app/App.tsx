@@ -55,6 +55,7 @@ import { setKnownHome } from "@/modules/markdown";
 import type { PreviewPaneHandle } from "@/modules/preview";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
+import { setShowHidden } from "@/modules/settings/store";
 import {
   shouldDisablePaneSwapShortcut,
   type ShortcutHandlers,
@@ -335,6 +336,11 @@ export default function App() {
     persistSidebarWidth,
     toggleExplorerFocus,
   } = useSidebarPanel(explorerRef);
+
+  const toggleHiddenFiles = useCallback(() => {
+    openSidebarView("explorer");
+    void setShowHidden(!usePreferencesStore.getState().showHidden);
+  }, [openSidebarView]);
 
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
   const {
@@ -1035,6 +1041,7 @@ export default function App() {
       "settings.open": () => void openSettingsWindow(),
       "sidebar.toggle": () => cycleSidebarView("explorer"),
       "sidebar.openSourceControl": () => openSidebarView("source-control"),
+      "explorer.toggleHidden": toggleHiddenFiles,
       "explorer.focus": toggleExplorerFocus,
       "view.zoomIn": zoomIn,
       "view.zoomOut": zoomOut,
@@ -1080,6 +1087,7 @@ export default function App() {
       cycleSidebarView,
       openSidebarView,
       toggleExplorerFocus,
+      toggleHiddenFiles,
       searchPanelRef,
       zoomIn,
       zoomOut,
@@ -1384,6 +1392,7 @@ export default function App() {
             openNewPreview: () => openPreviewTab(""),
             openGitGraph: openGitGraphFromContext,
             toggleSourceControl,
+            toggleHiddenFiles,
             closeActiveTabOrPane: handleCloseTabOrPane,
             splitPaneRight: () => splitActivePaneInActiveTab("row"),
             splitPaneDown: () => splitActivePaneInActiveTab("col"),
@@ -1414,6 +1423,7 @@ export default function App() {
       openPreviewTab,
       openGitGraphFromContext,
       toggleSourceControl,
+      toggleHiddenFiles,
       handleCloseTabOrPane,
       splitActivePaneInActiveTab,
       cycleSidebarView,

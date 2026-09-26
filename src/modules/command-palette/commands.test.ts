@@ -23,6 +23,7 @@ function ctxWithTabs(
     openNewPreview: () => {},
     openGitGraph: () => {},
     toggleSourceControl: () => {},
+    toggleHiddenFiles: () => {},
     closeActiveTabOrPane: () => {},
     splitPaneRight: () => {},
     splitPaneDown: () => {},
