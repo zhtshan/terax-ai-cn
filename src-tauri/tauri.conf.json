@@ -4,9 +4,9 @@
   "version": "0.8.10",
   "identifier": "app.crynta.terax",
   "build": {
-    "beforeDevCommand": "pnpm dev",
+    "beforeDevCommand": "pnpm build:cli:dev && pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build",
+    "beforeBuildCommand": "pnpm build:cli && pnpm build",
     "frontendDist": "../dist",
     "removeUnusedCommands": true
   },
@@ -44,6 +44,9 @@
   },
   "bundle": {
     "active": true,
+    "externalBin": [
+      "binaries/terax-cli"
+    ],
     "targets": "all",
     "createUpdaterArtifacts": true,
     "copyright": "Copyright 2026 Crynta",
@@ -112,6 +115,11 @@
           "sh", "bash", "zsh", "sql", "graphql", "proto"
       ]
     }
+<<<<<<< HEAD
   ]
 }
 }
+=======
+  }
+}
+>>>>>>> 21cbca6 (feat(cli): add bundled authenticated control plane)
