@@ -934,6 +934,7 @@
     "rename": "重命名",
     "clickToDelete": "再次点击确认",
     "delete": "删除",
+    "batchDelete": "删除 {{count}} 个项目",
     "searchFilesPlaceholder": "搜索文件…",
     "searching": "搜索中…",
     "noMatches": "无匹配",

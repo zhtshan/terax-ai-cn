@@ -939,6 +939,7 @@
     "rename": "Rename",
     "clickToDelete": "Click again to confirm",
     "delete": "Delete",
+    "batchDelete": "Delete {{count}} items",
     "searchFilesPlaceholder": "Search files…",
     "searching": "Searching…",
     "noMatches": "No matches",
