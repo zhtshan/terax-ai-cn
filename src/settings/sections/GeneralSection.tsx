@@ -24,6 +24,7 @@ import type { ThemePref } from "@/modules/settings/store";
 import {
   setAgentNotifications,
   setAutostart,
+  setConfirmCloseRunningTerminal,
   setDefaultWorkspaceEnv,
   setExplorerGitDecorations,
   setRestoreWindowState,
@@ -117,6 +118,9 @@ export function GeneralSection() {
   );
   const terminalFontSize = usePreferencesStore((s) => s.terminalFontSize);
   const terminalScrollback = usePreferencesStore((s) => s.terminalScrollback);
+  const confirmCloseRunningTerminal = usePreferencesStore(
+    (s) => s.confirmCloseRunningTerminal,
+  );
   const zoomLevel = usePreferencesStore((s) => s.zoomLevel);
   const agentNotifications = usePreferencesStore((s) => s.agentNotifications);
   const [notificationTest, setNotificationTest] =
@@ -505,6 +509,15 @@ export function GeneralSection() {
               ))}
             </SelectContent>
           </Select>
+        </SettingRow>
+        <SettingRow
+          title={t("settings.general.confirmCloseRunning")}
+          description={t("settings.general.confirmCloseRunningDesc")}
+        >
+          <Switch
+            checked={confirmCloseRunningTerminal}
+            onCheckedChange={(v) => void setConfirmCloseRunningTerminal(v)}
+          />
         </SettingRow>
       </div>
 

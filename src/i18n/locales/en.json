@@ -115,7 +115,9 @@
       "agentNotificationRequestedTitle": "The native notification was requested",
       "agentNotificationDeniedTitle": "Notifications are disabled by the system",
       "agentNotificationFailedTitle": "Terax could not request a native notification",
-      "agentNotificationTestTitle": "Send a native test notification after two seconds"
+      "agentNotificationTestTitle": "Send a native test notification after two seconds",
+      "confirmCloseRunning": "Confirm before killing a running process",
+      "confirmCloseRunningDesc": "Ask before closing a terminal tab or quitting while a command is still running. Unsaved editor changes are always confirmed."
     },
     "shortcuts": {
       "title": "Shortcuts",

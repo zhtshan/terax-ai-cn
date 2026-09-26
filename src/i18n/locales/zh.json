@@ -115,7 +115,9 @@
       "agentNotificationRequestedTitle": "已请求原生通知",
       "agentNotificationDeniedTitle": "系统已禁用通知",
       "agentNotificationFailedTitle": "Terax 无法请求原生通知",
-      "agentNotificationTestTitle": "两秒后发送原生测试通知"
+      "agentNotificationTestTitle": "两秒后发送原生测试通知",
+      "confirmCloseRunning": "结束运行中进程前确认",
+      "confirmCloseRunningDesc": "关闭终端标签页或退出时若有命令仍在运行则先询问。未保存的编辑器改动始终会确认。"
     },
     "shortcuts": {
       "title": "快捷键",
