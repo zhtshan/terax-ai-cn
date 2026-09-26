@@ -22,6 +22,7 @@ pub use agent_detect::AliasMap;
 pub(super) const PTY_DROPPED_EVENT: &str = "terax:pty-dropped";
 
 use crate::modules::agent_alias_state::{self, AliasState};
+use crate::modules::control::ControlState;
 use crate::modules::workspace::{probe_spawn_cwd, WorkspaceEnv, WorkspaceRegistry};
 use session::Session;
 
@@ -111,6 +112,7 @@ pub async fn pty_open(
     app: tauri::AppHandle,
     state: tauri::State<'_, PtyState>,
     alias_state: tauri::State<'_, AliasState>,
+    control: tauri::State<'_, ControlState>,
     registry: tauri::State<'_, WorkspaceRegistry>,
     cols: u16,
     rows: u16,
@@ -118,6 +120,7 @@ pub async fn pty_open(
     workspace: Option<WorkspaceEnv>,
     blocks: Option<bool>,
     shell: Option<String>,
+    pane_id: Option<u32>,
     on_data: Channel<Response>,
     on_exit: Channel<i32>,
 ) -> Result<u32, String> {
@@ -125,14 +128,34 @@ pub async fn pty_open(
     let blocks = blocks.unwrap_or(false);
     let cwd = spawn_cwd_or_home(&registry, cwd, workspace.clone()).await;
     let shell = shell_init::sanitize_shell_override_async(shell).await;
+    // A Windows helper cannot execute inside WSL without explicit path and
+    // network translation. Do not inject credentials for a broken command.
+    let control_env = if workspace.is_wsl() {
+        None
+    } else {
+        pane_id.and_then(|pane_id| control.shell_env(pane_id))
+    };
     let id = state.next_id.fetch_add(1, Ordering::Relaxed);
     // Snapshot the alias map at spawn time; the reader thread will own this
     // value. Live updates after spawn don't reach existing ptys by design —
     // alias is a session-level config.
     let aliases = agent_alias_state::current(&alias_state);
     let session = tauri::async_runtime::spawn_blocking(move || {
-        session::spawn(id, app, cols, rows, cwd, workspace, blocks, shell, on_data, on_exit, aliases)
-            .map(|(s, _)| s)
+        session::spawn(
+            id,
+            app,
+            cols,
+            rows,
+            cwd,
+            workspace,
+            blocks,
+            shell,
+            control_env,
+            on_data,
+            on_exit,
+            aliases,
+        )
+        .map(|(s, _)| s)
     })
     .await
     .map_err(|e| {

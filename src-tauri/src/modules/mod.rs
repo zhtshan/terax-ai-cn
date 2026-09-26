@@ -1,8 +1,5 @@
 pub mod agent;
-<<<<<<< HEAD
 pub mod agent_alias_state;
-=======
->>>>>>> 21cbca6 (feat(cli): add bundled authenticated control plane)
 pub mod control;
 pub mod fs;
 pub mod git;

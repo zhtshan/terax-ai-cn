@@ -1,10 +1,6 @@
 pub mod modules;
 
-<<<<<<< HEAD
 use modules::{agent, agent_alias_state, control, fs, git, history, lsp, net, pty, secrets, shell, vibrancy, workspace};
-=======
-use modules::{agent, control, fs, git, history, lsp, net, pty, secrets, shell, workspace};
->>>>>>> 21cbca6 (feat(cli): add bundled authenticated control plane)
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};

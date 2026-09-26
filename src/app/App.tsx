@@ -27,6 +27,7 @@ import {
 import { AiComposerProvider } from "@/modules/ai/lib/composer";
 import { native } from "@/modules/ai/lib/native";
 import { CommandPalette, createCommandItems } from "@/modules/command-palette";
+import { useControlBridge } from "@/modules/control";
 import {
   type EditorPaneHandle,
   NewEditorDialog,
@@ -196,6 +197,8 @@ export default function App() {
   // (e.g. cdInNewTab) read the latest pane state instead of a stale closure.
   const tabsRef = useRef(tabs);
   tabsRef.current = tabs;
+  const activeIdRef = useRef(activeId);
+  activeIdRef.current = activeId;
 
   const activeTerminalTab = useMemo(() => {
     const t = tabs.find((x) => x.id === activeId);
@@ -270,6 +273,8 @@ export default function App() {
 
   const activeSpaceId = useSpaces((s) => s.activeId);
   const spacesHydrated = useSpaces((s) => s.hydrated);
+  const activeSpaceIdRef = useRef(activeSpaceId);
+  activeSpaceIdRef.current = activeSpaceId;
   const sourceControlSpaceId = activeSpaceId ?? DEFAULT_SPACE_ID;
 
   const handleWorkspaceChange = useCallback(
@@ -1208,10 +1213,11 @@ export default function App() {
     (id: number, h: EditorPaneHandle | null) => {
       if (h) {
         editorRefs.current.set(id, h);
-        const line = pendingGotoLine.current.get(id);
-        if (line != null) {
-          pendingGotoLine.current.delete(id);
-          h.gotoLine(line);
+        const pending = pendingEditorNavigation.current.get(id);
+        if (pending != null) {
+          pendingEditorNavigation.current.delete(id);
+          if (pending.line === undefined) h.focus();
+          else h.gotoLine(pending.line, { focus: pending.focus });
         }
       } else {
         editorRefs.current.delete(id);
@@ -1471,6 +1477,50 @@ export default function App() {
       handleNewSpace,
     ],
   );
+
+  const pendingEditorNavigation = useRef<
+    Map<number, { line?: number; focus: boolean }>
+  >(new Map());
+
+  const openControlFile = useCallback(
+    ({
+      path,
+      line,
+      focus,
+      spaceId,
+    }: {
+      path: string;
+      line?: number;
+      focus: boolean;
+      spaceId: string;
+    }) => {
+      if (focus && useSpaces.getState().activeId !== spaceId) {
+        useSpaces.getState().setActive(spaceId);
+      }
+      const id = openFileTab(path, true, {
+        spaceId,
+        activate: focus,
+      });
+      const editor = editorRefs.current.get(id);
+      if (line !== undefined) {
+        if (editor) editor.gotoLine(line, { focus });
+        else pendingEditorNavigation.current.set(id, { line, focus });
+      } else if (focus) {
+        if (editor) editor.focus();
+        else pendingEditorNavigation.current.set(id, { focus: true });
+      }
+      return id;
+    },
+    [openFileTab],
+  );
+
+  useControlBridge({
+    ready: spacesHydrated && launchCwdResolved,
+    tabsRef,
+    activeTabIdRef: activeIdRef,
+    activeSpaceIdRef,
+    onOpen: openControlFile,
+  });
 
   const insertHistoryCommand = useMemo(
     () =>

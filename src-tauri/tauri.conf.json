@@ -4,9 +4,9 @@
   "version": "0.8.10",
   "identifier": "app.crynta.terax",
   "build": {
-    "beforeDevCommand": "pnpm build:cli:dev && pnpm dev",
+    "beforeDevCommand": "pnpm dev",
     "devUrl": "http://localhost:1420",
-    "beforeBuildCommand": "pnpm build:cli && pnpm build",
+    "beforeBuildCommand": "pnpm build",
     "frontendDist": "../dist",
     "removeUnusedCommands": true
   },
@@ -44,9 +44,6 @@
   },
   "bundle": {
     "active": true,
-    "externalBin": [
-      "binaries/terax-cli"
-    ],
     "targets": "all",
     "createUpdaterArtifacts": true,
     "copyright": "Copyright 2026 Crynta",
@@ -98,6 +95,10 @@
     "category": "DeveloperTool",
     "shortDescription": "AI-native terminal emulator",
     "longDescription": "Terax — an open-source AI-native terminal emulator with multi-tab, file explorer, code editor, web preview, voice input, and AI agents.",
+
+    "externalBin": [
+      "binaries/terax-cli"
+    ],
     "fileAssociations": [
       {
         "name": "Terax Document",
@@ -115,11 +116,6 @@
           "sh", "bash", "zsh", "sql", "graphql", "proto"
       ]
     }
-<<<<<<< HEAD
   ]
 }
 }
-=======
-  }
-}
->>>>>>> 21cbca6 (feat(cli): add bundled authenticated control plane)

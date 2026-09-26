@@ -93,7 +93,7 @@ export type EditorPaneHandle = {
   /** Hook-side clear of the external-change flag (keeps the local buffer). */
   acknowledgeExternalChange: () => void;
   /** Move the cursor to a 1-based line and center it, once content is ready. */
-  gotoLine: (line: number) => void;
+  gotoLine: (line: number, options?: { focus?: boolean }) => void;
   /** Apply CodeMirror's undo/redo commands. */
   undo: () => void;
   redo: () => void;
@@ -381,27 +381,46 @@ export const EditorPane = memo(
     const pathRef = useRef(path);
     pathRef.current = path;
 
-    const pendingLineRef = useRef<number | null>(null);
+    const pendingLineRef = useRef<{ line: number; focus: boolean } | null>(
+      null,
+    );
+    const pendingFocusRef = useRef(false);
     const statusRef = useRef(doc.status);
     statusRef.current = doc.status;
 
+    const focusWhenRendered = useCallback((view: EditorView) => {
+      requestAnimationFrame(() => {
+        if (cmRef.current?.view === view) view.focus();
+      });
+    }, []);
+
     const applyPendingGoto = useCallback(() => {
       const view = cmRef.current?.view;
-      const line = pendingLineRef.current;
-      if (!view || line == null || statusRef.current !== "ready") return;
-      const target = Math.max(1, Math.min(line, view.state.doc.lines));
+      const pending = pendingLineRef.current;
+      if (!view || pending == null || statusRef.current !== "ready") return;
+      const target = Math.max(1, Math.min(pending.line, view.state.doc.lines));
       const at = view.state.doc.line(target).from;
       view.dispatch({
         selection: { anchor: at },
         effects: EditorView.scrollIntoView(at, { y: "center" }),
       });
-      view.focus();
+      if (pending.focus) focusWhenRendered(view);
       pendingLineRef.current = null;
-    }, []);
+    }, [focusWhenRendered]);
+
+    const applyPendingFocus = useCallback(() => {
+      const view = cmRef.current?.view;
+      if (!view || !pendingFocusRef.current || statusRef.current !== "ready")
+        return;
+      pendingFocusRef.current = false;
+      focusWhenRendered(view);
+    }, [focusWhenRendered]);
 
     useEffect(() => {
-      if (doc.status === "ready") applyPendingGoto();
-    }, [doc.status, applyPendingGoto]);
+      if (doc.status !== "ready") return;
+      applyPendingGoto();
+      applyPendingFocus();
+    }, [doc.status, applyPendingFocus, applyPendingGoto]);
 
     const extensions = useMemo(
       () => [
@@ -654,7 +673,8 @@ export const EditorPane = memo(
           });
         },
         focus: () => {
-          cmRef.current?.view?.focus();
+          pendingFocusRef.current = true;
+          applyPendingFocus();
         },
         getSelection: () => {
           const view = cmRef.current?.view;
@@ -667,8 +687,8 @@ export const EditorPane = memo(
         reload: () => reloadRef.current(),
         forceReload: () => discardReloadRef.current(),
         acknowledgeExternalChange: () => ackRef.current(),
-        gotoLine: (line: number) => {
-          pendingLineRef.current = line;
+        gotoLine: (line: number, options) => {
+          pendingLineRef.current = { line, focus: options?.focus ?? true };
           applyPendingGoto();
         },
         undo: () => {
@@ -696,7 +716,7 @@ export const EditorPane = memo(
           return view.state.doc.lineAt(pos).number;
         },
       }),
-      [path, applyPendingGoto],
+      [path, applyPendingFocus, applyPendingGoto],
     );
 
     if (doc.status === "loading") {
