@@ -1198,6 +1198,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     activeId,
     setActiveId,
     allocId,
+    booted,
     replaceTabs,
     moveTabToSpace,
     reorderTab,
