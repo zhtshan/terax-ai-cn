@@ -117,7 +117,9 @@
       "agentNotificationFailedTitle": "Terax 无法请求原生通知",
       "agentNotificationTestTitle": "两秒后发送原生测试通知",
       "confirmCloseRunning": "结束运行中进程前确认",
-      "confirmCloseRunningDesc": "关闭终端标签页或退出时若有命令仍在运行则先询问。未保存的编辑器改动始终会确认。"
+      "confirmCloseRunningDesc": "关闭终端标签页或退出时若有命令仍在运行则先询问。未保存的编辑器改动始终会确认。",
+      "notificationSound": "通知声音",
+      "notificationSoundDesc": "代理通知和应用内提示播放声音。"
     },
     "shortcuts": {
       "title": "快捷键",

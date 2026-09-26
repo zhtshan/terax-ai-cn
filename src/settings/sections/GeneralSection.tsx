@@ -22,6 +22,7 @@ import {
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { ThemePref } from "@/modules/settings/store";
 import {
+  setAgentNotificationSound,
   setAgentNotifications,
   setAutostart,
   setConfirmCloseRunningTerminal,
@@ -123,6 +124,9 @@ export function GeneralSection() {
   );
   const zoomLevel = usePreferencesStore((s) => s.zoomLevel);
   const agentNotifications = usePreferencesStore((s) => s.agentNotifications);
+  const agentNotificationSound = usePreferencesStore(
+    (s) => s.agentNotificationSound,
+  );
   const [notificationTest, setNotificationTest] =
     useState<NotificationTestState>("idle");
   const notificationTestPending =
@@ -134,7 +138,7 @@ export function GeneralSection() {
       setTimeout(resolve, NOTIFICATION_TEST_DELAY_MS),
     );
     setNotificationTest("sending");
-    setNotificationTest(await testAgentOsNotification());
+    setNotificationTest(await testAgentOsNotification(agentNotificationSound));
   };
 
   useEffect(() => {
@@ -547,6 +551,16 @@ export function GeneralSection() {
               }}
             />
           </div>
+        </SettingRow>
+        <SettingRow
+          title={t("settings.general.notificationSound")}
+          description={t("settings.general.notificationSoundDesc")}
+        >
+          <Switch
+            checked={agentNotificationSound}
+            disabled={!agentNotifications || notificationTestPending}
+            onCheckedChange={(v) => void setAgentNotificationSound(v)}
+          />
         </SettingRow>
       </div>
 
