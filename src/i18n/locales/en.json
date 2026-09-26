@@ -329,7 +329,10 @@
       "languageOverrides": "Language overrides",
       "languageOverridesDesc": "Use a different formatter for specific languages (e.g. Ruff for Python).",
       "addOverride": "Add override",
-      "removeOverride": "Remove override"
+      "removeOverride": "Remove override",
+      "wrapColumn": "Wrap column",
+      "wrapColumnDesc": "Soft-wrap at this column, or earlier when the editor is narrower.",
+      "columns": "columns"
     },
     "themes": {
       "title": "Themes",

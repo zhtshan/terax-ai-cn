@@ -329,7 +329,10 @@
       "languageOverrides": "语言覆写",
       "languageOverridesDesc": "为指定语言使用不同的格式化器(例如 Python 使用 Ruff)。",
       "addOverride": "添加覆写",
-      "removeOverride": "移除覆写"
+      "removeOverride": "移除覆写",
+      "wrapColumn": "折行列",
+      "wrapColumnDesc": "在此列软折行,编辑器更窄时提前折行。",
+      "columns": "列"
     },
     "themes": {
       "title": "主题",

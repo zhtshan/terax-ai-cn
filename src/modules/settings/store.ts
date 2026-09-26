@@ -149,6 +149,7 @@ export type Preferences = {
   recentModelIds: string[];
   vimMode: boolean;
   editorWordWrap: boolean;
+  editorWordWrapColumn: number;
   showHidden: boolean;
   explorerGitDecorations: boolean;
   terminalWebglEnabled: boolean;
@@ -239,6 +240,7 @@ const KEY_FAVORITE_MODELS = "favoriteModelIds";
 const KEY_RECENT_MODELS = "recentModelIds";
 const KEY_VIM_MODE = "vimMode";
 const KEY_EDITOR_WORD_WRAP = "editorWordWrap";
+const KEY_EDITOR_WORD_WRAP_COLUMN = "editorWordWrapColumn";
 const KEY_SHOW_HIDDEN = "showHidden";
 const LEGACY_KEY_SHOW_HIDDEN_DIRS = "showHiddenDirectories";
 const KEY_EXPLORER_GIT_DECORATIONS = "explorerGitDecorations";
@@ -279,6 +281,10 @@ export const EDITOR_FONT_SIZE_MAX = 32;
 export const EDITOR_FONT_SIZES = [
   10, 11, 12, 13, 14, 15, 16, 18, 20, 22, 24,
 ] as const;
+
+export const EDITOR_WORD_WRAP_COLUMN_DEFAULT = 80;
+export const EDITOR_WORD_WRAP_COLUMN_MIN = 20;
+export const EDITOR_WORD_WRAP_COLUMN_MAX = 500;
 
 export const TERMINAL_SCROLLBACK_DEFAULT = 2000;
 export const TERMINAL_SCROLLBACK_MIN = 200;
@@ -323,6 +329,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   recentModelIds: [],
   vimMode: false,
   editorWordWrap: false,
+  editorWordWrapColumn: EDITOR_WORD_WRAP_COLUMN_DEFAULT,
   showHidden: false,
   explorerGitDecorations: true,
   terminalWebglEnabled: true,
@@ -467,6 +474,10 @@ export async function loadPreferences(): Promise<Preferences> {
     vimMode: get<boolean>(KEY_VIM_MODE) ?? DEFAULT_PREFERENCES.vimMode,
     editorWordWrap:
       get<boolean>(KEY_EDITOR_WORD_WRAP) ?? DEFAULT_PREFERENCES.editorWordWrap,
+    editorWordWrapColumn: clampEditorWordWrapColumn(
+      get<number>(KEY_EDITOR_WORD_WRAP_COLUMN) ??
+        DEFAULT_PREFERENCES.editorWordWrapColumn,
+    ),
     showHidden:
       get<boolean>(KEY_SHOW_HIDDEN) ??
       get<boolean>(LEGACY_KEY_SHOW_HIDDEN_DIRS) ??
@@ -741,6 +752,21 @@ export async function setEditorWordWrap(value: boolean): Promise<void> {
   await writePref(KEY_EDITOR_WORD_WRAP, value);
 }
 
+export function clampEditorWordWrapColumn(value: number): number {
+  if (!Number.isFinite(value)) return EDITOR_WORD_WRAP_COLUMN_DEFAULT;
+  return Math.min(
+    EDITOR_WORD_WRAP_COLUMN_MAX,
+    Math.max(EDITOR_WORD_WRAP_COLUMN_MIN, Math.round(value)),
+  );
+}
+
+export async function setEditorWordWrapColumn(value: number): Promise<void> {
+  await writePref(
+    KEY_EDITOR_WORD_WRAP_COLUMN,
+    clampEditorWordWrapColumn(value),
+  );
+}
+
 export async function setShowHidden(value: boolean): Promise<void> {
   await writePref(KEY_SHOW_HIDDEN, value);
 }
@@ -940,6 +966,7 @@ export async function onPreferencesChange(
     [KEY_RECENT_MODELS]: "recentModelIds",
     [KEY_VIM_MODE]: "vimMode",
     [KEY_EDITOR_WORD_WRAP]: "editorWordWrap",
+    [KEY_EDITOR_WORD_WRAP_COLUMN]: "editorWordWrapColumn",
     [KEY_SHOW_HIDDEN]: "showHidden",
     [KEY_EXPLORER_GIT_DECORATIONS]: "explorerGitDecorations",
     [KEY_TERMINAL_WEBGL_ENABLED]: "terminalWebglEnabled",
