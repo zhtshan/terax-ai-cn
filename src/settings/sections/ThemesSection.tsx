@@ -168,22 +168,14 @@ export function ThemesSection() {
       {backdrop === "none" ? null : (
         <SettingRow
           title={tr(
-            "settings.themes.windowVibrancy",
             backdrop === "mica"
-              ? { defaultValue: "Mica background" }
-              : { defaultValue: "Window vibrancy" },
+              ? "settings.themes.windowVibrancyMica"
+              : "settings.themes.windowVibrancy",
           )}
           description={tr(
-            "settings.themes.windowVibrancyDesc",
             backdrop === "mica"
-              ? {
-                  defaultValue:
-                    "Blend the header, status bar and gutters into the desktop wallpaper. Windows 11 only.",
-                }
-              : {
-                  defaultValue:
-                    "Frost the header, status bar and gutters over what is behind the window. Panes stay solid.",
-                },
+              ? "settings.themes.windowVibrancyMicaDesc"
+              : "settings.themes.windowVibrancyDesc",
           )}
         >
           <Switch
