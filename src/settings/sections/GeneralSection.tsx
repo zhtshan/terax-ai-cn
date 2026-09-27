@@ -537,10 +537,10 @@ export function GeneralSection() {
               variant="outline"
               size="xs"
               disabled={!agentNotifications || notificationTestPending}
-              title={notificationTestTitle(notificationTest)}
+              title={t(notificationTestTitleKey(notificationTest))}
               onClick={() => void testNotification()}
             >
-              {notificationTestLabel(notificationTest)}
+              {t(notificationTestLabelKey(notificationTest))}
             </Button>
             <Switch
               checked={agentNotifications}
@@ -599,37 +599,35 @@ function Label({ children }: { children: React.ReactNode }) {
   );
 }
 
-function notificationTestLabel(status: NotificationTestState): string {
-  const { t } = useTranslation();
+function notificationTestLabelKey(status: NotificationTestState): string {
   switch (status) {
     case "waiting":
-      return t("settings.general.agentNotificationSwitching");
+      return "settings.general.agentNotificationSwitching";
     case "sending":
-      return t("settings.general.agentNotificationSending");
+      return "settings.general.agentNotificationSending";
     case "requested":
-      return t("settings.general.agentNotificationRequested");
+      return "settings.general.agentNotificationRequested";
     case "denied":
-      return t("settings.general.agentNotificationDenied");
+      return "settings.general.agentNotificationDenied";
     case "failed":
-      return t("settings.general.agentNotificationFailed");
+      return "settings.general.agentNotificationFailed";
     default:
-      return t("settings.general.agentNotificationTestIdle");
+      return "settings.general.agentNotificationTestIdle";
   }
 }
 
-function notificationTestTitle(status: NotificationTestState): string {
-  const { t } = useTranslation();
+function notificationTestTitleKey(status: NotificationTestState): string {
   switch (status) {
     case "waiting":
-      return t("settings.general.agentNotificationWaitTitle");
+      return "settings.general.agentNotificationWaitTitle";
     case "requested":
-      return t("settings.general.agentNotificationRequestedTitle");
+      return "settings.general.agentNotificationRequestedTitle";
     case "denied":
-      return t("settings.general.agentNotificationDeniedTitle");
+      return "settings.general.agentNotificationDeniedTitle";
     case "failed":
-      return t("settings.general.agentNotificationFailedTitle");
+      return "settings.general.agentNotificationFailedTitle";
     default:
-      return t("settings.general.agentNotificationTestTitle");
+      return "settings.general.agentNotificationTestTitle";
   }
 }
 
