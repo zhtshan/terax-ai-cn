@@ -1183,7 +1183,7 @@
   "sidebar": {
     "files": "文件",
     "search": "搜索",
-    "sourceControl": "源代码管理"
+    "sourceControl": "Git"
   },
   "themes": {
     "descriptions": {

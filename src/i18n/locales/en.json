@@ -641,7 +641,7 @@
   "sidebar": {
     "files": "Files",
     "search": "Search",
-    "sourceControl": "Source Control"
+    "sourceControl": "Git"
   },
   "agents": {
     "notifications": {
