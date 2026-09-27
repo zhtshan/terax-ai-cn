@@ -54,6 +54,34 @@ describe("ErrorBoundary", () => {
     );
   });
 
+  it("persists a stringified payload when the thrown value is not an Error", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    function Weird(): never {
+      throw { code: 42, message: "object-throw" };
+    }
+    render(
+      <ErrorBoundary>
+        <Weird />
+      </ErrorBoundary>,
+    );
+    const call = vi.mocked(logError).mock.calls[0]?.[0] ?? "";
+    // The legacy [object Object] loss is the bug we're guarding against;
+    // both code and message must reach the log.
+    expect(call).toContain("42");
+    expect(call).toContain("object-throw");
+  });
+
+  it("persists the componentStack from the React error info", () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    render(
+      <ErrorBoundary>
+        <Bomb />
+      </ErrorBoundary>,
+    );
+    const call = vi.mocked(logError).mock.calls[0]?.[0] ?? "";
+    expect(call).toContain("componentStack:");
+  });
+
   it("renders children untouched when nothing throws", () => {
     render(
       <ErrorBoundary>
