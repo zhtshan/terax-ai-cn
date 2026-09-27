@@ -2,6 +2,38 @@
 
 All notable changes to Terax 中文版. Format loosely follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/); versions follow [SemVer](https://semver.org/) (pre-`1.0`, minor bumps may include breaking changes).
 
+## [0.8.11] - 2026-09-28
+
+### Added
+- 退出应用时弹确认框，防止误关丢失工作现场
+- 标签页右键菜单新增「关闭右侧」「关闭其他」，编辑器与终端标签页支持复制路径和相对路径，终端标签页支持向右/向下分屏
+- LSP inlay hints 视口拉取与 widget 渲染，状态 pill 展示服务器 work-done 进度（`$/progress` 接入运行时状态）
+- LSP 会话级通用 rawRequest 入口（`lspRawRequest`），Shift-Alt 方向键按语义节点扩展收缩选区
+- 文件树多选与批量移动/删除，数字感知自然排序
+- 侧栏与工作区收入圆角浮动面板，面板 chrome 与 header 细节抛光
+- 终端光标样式设置，可禁用运行中进程的关闭确认
+- 编辑器可配置折行列与极简代码滚动条
+- 代理通知声音与通知声音偏好，通知投递加固（notificationGate 门控与测试按钮）
+- agentLaunchCommands 启动命令偏好（launcher 移植）
+- 默认主题改为中性石墨色并新增 Xcode 主题
+- 原生窗口 backdrop 层（窗口透明效果与 backdrop 设置），设置面板 WindowVibrancy 开关
+- CLI 内置认证控制面，感知 pane 的文件打开路由到编辑器
+- Git 嵌套仓库定位 UI 完整接线
+- 快捷键：⌘B 切换文件面板，⌘⇧B 固定打开源代码管理侧栏，mod+shift+period 切换隐藏文件
+- Cmd+F 与 Cmd+Shift+F 触发时先清空输入再聚焦检索框
+
+### Fixed
+- Open With 打开的文件不再被会话恢复清除
+- 标签页交互处理改进，终端外部链接改经原生打开器
+- Markdown 行内代码字号继承文本上下文
+- 侧栏宽度跨窗口缩放保持一致
+- fish 集成脚本防 conda 提示符递归
+- 设置画面通知测试辅助函数改为纯 key 映射，修复渲染崩溃
+- 渲染崩溃日志完整保留非 Error 抛出物与 componentStack
+- CLI 控制面生命周期加固与请求处理
+- 补齐上游对齐遗漏（EditorStack 面板边框、侧栏 Git 标签、CLI 端点校验测试）
+- 批量文件操作、通知测试、启动命令校验与 WindowVibrancy 提示文案补齐中英键值
+
 ## [0.8.10] - 2026-09-08
 
 ### Added
