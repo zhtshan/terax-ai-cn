@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import { displayError } from "@/lib/teraxErrors";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { currentWorkspaceEnv } from "@/modules/workspace";
@@ -470,7 +471,7 @@ export function useFileTree(rootPath: string | null, options?: Options) {
         }
       });
       await Promise.all([...parents].map((p) => fetchChildren(p)));
-      if (anyFailed) toast.error("Delete failed for one or more items");
+      if (anyFailed) toast.error(i18n.t("explorer.deleteFailed"));
     },
     [fetchChildren, options],
   );
@@ -547,12 +548,21 @@ export function useFileTree(rootPath: string | null, options?: Options) {
 
       for (const item of conflicting) {
         const resolution = await new Promise<"replace" | "skip">((resolve) => {
-          toast.warning(`"${item.name}" already exists`, {
-            duration: Infinity,
-            action: { label: "Replace", onClick: () => resolve("replace") },
-            cancel: { label: "Skip", onClick: () => resolve("skip") },
-            onDismiss: () => resolve("skip"),
-          });
+          toast.warning(
+            i18n.t("explorer.moveNameExists", { name: item.name }),
+            {
+              duration: Infinity,
+              action: {
+                label: i18n.t("explorer.replace"),
+                onClick: () => resolve("replace"),
+              },
+              cancel: {
+                label: i18n.t("explorer.skip"),
+                onClick: () => resolve("skip"),
+              },
+              onDismiss: () => resolve("skip"),
+            },
+          );
         });
         if (resolution === "skip") continue;
         try {
@@ -570,7 +580,7 @@ export function useFileTree(rootPath: string | null, options?: Options) {
       await Promise.all([...parents].map((p) => fetchChildren(p)));
 
       if (!anySucceeded && anyUnexpectedFailure) {
-        toast.error("Move failed");
+        toast.error(i18n.t("explorer.moveFailed"));
       }
     },
     [fetchChildren, options],

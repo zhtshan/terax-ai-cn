@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import type { PaneNode } from "@/modules/terminal";
 
 export const AGENT_LAUNCHERS = [
@@ -65,18 +66,31 @@ export function validateAgentLaunchCommand(
   value: unknown,
 ): AgentCommandValidation {
   if (typeof value !== "string") {
-    return { ok: false, error: "Enter a start command." };
+    return {
+      ok: false,
+      error: i18n.t("settings.agents.launchCommandRequired"),
+    };
   }
   const command = value.trim();
-  if (!command) return { ok: false, error: "Enter a start command." };
+  if (!command) {
+    return {
+      ok: false,
+      error: i18n.t("settings.agents.launchCommandRequired"),
+    };
+  }
   if (command.length > MAX_AGENT_COMMAND_LENGTH) {
     return {
       ok: false,
-      error: `Keep the command under ${MAX_AGENT_COMMAND_LENGTH} characters.`,
+      error: i18n.t("settings.agents.launchCommandTooLong", {
+        limit: MAX_AGENT_COMMAND_LENGTH,
+      }),
     };
   }
   if (CONTROL_CHARACTERS.test(command)) {
-    return { ok: false, error: "Use a single-line command." };
+    return {
+      ok: false,
+      error: i18n.t("settings.agents.launchCommandSingleLine"),
+    };
   }
   return { ok: true, command };
 }

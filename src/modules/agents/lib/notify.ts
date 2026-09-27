@@ -1,3 +1,4 @@
+import i18n from "@/i18n";
 import {
   isPermissionGranted,
   requestPermission,
@@ -37,8 +38,8 @@ export async function testAgentOsNotification(
   withSound = true,
 ): Promise<OsNotificationResult> {
   const result = await osNotify(
-    "Terax notifications are working",
-    "You will be notified when an agent needs your attention.",
+    i18n.t("settings.general.agentNotificationTestOsTitle"),
+    i18n.t("settings.general.agentNotificationTestOsBody"),
   );
   if (result === "requested" && withSound) playAgentNotificationSound();
   return result;
