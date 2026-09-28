@@ -1,5 +1,6 @@
 pub mod agent;
 pub mod agent_alias_state;
+pub mod control;
 pub mod fs;
 pub mod git;
 pub mod history;
@@ -9,4 +10,5 @@ pub mod proc;
 pub mod pty;
 pub mod secrets;
 pub mod shell;
+pub mod vibrancy;
 pub mod workspace;

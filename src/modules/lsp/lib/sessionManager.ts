@@ -10,6 +10,7 @@ import type { RawDocumentSymbol, TeraxLspClient } from "./client";
 import { detectBinary } from "./detect";
 import { getLspNavigator } from "./navigator";
 import { type LspPreset, serverForLanguage } from "./presets";
+import { applyProgress } from "./progress";
 import { useLspRuntimeStore } from "./runtimeStore";
 import type { TauriLspTransport } from "./transport";
 import { fileUriToPath, pathToFileUri } from "./uri";
@@ -120,7 +121,10 @@ export async function acquireDocExtension(
 
   const uri = pathToFileUri(path);
   const languageId = preset.languages[langId] ?? langId;
-  const mod = await import("./client");
+  const [mod, inlay] = await Promise.all([
+    import("./client"),
+    import("./inlayHints"),
+  ]);
   const extension: Extension = [
     mod.lspInteractions({
       client: managed.client,
@@ -131,6 +135,7 @@ export async function acquireDocExtension(
         if (target) getLspNavigator()?.openFile(target, line);
       },
     }),
+    inlay.lspInlayHints({ client: managed.client, documentUri: uri }),
     mod.languageServerWithTransport({
       client: managed.client,
       transport: managed.transport,
@@ -195,6 +200,10 @@ async function createSession(
   }
 
   const transport = new TauriLspTransport();
+  transport.onProgress = (event) => {
+    const rt = useLspRuntimeStore.getState();
+    rt.setProgress(key, applyProgress(rt.progress[key] ?? null, event));
+  };
   try {
     await transport.start({
       command: preset.command,
@@ -384,6 +393,35 @@ export async function requestDocumentSymbols(
   if (!managed.client.capabilities?.documentSymbolProvider) return null;
 
   return managed.client.textDocumentSymbol({ textDocument: { uri } });
+}
+
+// 稳定扩展面：任意 LSP 方法经现有会话透传，新增能力（如 inlay hints）无需
+// 改本模块或 Rust。null 表示无可用会话或未启用；请求失败 reject 由调用方
+// 分类，不做 per-method capabilities 预检（通用通道无法枚举 provider 字段）。
+export async function lspRawRequest(
+  path: string,
+  langId: string,
+  method: string,
+  params: unknown,
+): Promise<unknown | null> {
+  const prefs = usePreferencesStore.getState();
+  const preset = serverForLanguage(
+    langId,
+    prefs.lspCustomServers,
+    prefs.lspActivation,
+  );
+  if (!preset || prefs.lspActivation[preset.id] !== "enabled") return null;
+
+  const uri = pathToFileUri(path);
+  const managed = [...sessions.values()].find(
+    (m) => m.preset.id === preset.id && !m.closing && m.refs.has(uri),
+  );
+  if (!managed) return null;
+
+  await managed.client.initializePromise;
+  if (managed.closing || !sessions.has(managed.key)) return null;
+
+  return managed.client.rawRequest(method, params);
 }
 
 export function notifyDocumentSaved(path: string): void {

@@ -36,6 +36,7 @@ export type ShortcutId =
   | "search.focusPanel"
   | "explorer.findFiles"
   | "explorer.focus"
+  | "explorer.toggleHidden"
   | "view.zoomIn"
   | "view.zoomOut"
   | "view.zoomReset"
@@ -46,8 +47,10 @@ export type ShortcutId =
   | "agent.focusAttention"
   | "settings.open"
   | "sidebar.toggle"
+  | "sidebar.openSourceControl"
   | "editor.undo"
   | "editor.redo"
+  | "editor.save"
   | "editor.aiComplete"
   | "editor.codeComplete"
   | "editor.goBack"
@@ -303,19 +306,31 @@ export const SHORTCUTS: Shortcut[] = [
     id: "sidebar.toggle",
     label: "Toggle file explorer",
     group: "View",
-    // Plain Mod+B toggles the sidebar everywhere EXCEPT a focused terminal,
-    // where it's handed to the shell / Claude Code (its "run in background"
-    // key). Mod+Shift+B always toggles, including from inside a terminal.
-    defaultBindings: [
-      { [MOD_PROP]: true, key: "b" },
-      { [MOD_PROP]: true, shift: true, key: "b" },
-    ],
+    // Mod+B cycles the explorer view: hidden -> expand on explorer, another
+    // view shown -> switch to explorer, explorer shown -> collapse. In a
+    // focused terminal it is still handed to the shell (its "run in
+    // background" key). Mod+Shift+B opens source control (fixed open).
+    defaultBindings: [{ [MOD_PROP]: true, key: "b" }],
+  },
+  {
+    id: "sidebar.openSourceControl",
+    label: "Open source control",
+    group: "View",
+    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "b" }],
   },
   {
     id: "explorer.focus",
     label: "Toggle file explorer focus",
     group: "View",
     defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "e" }],
+  },
+  {
+    id: "explorer.toggleHidden",
+    label: "Toggle hidden files",
+    group: "View",
+    // Finder's toggle. The binding is on the physical Period key, so it holds
+    // on layouts where Shift+. types something else.
+    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "." }],
   },
   {
     id: "view.zoomIn",
@@ -365,6 +380,14 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Redo",
     group: "Editor",
     defaultBindings: [{ [MOD_PROP]: true, key: "y" }],
+  },
+  // Mod+S at the app layer so WKWebView cannot steal "Save Page" (#969).
+  // CodeMirror also binds Mod-s; the global handler preventDefaults first.
+  {
+    id: "editor.save",
+    label: "Save file",
+    group: "Editor",
+    defaultBindings: [{ [MOD_PROP]: true, key: "s" }],
   },
   {
     id: "editor.aiComplete",
@@ -421,8 +444,8 @@ const CODE_TO_KEY: Record<string, string> = {
   Space: " ",
 };
 
-// macOS Option combinations rewrite e.key ("«", "…", dead keys); the
-// physical key survives in e.code.
+// Option and Shift combinations rewrite e.key (macOS Option gives "«", "…",
+// dead keys; Shift turns "." into ">"); the physical key survives in e.code.
 function keyFromCode(code: string): string | null {
   if (code.startsWith("Key")) return code.slice(3).toLowerCase();
   if (code.startsWith("Digit")) return code.slice(5);
@@ -441,7 +464,8 @@ export function matchBinding(
   if (id === "tab.selectByIndex") {
     if (!/^[1-9]$/.test(e.key)) return false;
   } else if (eventKey !== bindingKey) {
-    if (!binding.alt || keyFromCode(e.code) !== bindingKey) return false;
+    if (!binding.alt && !binding.shift) return false;
+    if (keyFromCode(e.code) !== bindingKey) return false;
   }
 
   return (

@@ -15,6 +15,13 @@ const SIDEBAR_WIDTH_STORAGE_KEY = "terax.sidebar.width";
 const SIDEBAR_VIEW_STORAGE_KEY = "terax.sidebar.view";
 const SIDEBAR_COLLAPSED_STORAGE_KEY = "terax.sidebar.collapsed";
 
+export function shouldPersistSidebarWidth(
+  width: number,
+  isUserInteraction: boolean,
+): boolean {
+  return isUserInteraction && width > 0;
+}
+
 function clampSidebarWidth(width: number): number {
   return Math.min(
     SIDEBAR_MAX_WIDTH,
@@ -56,6 +63,24 @@ function readSidebarCollapsed(): boolean {
   } catch {
     return false;
   }
+}
+
+type PanelLike = { getSize: () => { asPercentage: number }; resize: (v: string) => void };
+
+export function openSidebarViewCore(
+  panel: PanelLike | null,
+  sidebarWidth: number,
+  view: SidebarViewId,
+  currentView: SidebarViewId,
+  persistView: (v: SidebarViewId) => void,
+): void {
+  const collapsed = panel ? panel.getSize().asPercentage <= 0 : false;
+  if (collapsed) {
+    panel?.resize(`${sidebarWidth}px`);
+    if (view !== currentView) persistView(view);
+    return;
+  }
+  if (view !== currentView) persistView(view);
 }
 
 type FocusableExplorer = {
@@ -122,20 +147,39 @@ export function useSidebarPanel(
     [persistSidebarView, sidebarView],
   );
 
-  const persistSidebarWidth = useCallback((next: number) => {
-    sidebarWidthRef.current = next;
-    if (sidebarWidthWriteTimerRef.current) {
-      window.clearTimeout(sidebarWidthWriteTimerRef.current);
-    }
-    sidebarWidthWriteTimerRef.current = window.setTimeout(() => {
-      sidebarWidthWriteTimerRef.current = 0;
-      try {
-        window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(next));
-      } catch {
-        // ignore
+// Open-direction only: never collapses. Cycle semantics (same view closes)
+  // live in cycleSidebarView; this serves fixed view shortcuts.
+  const openSidebarView = useCallback(
+    (view: SidebarViewId) => {
+      openSidebarViewCore(
+        sidebarRef.current,
+        sidebarWidthRef.current,
+        view,
+        sidebarView,
+        persistSidebarView,
+      );
+    },
+    [sidebarView],
+  );
+
+  const persistSidebarWidth = useCallback(
+    (next: number, isUserInteraction: boolean) => {
+      if (!shouldPersistSidebarWidth(next, isUserInteraction)) return;
+      sidebarWidthRef.current = next;
+      if (sidebarWidthWriteTimerRef.current) {
+        window.clearTimeout(sidebarWidthWriteTimerRef.current);
       }
-    }, 200);
-  }, []);
+      sidebarWidthWriteTimerRef.current = window.setTimeout(() => {
+        sidebarWidthWriteTimerRef.current = 0;
+        try {
+          window.localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(next));
+        } catch {
+          // ignore
+        }
+      }, 200);
+    },
+    [],
+  );
 
   useEffect(() => {
     return () => {
@@ -186,6 +230,7 @@ export function useSidebarPanel(
     persistSidebarCollapsed,
     toggleSidebar,
     cycleSidebarView,
+    openSidebarView,
     persistSidebarWidth,
     toggleExplorerFocus,
   };

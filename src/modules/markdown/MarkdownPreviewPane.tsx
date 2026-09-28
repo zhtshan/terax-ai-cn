@@ -6,6 +6,7 @@ import { invoke } from "@tauri-apps/api/core";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { defaultUrlTransform, Streamdown, type UrlTransform } from "streamdown";
+import { MarkdownLink } from "./MarkdownLink";
 import { markdownImageDirname, resolveImageUrl } from "./lib/markdownImages";
 import { MarkdownViewToggle } from "./MarkdownViewToggle";
 
@@ -27,7 +28,7 @@ type Props = {
   onSetView: (mode: "rendered" | "raw") => void;
 };
 
-const components = { code: MarkdownCode };
+const components = { a: MarkdownLink, code: MarkdownCode };
 
 export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
   const { t } = useTranslation();
@@ -73,7 +74,7 @@ export function MarkdownPreviewPane({ path, visible, onSetView }: Props) {
   return (
     <div
       className={cn(
-        "relative flex h-full w-full flex-col overflow-hidden rounded-md border border-border/60 bg-background",
+        "relative flex h-full w-full flex-col overflow-hidden bg-background",
         !visible && "pointer-events-none",
       )}
     >

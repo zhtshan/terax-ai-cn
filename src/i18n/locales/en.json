@@ -99,7 +99,29 @@
       "restoreWindowDesc": "Reopen the main window where you left it. Applies on next launch.",
       "shellNoBlocks": "Command blocks and directory tracking are unavailable for this shell.",
       "shellWsl": "Shell for the integrated terminal. WSL spaces use the distro login shell. Existing tabs keep their shell.",
-      "shellDefault": "Shell for new terminal tabs. Existing tabs keep their shell."
+      "shellDefault": "Shell for new terminal tabs. Existing tabs keep their shell.",
+      "cursorStyle": "Cursor style",
+      "cursorStyleDesc": "Shape of the terminal cursor.",
+      "cursorStyleBar": "Bar",
+      "cursorStyleBlock": "Block",
+      "cursorStyleUnderline": "Underline",
+      "agentNotificationSwitching": "Switch apps...",
+      "agentNotificationSending": "Sending...",
+      "agentNotificationRequested": "Requested",
+      "agentNotificationDenied": "Blocked",
+      "agentNotificationFailed": "Failed",
+      "agentNotificationTestIdle": "Test in 2s",
+      "agentNotificationWaitTitle": "Switch to another app to verify native delivery",
+      "agentNotificationRequestedTitle": "The native notification was requested",
+      "agentNotificationDeniedTitle": "Notifications are disabled by the system",
+      "agentNotificationFailedTitle": "Terax could not request a native notification",
+      "agentNotificationTestTitle": "Send a native test notification after two seconds",
+      "agentNotificationTestOsTitle": "Terax notifications are working",
+      "agentNotificationTestOsBody": "You will be notified when an agent needs your attention.",
+      "confirmCloseRunning": "Confirm before killing a running process",
+      "confirmCloseRunningDesc": "Ask before closing a terminal tab or quitting while a command is still running. Unsaved editor changes are always confirmed.",
+      "notificationSound": "Notification sound",
+      "notificationSoundDesc": "Play a sound with agent notifications and in-app alerts."
     },
     "shortcuts": {
       "title": "Shortcuts",
@@ -225,6 +247,9 @@
       "required": "Required.",
       "handleInvalid": "Lowercase letters, digits, and dashes only.",
       "handleInUse": "Already in use.",
+      "launchCommandRequired": "Enter a start command.",
+      "launchCommandTooLong": "Keep the command under {{limit}} characters.",
+      "launchCommandSingleLine": "Use a single-line command.",
       "terminalCommand": "Terminal command",
       "terminalAgent": "Terminal agent",
       "terminalAliases": {
@@ -313,7 +338,10 @@
       "languageOverrides": "Language overrides",
       "languageOverridesDesc": "Use a different formatter for specific languages (e.g. Ruff for Python).",
       "addOverride": "Add override",
-      "removeOverride": "Remove override"
+      "removeOverride": "Remove override",
+      "wrapColumn": "Wrap column",
+      "wrapColumnDesc": "Soft-wrap at this column, or earlier when the editor is narrower.",
+      "columns": "columns"
     },
     "themes": {
       "title": "Themes",
@@ -328,6 +356,10 @@
       "editorTheme": "Editor theme",
       "editorThemeDesc": "Syntax colors for the code editor. Auto follows the app theme.",
       "editorThemeAuto": "Auto (match app theme)",
+      "windowVibrancy": "Window vibrancy",
+      "windowVibrancyDesc": "Frost the header, status bar and gutters over what is behind the window. Panes stay solid.",
+      "windowVibrancyMica": "Mica background",
+      "windowVibrancyMicaDesc": "Blend the header, status bar and gutters into the desktop wallpaper. Windows 11 only.",
       "background": "Background",
       "notAnImage": "{{file}}: not an image",
       "failedToImportImage": "failed to import image",
@@ -609,7 +641,7 @@
   "sidebar": {
     "files": "Files",
     "search": "Search",
-    "sourceControl": "Source Control"
+    "sourceControl": "Git"
   },
   "agents": {
     "notifications": {
@@ -701,7 +733,8 @@
       "explorerFindFiles": "Search files by name",
       "sidebarToggle": "Toggle file explorer",
       "aiToggle": "Toggle AI agent",
-      "aiAskSelection": "Ask AI about selection"
+      "aiAskSelection": "Ask AI about selection",
+      "toggleHiddenFiles": "Toggle hidden files"
     },
     "disabled": {
       "blocksTab": "Blocks tab",
@@ -773,6 +806,7 @@
     "activeTitle": "Language server active",
     "runningStarting": "<1>{{command}}</1> is starting for this workspace.",
     "runningActive": "<1>{{command}}</1> is running for this workspace.",
+    "progressLine": "Current task: {{label}}",
     "definitionFailed": "Go to definition failed",
     "noDefinition": "No definition found",
     "referencesFailed": "Find references failed",
@@ -883,7 +917,15 @@
     "externalReload": "Reload (discard local changes)",
     "externalKeep": "Keep my version",
     "pin": "Pin",
-    "unpin": "Unpin"
+    "unpin": "Unpin",
+    "copyPath": "Copy Path",
+    "copyRelativePath": "Copy Relative Path",
+    "splitRight": "Split right",
+    "splitDown": "Split down",
+    "closeRight": "Close Tabs to the Right",
+    "closeOthers": "Close Other Tabs",
+    "closeAnyway": "Close Anyway",
+    "checking": "Checking..."
   },
   "explorer": {
     "noCurrentDir": "No current directory",
@@ -906,6 +948,12 @@
     "rename": "Rename",
     "clickToDelete": "Click again to confirm",
     "delete": "Delete",
+    "batchDelete": "Delete {{count}} items",
+    "deleteFailed": "Delete failed for one or more items",
+    "moveFailed": "Move failed",
+    "moveNameExists": "\"{{name}}\" already exists",
+    "replace": "Replace",
+    "skip": "Skip",
     "searchFilesPlaceholder": "Search files…",
     "searching": "Searching…",
     "noMatches": "No matches",
@@ -984,7 +1032,9 @@
     "closeTerminalDesc": "A process is running. Closing this tab will terminate it.",
     "closePaneDesc": "A process is running. Closing this pane will terminate it.",
     "quitTitle": "Quit Terax?",
-    "quitAnyway": "Quit Anyway"
+    "quitAnyway": "Quit Anyway",
+    "quit": "Quit",
+    "quitConfirm": "Are you sure you want to quit Terax?"
   },
   "window": {
     "minimize": "Minimize",
@@ -1059,6 +1109,9 @@
     "stageToEnableCommit": "Stage changes to enable commit.",
     "enterCommitMessage": "Enter a commit message to enable commit.",
     "commitHint": "Commit with {{shortcut}}.",
+    "repositoryLabel": "Repository",
+    "followActiveContext": "Follow Active Context",
+    "repositoryTargetFixedLoading": "Wait for the selected repository to finish loading.",
     "commitPlaceholder": "Commit message",
     "charCount": "Ch: {{count}}",
     "toCommit": "to commit",
@@ -1137,7 +1190,8 @@
   },
   "themes": {
     "descriptions": {
-      "terax-default": "The default Terax look — clean glass over neutral surfaces.",
+      "terax-default": "Clean neutral greys with a full-color terminal.",
+      "xcode": "Apple's system colors with a systemBlue accent.",
       "claude": "Warm clay accent on paper.",
       "kanagawa": "Inky dark inspired by Hokusai; warm Lotus light.",
       "kanagawa-dragon": "The muted, near-black Dragon variant of Kanagawa.",
@@ -1203,6 +1257,7 @@
       "ai.askSelection": "Ask AI about selection",
       "agent.focusAttention": "Jump to agent needing attention",
       "sidebar.toggle": "Toggle file explorer",
+      "sidebar.openSourceControl": "Open source control",
       "explorer.focus": "Toggle file explorer focus",
       "view.zoomIn": "Zoom in",
       "view.zoomOut": "Zoom out",

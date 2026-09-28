@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
-import { getBindingTokens, type KeyBinding, matchBinding } from "./shortcuts";
+import { MOD_PROP } from "@/lib/platform";
+import {
+  getBindingTokens,
+  type KeyBinding,
+  matchBinding,
+  SHORTCUTS,
+} from "./shortcuts";
 
 // These tests run in the vitest node environment, where the Tauri OS plugin is
 // unavailable so `IS_MAC` resolves to false. That makes the non-mac token
@@ -93,6 +99,31 @@ describe("matchBinding", () => {
     ).toBe(false);
   });
 
+  it("falls back to the physical code for shift combinations", () => {
+    // Shift turns Period into ">"; ⌘⇧. still matches the "." binding.
+    expect(
+      matchBinding(
+        event({ key: ">", code: "Period", shiftKey: true, metaKey: true }),
+        { key: ".", shift: true, meta: true },
+      ),
+    ).toBe(true);
+    expect(
+      matchBinding(
+        event({ key: ">", code: "Comma", shiftKey: true, metaKey: true }),
+        { key: ".", shift: true, meta: true },
+      ),
+    ).toBe(false);
+  });
+
+  it("does not fall back to the physical code without alt or shift", () => {
+    expect(
+      matchBinding(event({ key: "ç", code: "KeyC", metaKey: true }), {
+        key: "c",
+        meta: true,
+      }),
+    ).toBe(false);
+  });
+
   it("only accepts digit keys for the jump-to-tab shortcut", () => {
     expect(
       matchBinding(event({ key: "3" }), { key: "1" }, "tab.selectByIndex"),
@@ -100,5 +131,17 @@ describe("matchBinding", () => {
     expect(
       matchBinding(event({ key: "x" }), { key: "1" }, "tab.selectByIndex"),
     ).toBe(false);
+  });
+});
+
+describe("SHORTCUTS registry", () => {
+  it("binds Mod+S to editor.save", () => {
+    const save = SHORTCUTS.find((s) => s.id === "editor.save");
+    expect(save).toBeDefined();
+    expect(save!.defaultBindings).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ key: "s", [MOD_PROP]: true }),
+      ]),
+    );
   });
 });

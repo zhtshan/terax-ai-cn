@@ -1,6 +1,6 @@
 pub mod modules;
 
-use modules::{agent, agent_alias_state, fs, git, history, lsp, net, pty, secrets, shell, workspace};
+use modules::{agent, agent_alias_state, control, fs, git, history, lsp, net, pty, secrets, shell, vibrancy, workspace};
 use std::path::PathBuf;
 use std::sync::Mutex;
 use tauri::{Emitter, Manager, State, WebviewUrl, WebviewWindowBuilder};
@@ -155,6 +155,45 @@ async fn open_settings_window(app: tauri::AppHandle, tab: Option<String>) -> Res
     Ok(())
 }
 
+#[cfg(target_os = "macos")]
+const QUIT_MENU_ID: &str = "terax-quit";
+
+/// Default menu with Cmd+Q rerouted: the predefined Quit sends `terminate:`,
+/// which exits without `CloseRequested`, bypassing the frontend quit guard.
+#[cfg(target_os = "macos")]
+fn macos_menu(app: &tauri::AppHandle) -> tauri::Result<tauri::menu::Menu<tauri::Wry>> {
+    use tauri::menu::{Menu, MenuItem, MenuItemKind};
+    let menu = Menu::default(app)?;
+    if let Some(app_menu) = menu.items()?.first().and_then(MenuItemKind::as_submenu) {
+        let items = app_menu.items()?;
+        if let Some(MenuItemKind::Predefined(_)) = items.last() {
+            app_menu.remove_at(items.len() - 1)?;
+            let label = format!("Quit {}", app.package_info().name);
+            app_menu.append(&MenuItem::with_id(
+                app,
+                QUIT_MENU_ID,
+                label,
+                true,
+                Some("CmdOrCtrl+Q"),
+            )?)?;
+        }
+    }
+    Ok(menu)
+}
+
+#[cfg(target_os = "macos")]
+fn request_quit(app: &tauri::AppHandle) {
+    match app.get_webview_window("main") {
+        Some(main) => {
+            let _ = main.unminimize();
+            let _ = main.show();
+            let _ = main.set_focus();
+            let _ = main.close();
+        }
+        None => app.exit(0),
+    }
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     #[cfg(windows)]
@@ -175,8 +214,16 @@ pub fn run() {
     let launch = parse_launch_target();
     let cli_dir = launch.dir.clone();
     workspace::init_launch_cwd(cli_dir.as_deref());
+    let control_state = control::ControlState::default();
+    let control_for_setup = control_state.clone();
 
     let builder = tauri::Builder::default();
+    #[cfg(target_os = "macos")]
+    let builder = builder.menu(macos_menu).on_menu_event(|app, event| {
+        if event.id() == QUIT_MENU_ID {
+            request_quit(app);
+        }
+    });
     #[cfg(target_os = "linux")]
     let builder = builder.plugin(tauri_plugin_clipboard_manager::init());
     builder
@@ -200,17 +247,18 @@ pub fn run() {
                 .build(),
         )
         .plugin(tauri_plugin_opener::init())
-        .setup(|_app| {
+        .setup(move |_app| {
+            if let Err(error) = control::start(_app.handle().clone(), control_for_setup.clone()) {
+                log::warn!("could not start Terax control server: {error}");
+            }
             // macOS skips parent() for the settings window, so tie its lifecycle
             // to the main window here instead. Other platforms keep parent().
+            // Destroyed only: CloseRequested may be vetoed by the quit dialog.
             #[cfg(target_os = "macos")]
             if let Some(main) = _app.get_webview_window("main") {
                 let handle = _app.handle().clone();
                 main.on_window_event(move |event| {
-                    if matches!(
-                        event,
-                        WindowEvent::CloseRequested { .. } | WindowEvent::Destroyed
-                    ) {
+                    if matches!(event, WindowEvent::Destroyed) {
                         if let Some(settings) = handle.get_webview_window("settings") {
                             let _ = settings.close();
                         }
@@ -220,6 +268,7 @@ pub fn run() {
             Ok(())
         })
         .manage(pty::PtyState::default())
+        .manage(control_state)
         .manage(shell::ShellState::default())
         .manage(net::AiStreamCancelState::default())
         .manage(secrets::SecretsState::default())
@@ -240,6 +289,8 @@ pub fn run() {
         .manage(LaunchFiles(Mutex::new(launch.files)))
         .invoke_handler(tauri::generate_handler![
             agent_alias_state::update_agent_aliases,
+            control::control_frontend_ready,
+            control::control_respond,
             pty::pty_open,
             pty::pty_write,
             pty::pty_resize,
@@ -311,6 +362,8 @@ pub fn run() {
             workspace::wsl_home,
             workspace::workspace_authorize,
             workspace::workspace_current_dir,
+            control::control_frontend_ready,
+            control::control_respond,
             get_launch_dir,
             get_launch_files,
             open_settings_window,
@@ -328,6 +381,8 @@ pub fn run() {
             history::history_commands,
             history::history_record,
             history::history_list,
+            vibrancy::window_backdrop_kind,
+            vibrancy::window_set_backdrop,
         ])
         .build(tauri::generate_context!())
         .expect("error while building tauri application")
@@ -338,6 +393,9 @@ pub fn run() {
                 tauri::RunEvent::Exit => {
                     if let Some(state) = app.try_state::<lsp::LspState>() {
                         state.kill_all();
+                    }
+                    if let Some(state) = app.try_state::<control::ControlState>() {
+                        state.shutdown();
                     }
                 }
                 // macOS delivers "Open With" files here, not as argv (cold and

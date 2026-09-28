@@ -1,3 +1,4 @@
+import { Button } from "@/components/ui/button";
 import {
   Select,
   SelectContent,
@@ -14,16 +15,23 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import {
+  type OsNotificationResult,
+  testAgentOsNotification,
+} from "@/modules/agents/lib/notify";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { ThemePref } from "@/modules/settings/store";
 import {
+  setAgentNotificationSound,
   setAgentNotifications,
   setAutostart,
+  setConfirmCloseRunningTerminal,
   setDefaultWorkspaceEnv,
   setExplorerGitDecorations,
   setRestoreWindowState,
   setShowHidden,
   setTerminalCursorBlink,
+  setTerminalCursorStyle,
   setTerminalFontFamily,
   setTerminalFontSize,
   setTerminalFontWeight,
@@ -65,6 +73,11 @@ const TERMINAL_FONT_WEIGHTS = [
   { value: "600", label: "Semi-Bold" },
   { value: "bold", label: "Bold" },
 ] as const;
+const TERMINAL_CURSOR_STYLES = [
+  { value: "bar", labelKey: "settings.general.cursorStyleBar" },
+  { value: "block", labelKey: "settings.general.cursorStyleBlock" },
+  { value: "underline", labelKey: "settings.general.cursorStyleUnderline" },
+] as const;
 const LETTER_SPACINGS = [-4, -3, -2, -1, 0, 1, 2, 3, 4] as const;
 
 type ShellInfo = { name: string; path: string; integrated: boolean };
@@ -72,6 +85,13 @@ const SHELL_AUTO = "auto";
 const ZOOM_MIN = 0.5;
 const ZOOM_MAX = 2.0;
 const ZOOM_STEP = 0.05;
+const NOTIFICATION_TEST_DELAY_MS = 2_000;
+
+type NotificationTestState =
+  | OsNotificationResult
+  | "idle"
+  | "waiting"
+  | "sending";
 
 export function GeneralSection() {
   const { t, i18n } = useTranslation();
@@ -87,6 +107,7 @@ export function GeneralSection() {
     (s) => s.terminalWebglEnabled,
   );
   const terminalCursorBlink = usePreferencesStore((s) => s.terminalCursorBlink);
+  const terminalCursorStyle = usePreferencesStore((s) => s.terminalCursorStyle);
   const terminalFontFamily = usePreferencesStore((s) => s.terminalFontFamily);
   const terminalFontWeight = usePreferencesStore((s) => s.terminalFontWeight);
   const terminalShell = usePreferencesStore((s) => s.terminalShell);
@@ -98,8 +119,27 @@ export function GeneralSection() {
   );
   const terminalFontSize = usePreferencesStore((s) => s.terminalFontSize);
   const terminalScrollback = usePreferencesStore((s) => s.terminalScrollback);
+  const confirmCloseRunningTerminal = usePreferencesStore(
+    (s) => s.confirmCloseRunningTerminal,
+  );
   const zoomLevel = usePreferencesStore((s) => s.zoomLevel);
   const agentNotifications = usePreferencesStore((s) => s.agentNotifications);
+  const agentNotificationSound = usePreferencesStore(
+    (s) => s.agentNotificationSound,
+  );
+  const [notificationTest, setNotificationTest] =
+    useState<NotificationTestState>("idle");
+  const notificationTestPending =
+    notificationTest === "waiting" || notificationTest === "sending";
+
+  const testNotification = async () => {
+    setNotificationTest("waiting");
+    await new Promise((resolve) =>
+      setTimeout(resolve, NOTIFICATION_TEST_DELAY_MS),
+    );
+    setNotificationTest("sending");
+    setNotificationTest(await testAgentOsNotification(agentNotificationSound));
+  };
 
   useEffect(() => {
     let alive = true;
@@ -274,6 +314,33 @@ export function GeneralSection() {
             onCheckedChange={(v) => void setTerminalCursorBlink(v)}
           />
         </SettingRow>
+        <SettingRow
+          title={t("settings.general.cursorStyle")}
+          description={t("settings.general.cursorStyleDesc")}
+        >
+          <Select
+            value={terminalCursorStyle}
+            onValueChange={(v) => void setTerminalCursorStyle(v)}
+          >
+            <SelectTrigger
+              value={terminalCursorStyle}
+              className="h-8 w-28 text-[12px]"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {TERMINAL_CURSOR_STYLES.map((style) => (
+                <SelectItem
+                  key={style.value}
+                  value={style.value}
+                  className="text-[12px]"
+                >
+                  {t(style.labelKey)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </SettingRow>
         <FontFamilyInput
           value={terminalFontFamily}
           onCommit={(v) => void setTerminalFontFamily(v)}
@@ -447,6 +514,15 @@ export function GeneralSection() {
             </SelectContent>
           </Select>
         </SettingRow>
+        <SettingRow
+          title={t("settings.general.confirmCloseRunning")}
+          description={t("settings.general.confirmCloseRunningDesc")}
+        >
+          <Switch
+            checked={confirmCloseRunningTerminal}
+            onCheckedChange={(v) => void setConfirmCloseRunningTerminal(v)}
+          />
+        </SettingRow>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -455,9 +531,35 @@ export function GeneralSection() {
           title={t("settings.general.agentNotifications")}
           description={t("settings.general.agentNotificationsDesc")}
         >
+          <div className="flex items-center gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="xs"
+              disabled={!agentNotifications || notificationTestPending}
+              title={t(notificationTestTitleKey(notificationTest))}
+              onClick={() => void testNotification()}
+            >
+              {t(notificationTestLabelKey(notificationTest))}
+            </Button>
+            <Switch
+              checked={agentNotifications}
+              disabled={notificationTestPending}
+              onCheckedChange={(v) => {
+                setNotificationTest("idle");
+                void setAgentNotifications(v);
+              }}
+            />
+          </div>
+        </SettingRow>
+        <SettingRow
+          title={t("settings.general.notificationSound")}
+          description={t("settings.general.notificationSoundDesc")}
+        >
           <Switch
-            checked={agentNotifications}
-            onCheckedChange={(v) => void setAgentNotifications(v)}
+            checked={agentNotificationSound}
+            disabled={!agentNotifications || notificationTestPending}
+            onCheckedChange={(v) => void setAgentNotificationSound(v)}
           />
         </SettingRow>
       </div>
@@ -495,6 +597,38 @@ function Label({ children }: { children: React.ReactNode }) {
       {children}
     </span>
   );
+}
+
+function notificationTestLabelKey(status: NotificationTestState): string {
+  switch (status) {
+    case "waiting":
+      return "settings.general.agentNotificationSwitching";
+    case "sending":
+      return "settings.general.agentNotificationSending";
+    case "requested":
+      return "settings.general.agentNotificationRequested";
+    case "denied":
+      return "settings.general.agentNotificationDenied";
+    case "failed":
+      return "settings.general.agentNotificationFailed";
+    default:
+      return "settings.general.agentNotificationTestIdle";
+  }
+}
+
+function notificationTestTitleKey(status: NotificationTestState): string {
+  switch (status) {
+    case "waiting":
+      return "settings.general.agentNotificationWaitTitle";
+    case "requested":
+      return "settings.general.agentNotificationRequestedTitle";
+    case "denied":
+      return "settings.general.agentNotificationDeniedTitle";
+    case "failed":
+      return "settings.general.agentNotificationFailedTitle";
+    default:
+      return "settings.general.agentNotificationTestTitle";
+  }
 }
 
 function FontFamilyInput({

@@ -1,5 +1,6 @@
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { type RefObject, useCallback, useEffect, useRef, useState } from "react";
+import { usePreferencesStore } from "@/modules/settings/preferences";
 import type { Tab } from "@/modules/tabs";
 import { leafHasForegroundProcess, leafIds } from "@/modules/terminal";
 
@@ -17,6 +18,14 @@ export type AppCloseBlocker = {
   busyTerminal: boolean;
 };
 
+/**
+ * The opt-out only covers running processes, so it stays hidden whenever the
+ * same prompt is also the last warning before discarding unsaved buffers.
+ */
+export function canOptOutOfAppClosePrompt(blocker: AppCloseBlocker): boolean {
+  return blocker.busyTerminal && blocker.dirtyEditors === 0;
+}
+
 export function useAppCloseGuard(tabsRef: RefObject<Tab[]>) {
   const [pendingAppClose, setPendingAppClose] =
     useState<AppCloseBlocker | null>(null);
@@ -29,17 +38,16 @@ export function useAppCloseGuard(tabsRef: RefObject<Tab[]>) {
       .onCloseRequested(async (event) => {
         if (forceClose.current) return;
         event.preventDefault();
-        const busyTerminal = await anyTerminalBusy(tabsRef.current);
+        // Opting out skips the per-leaf IPC entirely; it never relaxes the
+        // unsaved-changes guard below.
+        const busyTerminal =
+          usePreferencesStore.getState().confirmCloseRunningTerminal &&
+          (await anyTerminalBusy(tabsRef.current));
         // Count after the await so edits made during the IPC check are seen.
         const dirtyEditors = tabsRef.current.filter(
           (t) => t.kind === "editor" && t.dirty,
         ).length;
-        if (dirtyEditors > 0 || busyTerminal) {
-          setPendingAppClose({ dirtyEditors, busyTerminal });
-        } else {
-          forceClose.current = true;
-          void getCurrentWindow().close();
-        }
+        setPendingAppClose({ dirtyEditors, busyTerminal });
       })
       .then((un) => {
         if (disposed) un();
@@ -51,13 +59,17 @@ export function useAppCloseGuard(tabsRef: RefObject<Tab[]>) {
     };
   }, [tabsRef]);
 
-  const confirmAppClose = useCallback(() => {
-    setPendingAppClose(null);
+  const quitNow = useCallback(() => {
     forceClose.current = true;
     void getCurrentWindow().close();
   }, []);
 
+  const confirmAppClose = useCallback(() => {
+    setPendingAppClose(null);
+    quitNow();
+  }, [quitNow]);
+
   const cancelAppClose = useCallback(() => setPendingAppClose(null), []);
 
-  return { pendingAppClose, confirmAppClose, cancelAppClose };
+  return { pendingAppClose, confirmAppClose, cancelAppClose, quitNow };
 }

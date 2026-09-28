@@ -1,14 +1,18 @@
+import i18n from "@/i18n";
 import {
   isPermissionGranted,
   requestPermission,
   sendNotification,
 } from "@tauri-apps/plugin-notification";
+import { playAgentNotificationSound } from "./sound";
+
+export type OsNotificationResult = "requested" | "denied" | "failed";
 
 let granted = false;
 
 async function ensurePermission(): Promise<boolean> {
-  // Cache only the positive result: a transient denial (e.g. the OS prompt
-  // dismissed while unfocused) must not disable notifications for the session.
+  // Cache only the positive result so an OS-level settings change can be
+  // observed on a later attempt after a denied check.
   if (granted) return true;
   let ok = await isPermissionGranted();
   if (!ok) ok = (await requestPermission()) === "granted";
@@ -16,10 +20,27 @@ async function ensurePermission(): Promise<boolean> {
   return ok;
 }
 
-export async function osNotify(title: string, body: string): Promise<void> {
+export async function osNotify(
+  title: string,
+  body: string,
+): Promise<OsNotificationResult> {
   try {
-    if (await ensurePermission()) sendNotification({ title, body });
+    if (!(await ensurePermission())) return "denied";
+    sendNotification({ title, body });
+    return "requested";
   } catch (e) {
     console.warn("[terax] os notification failed:", e);
+    return "failed";
   }
+}
+
+export async function testAgentOsNotification(
+  withSound = true,
+): Promise<OsNotificationResult> {
+  const result = await osNotify(
+    i18n.t("settings.general.agentNotificationTestOsTitle"),
+    i18n.t("settings.general.agentNotificationTestOsBody"),
+  );
+  if (result === "requested" && withSound) playAgentNotificationSound();
+  return result;
 }

@@ -99,7 +99,29 @@
       "agentNotificationsDesc": "当 Claude Code 或 Codex 等在终端中运行的编码代理需要你的输入或完成任务时进行提醒。Terax 未聚焦时使用系统通知,否则使用应用内提示。",
       "shellNoBlocks": "此 Shell 不支持命令块与目录跟踪。",
       "shellWsl": "集成终端使用的 Shell。WSL 空间使用发行版登录 Shell。已有标签页保持原 Shell。",
-      "shellDefault": "新建终端标签页使用的 Shell。已有标签页保持原 Shell。"
+      "shellDefault": "新建终端标签页使用的 Shell。已有标签页保持原 Shell。",
+      "cursorStyle": "光标样式",
+      "cursorStyleDesc": "终端光标的形状。",
+      "cursorStyleBar": "竖线",
+      "cursorStyleBlock": "块状",
+      "cursorStyleUnderline": "下划线",
+      "agentNotificationSwitching": "切换到应用…",
+      "agentNotificationSending": "发送中…",
+      "agentNotificationRequested": "已请求",
+      "agentNotificationDenied": "已阻止",
+      "agentNotificationFailed": "失败",
+      "agentNotificationTestIdle": "2 秒后测试",
+      "agentNotificationWaitTitle": "请切换到其他应用以验证原生投递",
+      "agentNotificationRequestedTitle": "已请求原生通知",
+      "agentNotificationDeniedTitle": "系统已禁用通知",
+      "agentNotificationFailedTitle": "Terax 无法请求原生通知",
+      "agentNotificationTestTitle": "两秒后发送原生测试通知",
+      "agentNotificationTestOsTitle": "Terax 通知已就绪",
+      "agentNotificationTestOsBody": "当代理需要你的关注时，会收到通知。",
+      "confirmCloseRunning": "结束运行中进程前确认",
+      "confirmCloseRunningDesc": "关闭终端标签页或退出时若有命令仍在运行则先询问。未保存的编辑器改动始终会确认。",
+      "notificationSound": "通知声音",
+      "notificationSoundDesc": "代理通知和应用内提示播放声音。"
     },
     "shortcuts": {
       "title": "快捷键",
@@ -225,6 +247,9 @@
       "required": "必填。",
       "handleInvalid": "仅限小写字母、数字和连字符。",
       "handleInUse": "已被使用。",
+      "launchCommandRequired": "请输入启动命令。",
+      "launchCommandTooLong": "命令请控制在 {{limit}} 个字符以内。",
+      "launchCommandSingleLine": "请使用单行命令。",
       "terminalCommand": "终端命令名",
       "terminalAgent": "终端 Agent",
       "terminalAliases": {
@@ -313,7 +338,10 @@
       "languageOverrides": "语言覆写",
       "languageOverridesDesc": "为指定语言使用不同的格式化器(例如 Python 使用 Ruff)。",
       "addOverride": "添加覆写",
-      "removeOverride": "移除覆写"
+      "removeOverride": "移除覆写",
+      "wrapColumn": "折行列",
+      "wrapColumnDesc": "在此列软折行,编辑器更窄时提前折行。",
+      "columns": "列"
     },
     "themes": {
       "title": "主题",
@@ -328,6 +356,10 @@
       "editorTheme": "编辑器主题",
       "editorThemeDesc": "代码编辑器的语法配色,自动跟随应用主题。",
       "editorThemeAuto": "自动(跟随应用主题)",
+      "windowVibrancy": "窗口透明效果",
+      "windowVibrancyDesc": "让标题栏、状态栏和边框磨砂透出窗口后方的内容，窗格保持不透明。",
+      "windowVibrancyMica": "Mica 背景",
+      "windowVibrancyMicaDesc": "让标题栏、状态栏和边框融入桌面壁纸。仅 Windows 11。",
       "background": "背景",
       "notAnImage": "{{file}}: 不是图片",
       "failedToImportImage": "导入图片失败",
@@ -696,7 +728,8 @@
       "explorerFindFiles": "按名称搜索文件",
       "sidebarToggle": "切换文件浏览器",
       "aiToggle": "切换 AI 代理",
-      "aiAskSelection": "向 AI 询问选区"
+      "aiAskSelection": "向 AI 询问选区",
+      "toggleHiddenFiles": "切换隐藏文件"
     },
     "disabled": {
       "blocksTab": "Blocks 标签页",
@@ -768,6 +801,7 @@
     "activeTitle": "语言服务器已激活",
     "runningStarting": "<1>{{command}}</1> 正在为此工作区启动。",
     "runningActive": "<1>{{command}}</1> 正在为此工作区运行。",
+    "progressLine": "当前任务：{{label}}",
     "definitionFailed": "跳转到定义失败",
     "noDefinition": "未找到定义",
     "referencesFailed": "查找引用失败",
@@ -878,7 +912,15 @@
     "externalReload": "重新加载（放弃本地修改）",
     "externalKeep": "保留我的版本",
     "pin": "定位",
-    "unpin": "取消定位"
+    "unpin": "取消定位",
+    "copyPath": "复制路径",
+    "copyRelativePath": "复制相对路径",
+    "splitRight": "向右分屏",
+    "splitDown": "向下分屏",
+    "closeRight": "关闭右侧标签页",
+    "closeOthers": "关闭其他标签页",
+    "closeAnyway": "仍然关闭",
+    "checking": "检查中…"
   },
   "explorer": {
     "noCurrentDir": "没有当前目录",
@@ -901,6 +943,12 @@
     "rename": "重命名",
     "clickToDelete": "再次点击确认",
     "delete": "删除",
+    "batchDelete": "删除 {{count}} 个项目",
+    "deleteFailed": "删除失败：有项目未能删除",
+    "moveFailed": "移动失败",
+    "moveNameExists": "\"{{name}}\" 已存在",
+    "replace": "替换",
+    "skip": "跳过",
     "searchFilesPlaceholder": "搜索文件…",
     "searching": "搜索中…",
     "noMatches": "无匹配",
@@ -979,7 +1027,9 @@
     "closeTerminalDesc": "有进程正在运行。关闭此标签页将终止它。",
     "closePaneDesc": "有进程正在运行。关闭此分屏将终止它。",
     "quitTitle": "退出 Terax？",
-    "quitAnyway": "仍然退出"
+    "quitAnyway": "仍然退出",
+    "quit": "退出",
+    "quitConfirm": "确定要退出 Terax 吗？"
   },
   "window": {
     "minimize": "最小化",
@@ -1054,6 +1104,9 @@
     "stageToEnableCommit": "暂存更改以启用提交。",
     "enterCommitMessage": "输入提交信息以启用提交。",
     "commitHint": "使用 {{shortcut}} 提交。",
+    "repositoryLabel": "仓库",
+    "followActiveContext": "跟随当前上下文",
+    "repositoryTargetFixedLoading": "请等待所选仓库完成加载。",
     "commitPlaceholder": "提交信息",
     "charCount": "字符: {{count}}",
     "toCommit": "提交",
@@ -1130,11 +1183,12 @@
   "sidebar": {
     "files": "文件",
     "search": "搜索",
-    "sourceControl": "源代码管理"
+    "sourceControl": "Git"
   },
   "themes": {
     "descriptions": {
-      "terax-default": "Terax 默认外观 —— 干净玻璃质感叠加中性色面板。",
+      "terax-default": "干净的中性灰,搭配全彩终端。",
+      "xcode": "Apple 系统配色,以 systemBlue 为强调色。",
       "claude": "暖色调陶土点缀于纸面。",
       "kanagawa": "灵感来自北斋的深墨黑;搭配温暖的 Lotus 浅色。",
       "kanagawa-dragon": "Kanagawa 的 Dragon 变体,深沉近黑、低对比。",
@@ -1200,6 +1254,7 @@
       "ai.askSelection": "向 AI 询问选区",
       "agent.focusAttention": "跳转到需要关注的代理",
       "sidebar.toggle": "切换文件浏览器",
+      "sidebar.openSourceControl": "打开源代码管理",
       "explorer.focus": "切换文件浏览器焦点",
       "view.zoomIn": "放大",
       "view.zoomOut": "缩小",

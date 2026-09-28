@@ -27,6 +27,7 @@ import {
 import { AiComposerProvider } from "@/modules/ai/lib/composer";
 import { native } from "@/modules/ai/lib/native";
 import { CommandPalette, createCommandItems } from "@/modules/command-palette";
+import { useControlBridge } from "@/modules/control";
 import {
   type EditorPaneHandle,
   NewEditorDialog,
@@ -55,6 +56,7 @@ import { setKnownHome } from "@/modules/markdown";
 import type { PreviewPaneHandle } from "@/modules/preview";
 import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
+import { setShowHidden } from "@/modules/settings/store";
 import {
   shouldDisablePaneSwapShortcut,
   type ShortcutHandlers,
@@ -69,6 +71,7 @@ import {
 } from "@/modules/sidebar";
 import {
   SourceControlPanel,
+  useRepositoryTargeting,
   useSourceControlContext,
 } from "@/modules/source-control";
 import {
@@ -79,6 +82,8 @@ import {
 } from "@/modules/spaces";
 import { StatusBar } from "@/modules/statusbar";
 import {
+  planCloseOtherTabs,
+  planCloseTabsToRight,
   TabSwitcherHud,
   useTabSwitcher,
   useTabs,
@@ -102,11 +107,18 @@ import {
   writeToSession,
   getIsLeafBusy,
 } from "@/modules/terminal";
-import { ThemeProvider, useThemeFileEditing } from "@/modules/theme";
+import {
+  ThemeProvider,
+  useThemeFileEditing,
+  WindowVibrancyBridge,
+} from "@/modules/theme";
 import { UpdaterDialog } from "@/modules/updater";
-import { useWorkspaceEnvStore, type WorkspaceEnv } from "@/modules/workspace";
+import {
+  useWorkspaceEnvStore,
+  workspaceScopeKey,
+  type WorkspaceEnv,
+} from "@/modules/workspace";
 import { listen } from "@tauri-apps/api/event";
-import { getCurrentWindow } from "@tauri-apps/api/window";
 import type { SearchAddon } from "@xterm/addon-search";
 import {
   useCallback,
@@ -143,6 +155,7 @@ export default function App() {
     activeId,
     setActiveId,
     allocId,
+    booted,
     replaceTabs,
     moveTabToSpace,
     reorderTab,
@@ -168,6 +181,7 @@ export default function App() {
     openCommitHistoryTab,
     openCommitFileDiffTab,
     closeTab,
+    closeTabs,
     updateTab,
     selectByIndex,
     setLeafCwd,
@@ -182,7 +196,7 @@ export default function App() {
   // Mirror `tabs` into a ref so callbacks scheduled with `setTimeout`
   // (e.g. cdInNewTab) read the latest pane state instead of a stale closure.
   const tabsRef = useRef(tabs);
-  tabsRef.current = tabs;
+  const activeIdRef = useRef(activeId);
 
   const activeTerminalTab = useMemo(() => {
     const t = tabs.find((x) => x.id === activeId);
@@ -257,6 +271,13 @@ export default function App() {
 
   const activeSpaceId = useSpaces((s) => s.activeId);
   const spacesHydrated = useSpaces((s) => s.hydrated);
+  const activeSpaceIdRef = useRef(activeSpaceId);
+  useLayoutEffect(() => {
+    tabsRef.current = tabs;
+    activeIdRef.current = activeId;
+    activeSpaceIdRef.current = activeSpaceId;
+  }, [tabs, activeId, activeSpaceId]);
+  const sourceControlSpaceId = activeSpaceId ?? DEFAULT_SPACE_ID;
 
   const handleWorkspaceChange = useCallback(
     async (env: WorkspaceEnv) => {
@@ -328,9 +349,15 @@ export default function App() {
     persistSidebarCollapsed,
     toggleSidebar,
     cycleSidebarView,
+    openSidebarView,
     persistSidebarWidth,
     toggleExplorerFocus,
   } = useSidebarPanel(explorerRef);
+
+  const toggleHiddenFiles = useCallback(() => {
+    openSidebarView("explorer");
+    void setShowHidden(!usePreferencesStore.getState().showHidden);
+  }, [openSidebarView]);
 
   const workspaceContainerRef = useRef<HTMLDivElement>(null);
   const {
@@ -509,8 +536,22 @@ export default function App() {
     handlePathDeleted,
   } = useTabCloseGuards({ tabs, disposeTab, closePane: closePaneByLeaf });
 
-  const { pendingAppClose, confirmAppClose, cancelAppClose } =
+  const { pendingAppClose, confirmAppClose, cancelAppClose, quitNow } =
     useAppCloseGuard(tabsRef);
+
+  const handleCloseTabsToRight = useCallback(
+    (id: number) => {
+      closeTabs(id, planCloseTabsToRight(spaceTabs, id, activeId));
+    },
+    [closeTabs, planCloseTabsToRight, spaceTabs, activeId],
+  );
+
+  const handleCloseOtherTabs = useCallback(
+    (id: number) => {
+      closeTabs(id, planCloseOtherTabs(spaceTabs, id, activeId));
+    },
+    [closeTabs, planCloseOtherTabs, spaceTabs, activeId],
+  );
 
   useEffect(() => {
     const live = new Set<number>();
@@ -691,22 +732,44 @@ export default function App() {
     [openFileTab, newMarkdownTab],
   );
 
-  // "Open With" files arrive via the event (warm start) and get_launch_files
-  // (cold start, before this listener attaches). Backend already authorized
-  // each parent; openFileTab dedupes by path, so both paths can't double-open.
+  const openLaunchFiles = useCallback(
+    (paths: string[]) => {
+      for (const path of paths) handleOpenFile(path, true);
+    },
+    [handleOpenFile],
+  );
+
+  // Warm start: the backend emits once the window already exists. Attach on
+  // mount so an "Open With" that lands mid-restore isn't dropped — the backend
+  // also seeds the drain-once state, so the boot drain below is the safety net.
   useEffect(() => {
     let unlisten: (() => void) | undefined;
-    const openAll = (paths: string[]) => {
-      for (const path of paths) handleOpenFile(path, true);
-    };
+    let disposed = false;
     (async () => {
-      unlisten = await listen<string[]>("terax:open-file", (e) => {
-        openAll(e.payload);
+      const off = await listen<string[]>("terax:open-file", (e) => {
+        openLaunchFiles(e.payload);
       });
-      openAll(await consumeLaunchFiles());
+      if (disposed) off();
+      else unlisten = off;
     })();
-    return () => unlisten?.();
-  }, [handleOpenFile]);
+    return () => {
+      disposed = true;
+      unlisten?.();
+    };
+  }, [openLaunchFiles]);
+
+  // Cold start: files arrive as CLI args (Linux/Windows) or the macOS open-files
+  // event, and get_launch_files drains them once. Wait for `booted` — the spaces
+  // restore ends in replaceTabs(), which overwrites the whole tab list and would
+  // discard a launch tab opened before it, making the file flash open and vanish.
+  // Booting first also lands the tab in the restored active space, and lets
+  // openFileTab dedupe against a session that already had the file open.
+  useEffect(() => {
+    if (!booted) return;
+    void (async () => {
+      openLaunchFiles(await consumeLaunchFiles());
+    })();
+  }, [booted, openLaunchFiles]);
 
   const handlePathRenamed = useCallback(
     (from: string, to: string) => {
@@ -756,6 +819,32 @@ export default function App() {
     }
     return null;
   })();
+  const isRepositoryContextCurrent = useCallback(
+    (spaceId: string, workspaceKey: string) => {
+      const currentSpaceId =
+        useSpaces.getState().activeId ?? DEFAULT_SPACE_ID;
+      const currentWorkspaceKey = workspaceScopeKey(
+        useWorkspaceEnvStore.getState().env,
+      );
+      return spaceId === currentSpaceId && workspaceKey === currentWorkspaceKey;
+    },
+    [],
+  );
+  const openSourceControl = useCallback(() => {
+    openSidebarView("source-control");
+  }, [openSidebarView]);
+  const {
+    repositoryTarget: sourceControlRepositoryTarget,
+    openInSourceControl: handleOpenRepositoryInSourceControl,
+    openGitHistory: handleOpenGitHistoryForPath,
+    followActiveContext: handleFollowRepositoryContext,
+  } = useRepositoryTargeting({
+    spaceId: sourceControlSpaceId,
+    workspaceKey: workspaceScopeKey(workspaceEnv),
+    isContextCurrent: isRepositoryContextCurrent,
+    openSourceControl,
+    openCommitHistoryTab,
+  });
   const { sourceControl, toggleSourceControl, openGitGraphFromContext } =
     useSourceControlContext({
       activeTab,
@@ -767,6 +856,7 @@ export default function App() {
       launchCwdResolved,
       home,
       sidebarView,
+      repositoryTarget: sourceControlRepositoryTarget,
       cycleSidebarView,
       openCommitHistoryTab,
     });
@@ -971,6 +1061,7 @@ export default function App() {
         else searchInlineRef.current?.focus();
       },
       "search.focusPanel": () => {
+        setSearchOptions((prev) => ({ ...prev, pattern: "", replacement: "" }));
         const panel = sidebarRef.current;
         if (panel && panel.getSize().asPercentage <= 0) {
           panel.resize(`${sidebarWidthRef.current}px`);
@@ -992,7 +1083,9 @@ export default function App() {
         if (t) activateAgentTarget(t.tabId, t.leafId);
       },
       "settings.open": () => void openSettingsWindow(),
-      "sidebar.toggle": toggleSidebar,
+      "sidebar.toggle": () => cycleSidebarView("explorer"),
+      "sidebar.openSourceControl": () => openSidebarView("source-control"),
+      "explorer.toggleHidden": toggleHiddenFiles,
       "explorer.focus": toggleExplorerFocus,
       "view.zoomIn": zoomIn,
       "view.zoomOut": zoomOut,
@@ -1000,6 +1093,9 @@ export default function App() {
       "view.zenMode": () => setZenMode((v) => !v),
       "editor.undo": () => editorRefs.current.get(activeId)?.undo(),
       "editor.redo": () => editorRefs.current.get(activeId)?.redo(),
+      "editor.save": () => {
+        void editorRefs.current.get(activeId)?.save();
+      },
       "editor.aiComplete": () =>
         editorRefs.current.get(activeId)?.triggerAiComplete(),
       "editor.codeComplete": () =>
@@ -1035,8 +1131,10 @@ export default function App() {
       togglePanelAndFocus,
       toggleMini,
       askFromSelection,
-      toggleSidebar,
+      cycleSidebarView,
+      openSidebarView,
       toggleExplorerFocus,
+      toggleHiddenFiles,
       searchPanelRef,
       zoomIn,
       zoomOut,
@@ -1059,6 +1157,7 @@ export default function App() {
       if (
         id === "editor.undo" ||
         id === "editor.redo" ||
+        id === "editor.save" ||
         id === "editor.aiComplete" ||
         id === "editor.codeComplete"
       ) {
@@ -1120,10 +1219,11 @@ export default function App() {
     (id: number, h: EditorPaneHandle | null) => {
       if (h) {
         editorRefs.current.set(id, h);
-        const line = pendingGotoLine.current.get(id);
-        if (line != null) {
-          pendingGotoLine.current.delete(id);
-          h.gotoLine(line);
+        const pending = pendingEditorNavigation.current.get(id);
+        if (pending != null) {
+          pendingEditorNavigation.current.delete(id);
+          if (pending.line === undefined) h.focus();
+          else h.gotoLine(pending.line, { focus: pending.focus });
         }
       } else {
         editorRefs.current.delete(id);
@@ -1179,14 +1279,14 @@ export default function App() {
         (t) => t.kind === "terminal" && hasLeaf(t.paneTree, leafId),
       );
       if (!tab || tab.kind !== "terminal") return;
-      // Last pane of the last tab: quit instead of respawning a shell.
+      // Last pane of the last tab: the user typed `exit`, so quit without asking.
       if (leafIds(tab.paneTree).length === 1 && all.length === 1) {
-        void getCurrentWindow().close();
+        quitNow();
       } else {
         closePaneByLeaf(leafId);
       }
     },
-    [closePaneByLeaf],
+    [closePaneByLeaf, quitNow],
   );
 
   const handleEditorDirty = useCallback(
@@ -1341,12 +1441,13 @@ export default function App() {
             openNewPreview: () => openPreviewTab(""),
             openGitGraph: openGitGraphFromContext,
             toggleSourceControl,
+            toggleHiddenFiles,
             closeActiveTabOrPane: handleCloseTabOrPane,
             splitPaneRight: () => splitActivePaneInActiveTab("row"),
             splitPaneDown: () => splitActivePaneInActiveTab("col"),
             focusSearch: () => searchInlineRef.current?.focus(),
             focusExplorerSearch: () => explorerRef.current?.focusSearch(),
-            toggleSidebar,
+            toggleExplorerView: () => cycleSidebarView("explorer"),
             toggleAi: togglePanelAndFocus,
             askAiSelection: askFromSelection,
             openSettings: () => void openSettingsWindow(),
@@ -1371,15 +1472,61 @@ export default function App() {
       openPreviewTab,
       openGitGraphFromContext,
       toggleSourceControl,
+      toggleHiddenFiles,
       handleCloseTabOrPane,
       splitActivePaneInActiveTab,
-      toggleSidebar,
+      cycleSidebarView,
+      openSidebarView,
       togglePanelAndFocus,
       askFromSelection,
       activeSpaceId,
       handleNewSpace,
     ],
   );
+
+  const pendingEditorNavigation = useRef<
+    Map<number, { line?: number; focus: boolean }>
+  >(new Map());
+
+  const openControlFile = useCallback(
+    ({
+      path,
+      line,
+      focus,
+      spaceId,
+    }: {
+      path: string;
+      line?: number;
+      focus: boolean;
+      spaceId: string;
+    }) => {
+      if (focus && useSpaces.getState().activeId !== spaceId) {
+        useSpaces.getState().setActive(spaceId);
+      }
+      const id = openFileTab(path, true, {
+        spaceId,
+        activate: focus,
+      });
+      const editor = editorRefs.current.get(id);
+      if (line !== undefined) {
+        if (editor) editor.gotoLine(line, { focus });
+        else pendingEditorNavigation.current.set(id, { line, focus });
+      } else if (focus) {
+        if (editor) editor.focus();
+        else pendingEditorNavigation.current.set(id, { focus: true });
+      }
+      return id;
+    },
+    [openFileTab],
+  );
+
+  useControlBridge({
+    ready: spacesHydrated && launchCwdResolved,
+    tabsRef,
+    activeTabIdRef: activeIdRef,
+    activeSpaceIdRef,
+    onOpen: openControlFile,
+  });
 
   const insertHistoryCommand = useMemo(
     () =>
@@ -1407,7 +1554,7 @@ export default function App() {
   const shell = (
     <ThemeProvider>
       <TooltipProvider>
-        <div className="relative flex h-screen flex-col overflow-hidden bg-background text-foreground">
+        <div className="relative flex h-screen flex-col overflow-hidden bg-frame text-foreground">
           {!zenMode && (
             <Header
               tabs={spaceTabs}
@@ -1420,10 +1567,13 @@ export default function App() {
               onNewEditor={() => setNewEditorOpen(true)}
               onNewGitGraph={openGitGraphFromContext}
               onClose={handleClose}
+              onCloseTabsToRight={handleCloseTabsToRight}
+              onCloseOtherTabs={handleCloseOtherTabs}
               onPin={pinTab}
               onTogglePin={togglePinTab}
               onRename={handleRenameTab}
               onReorder={reorderTabByGap}
+              onSplitPane={splitActivePane}
               onToggleSidebar={toggleSidebar}
               onOpenCommandPalette={() => openCommandPalette("commands")}
               onActivateAgent={onActivateAgent}
@@ -1435,6 +1585,7 @@ export default function App() {
               onOverrideLanguage={setOverrideLanguage}
               onExternalReload={handleExternalReload}
               onExternalKeep={handleExternalKeep}
+              workspaceRoot={explorerRoot}
             />
           )}
 
@@ -1442,6 +1593,10 @@ export default function App() {
             <ResizablePanelGroup
               orientation="horizontal"
               className="min-h-0 flex-1"
+              onLayoutChanged={(_, { isUserInteraction }) => {
+                const width = sidebarRef.current?.getSize().inPixels ?? 0;
+                persistSidebarWidth(width, isUserInteraction);
+              }}
             >
               <ResizablePanel
                 id="sidebar"
@@ -1456,124 +1611,137 @@ export default function App() {
                 collapsible
                 collapsedSize={0}
                 onResize={(size) => {
-                  if (size.inPixels > 0) persistSidebarWidth(size.inPixels);
                   persistSidebarCollapsed(size.inPixels <= 0);
                 }}
               >
-                <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-card">
-                  <div
-                    key={sidebarView}
-                    className="min-h-0 flex-1 terax-panel-in"
-                  >
-                    {sidebarView === "explorer" ? (
-                      <FileExplorer
-                        ref={explorerRef}
-                        rootPath={explorerRoot}
-                        gitStatus={
-                          explorerGitDecorations ? sourceControl.status : null
-                        }
-                        activeFilePath={explorerActiveFilePath}
-                        outlineItems={outlineItems}
-                        outlineUnavailableReason={outlineUnavailableReason}
-                        outlineLoading={outlineLoading}
-                        activeHeadingLine={activeHeadingLine}
-                        onJumpToHeading={handleJumpToHeading}
-                        onOpenFile={handleOpenFile}
-                        onPathRenamed={handlePathRenamed}
-                        onPathDeleted={handlePathDeleted}
-                        onRevealInTerminal={cdInNewTab}
-                        onAttachToAgent={handleAttachFileToAgent}
-                        onNavigate={sendCd}
-                        pathDropTarget={terminalPathDropTarget}
-                        onOpenCommitFile={openCommitFileDiffTab}
-                      />
-                    ) : sidebarView === "search" ? (
-                      <SearchPanel
-                        ref={searchPanelRef}
-                        rootPath={explorerRoot}
-                        options={searchOptions}
-                        onOptionsChange={setSearchOptions}
-                        results={searchRun.results}
-                        loading={searchRun.loading}
-                        error={searchRun.error}
-                        replaceState={replaceRun.state}
-                        onReplace={() => void replaceRun.replace()}
-                        onOpenHit={openContentHit}
-                      />
-                    ) : (
-                      <SourceControlPanel
-                        open
-                        sourceControl={sourceControl}
-                        onOpenDiff={openGitDiffTab}
-                        onOpenGitGraph={openGitGraphFromContext}
-                        onOpenFile={handleOpenFile}
-                        onNavigateToPath={cdInNewTab}
-                      />
-                    )}
+                <div className="h-full min-h-0 pl-2 pr-0.5">
+                  <div className="terax-pane flex h-full min-h-0 flex-col">
+                    <div
+                      key={sidebarView}
+                      className="min-h-0 flex-1 terax-panel-in"
+                    >
+                      {sidebarView === "explorer" ? (
+                        <FileExplorer
+                          ref={explorerRef}
+                          rootPath={explorerRoot}
+                          gitStatus={
+                            explorerGitDecorations ? sourceControl.status : null
+                          }
+                          activeFilePath={explorerActiveFilePath}
+                          outlineItems={outlineItems}
+                          outlineUnavailableReason={outlineUnavailableReason}
+                          outlineLoading={outlineLoading}
+                          activeHeadingLine={activeHeadingLine}
+                          onJumpToHeading={handleJumpToHeading}
+                          onOpenFile={handleOpenFile}
+                          onPathRenamed={handlePathRenamed}
+                          onPathDeleted={handlePathDeleted}
+                          onRevealInTerminal={cdInNewTab}
+                          onOpenInSourceControl={
+                            handleOpenRepositoryInSourceControl
+                          }
+                          onOpenGitHistory={handleOpenGitHistoryForPath}
+                          onAttachToAgent={handleAttachFileToAgent}
+                          onNavigate={sendCd}
+                          pathDropTarget={terminalPathDropTarget}
+                          onOpenCommitFile={openCommitFileDiffTab}
+                        />
+                      ) : sidebarView === "search" ? (
+                        <SearchPanel
+                          ref={searchPanelRef}
+                          rootPath={explorerRoot}
+                          options={searchOptions}
+                          onOptionsChange={setSearchOptions}
+                          results={searchRun.results}
+                          loading={searchRun.loading}
+                          error={searchRun.error}
+                          replaceState={replaceRun.state}
+                          onReplace={() => void replaceRun.replace()}
+                          onOpenHit={openContentHit}
+                        />
+                      ) : (
+                        <SourceControlPanel
+                          open
+                          sourceControl={sourceControl}
+                          onOpenDiff={openGitDiffTab}
+                          onOpenGitGraph={openGitGraphFromContext}
+                          onOpenFile={handleOpenFile}
+                          onNavigateToPath={cdInNewTab}
+                          repositoryTarget={sourceControlRepositoryTarget}
+                          onFollowRepositoryContext={
+                            handleFollowRepositoryContext
+                          }
+                        />
+                      )}
+                    </div>
+                    <SidebarRail
+                      activeView={sidebarView}
+                      onSelectView={persistSidebarView}
+                      changedCount={sourceControl.changedCount}
+                    />
                   </div>
-                  <SidebarRail
-                    activeView={sidebarView}
-                    onSelectView={persistSidebarView}
-                    changedCount={sourceControl.changedCount}
-                  />
                 </div>
               </ResizablePanel>
-              <ResizableHandle withHandle />
+              <ResizableHandle
+                className="w-1 rounded-full bg-transparent transition-colors duration-[var(--dur-fast)] after:w-4 hover:bg-border"
+              />
               <ResizablePanel id="workspace" defaultSize="78%" minSize="30%">
-                <div ref={workspaceContainerRef} className="flex h-full min-h-0 flex-col">
-                  <div className="relative min-h-0 flex-1">
-                    <WorkspaceSurface
-                      tabs={tabs}
-                      activeId={activeId}
-                      activeTab={activeTab}
-                      registerTerminalHandle={registerTerminalHandle}
-                      onSearchReady={handleSearchReady}
-                      onCwd={handleTerminalCwd}
-                      onExit={handleLeafExit}
-                      onFocusLeaf={handleFocusLeaf}
-                      onClosePane={handlePaneCloseByLeaf}
-                      registerEditorHandle={registerEditorHandle}
-                      onEditorDirtyChange={handleEditorDirty}
-                      onEditorExternalChange={handleEditorExternalChange}
-                      onEditorCloseTab={disposeTab}
-                      registerPreviewHandle={registerPreviewHandle}
-                      onPreviewUrlChange={handlePreviewUrl}
-                      onAiDiffAccept={(id) => respondToApproval(id, true)}
-                      onAiDiffReject={(id) => respondToApproval(id, false)}
-                      onOpenCommitFile={openCommitFileDiffTab}
-                      onGitHistorySearchHandle={setGitHistoryHandle}
-                      onSetMarkdownView={setMarkdownView}
-                      onOutlineChange={handleOutlineChange}
-                      onOutlineUnavailable={handleOutlineUnavailable}
-                      onOutlineLoading={handleOutlineLoading}
-                      onActiveHeadingChange={handleActiveHeadingChange}
-                      onJumpToHeading={handleJumpToHeading}
-                    />
-                  </div>
-
-                  {inputBarOpen && (
-                    <div
-                      onPointerDown={onInputBarHandlePointerDown}
-                      className="group relative h-1.5 shrink-0 cursor-ns-resize touch-none select-none"
-                    >
-                      <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-foreground/30" />
+                <div ref={workspaceContainerRef} className="h-full min-h-0 pl-0.5 pr-2">
+                  <div className="terax-pane flex h-full min-h-0 flex-col">
+                    <div className="relative min-h-0 flex-1">
+                      <WorkspaceSurface
+                        tabs={tabs}
+                        activeId={activeId}
+                        activeTab={activeTab}
+                        registerTerminalHandle={registerTerminalHandle}
+                        onSearchReady={handleSearchReady}
+                        onCwd={handleTerminalCwd}
+                        onExit={handleLeafExit}
+                        onFocusLeaf={handleFocusLeaf}
+                        onClosePane={handlePaneCloseByLeaf}
+                        registerEditorHandle={registerEditorHandle}
+                        onEditorDirtyChange={handleEditorDirty}
+                        onEditorExternalChange={handleEditorExternalChange}
+                        onEditorCloseTab={disposeTab}
+                        registerPreviewHandle={registerPreviewHandle}
+                        onPreviewUrlChange={handlePreviewUrl}
+                        onAiDiffAccept={(id) => respondToApproval(id, true)}
+                        onAiDiffReject={(id) => respondToApproval(id, false)}
+                        onOpenCommitFile={openCommitFileDiffTab}
+                        onGitHistorySearchHandle={setGitHistoryHandle}
+                        onSetMarkdownView={setMarkdownView}
+                        onOutlineChange={handleOutlineChange}
+                        onOutlineUnavailable={handleOutlineUnavailable}
+                        onOutlineLoading={handleOutlineLoading}
+                        onActiveHeadingChange={handleActiveHeadingChange}
+                        onJumpToHeading={handleJumpToHeading}
+                      />
                     </div>
-                  )}
-                  <div
-                    ref={inputBarWrapperRef}
-                    className="min-h-0 shrink-0 overflow-y-auto"
-                  >
-                    <WorkspaceInputBar
-                      isBlockTab={isBlockTab}
-                      isTerminalTab={isTerminalTab}
-                      activeLeafId={activeLeafId}
-                      cwd={activeCwd}
-                      home={home}
-                      hasComposer={hasComposer}
-                      panelOpen={panelOpen}
-                      keysLoaded={keysLoaded}
-                      onConnect={() => void openSettingsWindow("models")}
-                    />
+
+                    {inputBarOpen && (
+                      <div
+                        onPointerDown={onInputBarHandlePointerDown}
+                        className="group relative h-1.5 shrink-0 cursor-ns-resize touch-none select-none"
+                      >
+                        <div className="pointer-events-none absolute inset-x-3 top-1/2 h-px -translate-y-1/2 rounded-full bg-border/60 transition-colors group-hover:bg-foreground/30" />
+                      </div>
+                    )}
+                    <div
+                      ref={inputBarWrapperRef}
+                      className="min-h-0 shrink-0 overflow-y-auto"
+                    >
+                      <WorkspaceInputBar
+                        isBlockTab={isBlockTab}
+                        isTerminalTab={isTerminalTab}
+                        activeLeafId={activeLeafId}
+                        cwd={activeCwd}
+                        home={home}
+                        hasComposer={hasComposer}
+                        panelOpen={panelOpen}
+                        keysLoaded={keysLoaded}
+                        onConnect={() => void openSettingsWindow("models")}
+                      />
+                    </div>
                   </div>
                 </div>
               </ResizablePanel>
@@ -1595,6 +1763,8 @@ export default function App() {
               }
             />
           )}
+
+          <WindowVibrancyBridge />
 
           <AgentNotificationsBridge
             tabs={tabs}

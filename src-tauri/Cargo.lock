@@ -2826,6 +2826,7 @@ dependencies = [
  "objc2-core-foundation",
  "objc2-core-graphics",
  "objc2-foundation",
+ "objc2-quartz-core",
 ]
 
 [[package]]
@@ -4651,7 +4652,7 @@ dependencies = [
  "url",
  "webkit2gtk",
  "webview2-com",
- "window-vibrancy",
+ "window-vibrancy 0.6.0",
  "windows",
 ]
 
@@ -5051,11 +5052,12 @@ dependencies = [
 
 [[package]]
 name = "terax"
-version = "0.8.10"
+version = "0.8.11"
 dependencies = [
  "bytes",
  "dirs 6.0.0",
  "futures-util",
+ "getrandom 0.3.4",
  "globset",
  "grep-matcher",
  "grep-regex",
@@ -5087,9 +5089,31 @@ dependencies = [
  "tauri-plugin-updater",
  "tauri-plugin-window-state",
  "tempfile",
+ "terax-control-protocol",
  "tokio",
  "which",
+ "window-vibrancy 0.8.0",
  "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "terax-cli"
+version = "0.8.6"
+dependencies = [
+ "dirs 6.0.0",
+ "libc",
+ "serde_json",
+ "tempfile",
+ "terax-control-protocol",
+ "windows-sys 0.61.2",
+]
+
+[[package]]
+name = "terax-control-protocol"
+version = "0.8.6"
+dependencies = [
+ "serde",
+ "serde_json",
 ]
 
 [[package]]
@@ -6032,6 +6056,22 @@ dependencies = [
  "objc2-foundation",
  "raw-window-handle",
  "windows-sys 0.59.0",
+ "windows-version",
+]
+
+[[package]]
+name = "window-vibrancy"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fe6461139557c2245c3b9b34de2092e7af39460bf97ef4723bc5feb0cf66f831"
+dependencies = [
+ "objc2",
+ "objc2-app-kit",
+ "objc2-core-foundation",
+ "objc2-foundation",
+ "objc2-quartz-core",
+ "raw-window-handle",
+ "windows-sys 0.60.2",
  "windows-version",
 ]
 

@@ -17,13 +17,17 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { fmtShortcut, MOD_KEY, SHIFT_KEY } from "@/lib/platform";
 import { cn } from "@/lib/utils";
 import { perfMonitor } from "@/lib/perf-monitor";
+import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
   ALL_LANGUAGES,
   EXPOSED_LANGUAGES,
 } from "@/modules/editor/lib/languageDefinitions";
 import { resolveDisplayName } from "@/modules/editor/lib/languageResolver";
+import {
+  copyToClipboard,
+  relativePath,
+} from "@/modules/explorer/lib/contextActions";
 import { fileIconUrl } from "@/modules/explorer/lib/iconResolver";
-import { AgentIcon } from "@/modules/agents/lib/agentIcon";
 import {
   leafIds,
   ptyIdForLeaf,
@@ -32,10 +36,13 @@ import {
 } from "@/modules/terminal";
 import {
   Alert02Icon,
+  ArrowRight01Icon,
   Cancel01Icon,
+  CancelCircleIcon,
   CheckmarkCircle01Icon,
   Clock01Icon,
   ComputerTerminal02Icon,
+  Copy01Icon,
   GitBranchIcon,
   GitCompareIcon,
   Globe02Icon,
@@ -44,6 +51,7 @@ import {
   Pin02Icon,
   PencilEdit02Icon,
   PlusSignIcon,
+  SplitIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -60,7 +68,7 @@ import {
 import { useTranslation } from "react-i18next";
 import { labelFor } from "./lib/tabLabel";
 import { nextScrollLeftForTab } from "./lib/tabScroll";
-import type { EditorTab, Tab } from "./lib/useTabs";
+import { MAX_PANES_PER_TAB, type EditorTab, type Tab } from "./lib/useTabs";
 
 type Props = {
   tabs: Tab[];
@@ -73,6 +81,10 @@ type Props = {
   onNewEditor: () => void;
   onNewGitGraph: () => void;
   onClose: (id: number) => void;
+  /** Chrome-style: close every tab to the right of the given tab. */
+  onCloseTabsToRight: (id: number) => void;
+  /** Chrome-style: close every tab except the given tab. */
+  onCloseOtherTabs: (id: number) => void;
   /** Pin (promote) a preview tab to persistent on double-click. */
   onPin: (id: number) => void;
   /** Toggle pinned (locked in place, skipped during reorder). */
@@ -86,6 +98,10 @@ type Props = {
   /** Keep the local version and clear the external-change badge. */
   onExternalKeep?: (id: number) => void;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
+  /** Split a terminal tab's active pane in the given direction. */
+  onSplitPane?: (id: number, dir: "row" | "col") => void;
+  /** Workspace root used to compute relative paths for the copy menu items. */
+  workspaceRoot?: string | null;
   compact?: boolean;
 };
 
@@ -100,6 +116,8 @@ export function TabBar({
   onNewEditor,
   onNewGitGraph,
   onClose,
+  onCloseTabsToRight,
+  onCloseOtherTabs,
   onPin,
   onTogglePin,
   onRename,
@@ -107,6 +125,8 @@ export function TabBar({
   onExternalReload,
   onExternalKeep,
   onOverrideLanguage,
+  onSplitPane,
+  workspaceRoot,
   compact,
 }: Props) {
   const { t: tr } = useTranslation();
@@ -434,6 +454,11 @@ export function TabBar({
                             role="button"
                             tabIndex={-1}
                             data-no-drag
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onMouseDown={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                            }}
                             className="inline-flex shrink-0 cursor-pointer items-center justify-center rounded-sm p-1 -m-1 transition-all hover:bg-accent hover:text-accent-foreground hover:ring-1 hover:ring-primary/30 hover:shadow-[0_0_4px_var(--color-popover-foreground)]"
                           >
                             <TabIcon tab={t} />
@@ -585,6 +610,14 @@ export function TabBar({
                       role="button"
                       aria-label={tr('tabs.closeTab')}
                       data-no-drag
+                      onPointerDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
+                      onMouseDown={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                      }}
                       onClick={(e) => {
                         e.stopPropagation();
                         onClose(t.id);
@@ -599,6 +632,43 @@ export function TabBar({
                     </span>
                   )}
                 </TabsTrigger>
+              );
+
+              const atMaxPanes =
+                t.kind === "terminal" &&
+                leafIds(t.paneTree).length >= MAX_PANES_PER_TAB;
+
+              const copyPathItems = (path: string) => (
+                <>
+                  <ContextMenuItem
+                    className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                    onSelect={() => void copyToClipboard(path)}
+                  >
+                    <HugeiconsIcon
+                      icon={Copy01Icon}
+                      size={13}
+                      strokeWidth={1.75}
+                    />
+                    <span className="flex-1">{tr('tabs.copyPath')}</span>
+                  </ContextMenuItem>
+                  {workspaceRoot ? (
+                    <ContextMenuItem
+                      className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                      onSelect={() =>
+                        void copyToClipboard(relativePath(workspaceRoot, path))
+                      }
+                    >
+                      <HugeiconsIcon
+                        icon={Copy01Icon}
+                        size={13}
+                        strokeWidth={1.75}
+                      />
+                      <span className="flex-1">
+                        {tr('tabs.copyRelativePath')}
+                      </span>
+                    </ContextMenuItem>
+                  ) : null}
+                </>
               );
 
               const tabNode =
@@ -633,6 +703,38 @@ export function TabBar({
                           {t.pinned ? tr('tabs.unpin') : tr('tabs.pin')}
                         </span>
                       </ContextMenuItem>
+                      <ContextMenuSeparator />
+                      <ContextMenuItem
+                        className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                        disabled={atMaxPanes}
+                        onSelect={() => onSplitPane?.(t.id, "row")}
+                      >
+                        <HugeiconsIcon
+                          icon={SplitIcon}
+                          size={13}
+                          strokeWidth={1.75}
+                        />
+                        <span className="flex-1">{tr('tabs.splitRight')}</span>
+                      </ContextMenuItem>
+                      <ContextMenuItem
+                        className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                        disabled={atMaxPanes}
+                        onSelect={() => onSplitPane?.(t.id, "col")}
+                      >
+                        <HugeiconsIcon
+                          icon={SplitIcon}
+                          size={13}
+                          strokeWidth={1.75}
+                          className="rotate-90"
+                        />
+                        <span className="flex-1">{tr('tabs.splitDown')}</span>
+                      </ContextMenuItem>
+                      {t.cwd ? (
+                        <>
+                          <ContextMenuSeparator />
+                          {copyPathItems(t.cwd)}
+                        </>
+                      ) : null}
                       {tabs.length > 1 && (
                         <>
                           <ContextMenuSeparator />
@@ -647,8 +749,48 @@ export function TabBar({
                             />
                             <span className="flex-1">{tr('common.close')}</span>
                           </ContextMenuItem>
+                          {i < tabs.length - 1 && (
+                            <ContextMenuItem
+                              className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                              onSelect={() => onCloseTabsToRight(t.id)}
+                            >
+                              <HugeiconsIcon
+                                icon={ArrowRight01Icon}
+                                size={13}
+                                strokeWidth={1.75}
+                              />
+                              <span className="flex-1">
+                                {tr("tabs.closeRight")}
+                              </span>
+                            </ContextMenuItem>
+                          )}
+                          {tabs.length > 1 && (
+                            <ContextMenuItem
+                              className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                              onSelect={() => onCloseOtherTabs(t.id)}
+                            >
+                              <HugeiconsIcon
+                                icon={CancelCircleIcon}
+                                size={13}
+                                strokeWidth={1.75}
+                              />
+                              <span className="flex-1">
+                                {tr("tabs.closeOthers")}
+                              </span>
+                            </ContextMenuItem>
+                          )}
                         </>
                       )}
+                    </ContextMenuContent>
+                  </ContextMenu>
+                ) : t.kind === "editor" ? (
+                  <ContextMenu>
+                    <ContextMenuTrigger asChild>{trigger}</ContextMenuTrigger>
+                    <ContextMenuContent
+                      className="min-w-32 p-1"
+                      onCloseAutoFocus={(e) => e.preventDefault()}
+                    >
+                      {copyPathItems(t.path)}
                     </ContextMenuContent>
                   </ContextMenu>
                 ) : (
@@ -668,7 +810,16 @@ export function TabBar({
               perfMonitor.mark("tab-items-render-end");
               perfMonitor.measure("tab-items-render", "tab-items-render-start");
               return result;
-            }, [tabs, activeId, draggingId, dropGap, firstRender, seen])}
+            }, [
+              tabs,
+              activeId,
+              draggingId,
+              dropGap,
+              firstRender,
+              seen,
+              workspaceRoot,
+              onSplitPane,
+            ])}
           </TabsList>
         </Tabs>
         <DropdownMenu>
@@ -676,7 +827,7 @@ export function TabBar({
             <Button
               variant="ghost"
               size="icon"
-              className="size-7 shrink-0 rounded-md text-muted-foreground hover:bg-accent hover:text-foreground"
+              className="ml-1 size-6 shrink-0 rounded-full bg-foreground/[0.06] text-muted-foreground ring-1 ring-inset ring-foreground/[0.04] hover:bg-foreground/[0.12] hover:text-foreground"
               title={tr('tabs.newTab')}
             >
               <HugeiconsIcon icon={PlusSignIcon} size={14} strokeWidth={2} />
@@ -871,7 +1022,9 @@ const TabIconComponent = ({ tab }: { tab: Tab }) => {
     );
   }
   if (agentStatus.state === "working" && agentStatus.agent) {
-    return <AgentIcon agent={agentStatus.agent} size={14} className="shrink-0" />;
+    return (
+      <AgentIcon agent={agentStatus.agent} size={14} className="shrink-0" />
+    );
   }
   return (
     <HugeiconsIcon

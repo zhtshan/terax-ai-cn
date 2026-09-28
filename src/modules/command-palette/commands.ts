@@ -13,6 +13,7 @@ import {
   LayoutTwoRowIcon,
   PaintBoardIcon,
   Search01Icon,
+  ViewIcon,
   Settings01Icon,
   SidebarLeftIcon,
   SourceCodeIcon,
@@ -46,12 +47,13 @@ export type CommandPaletteActionContext = {
   openNewPreview: () => void;
   openGitGraph: () => void;
   toggleSourceControl: () => void;
+  toggleHiddenFiles: () => void;
   closeActiveTabOrPane: () => void;
   splitPaneRight: () => void;
   splitPaneDown: () => void;
   focusSearch: () => void;
   focusExplorerSearch: () => void;
-  toggleSidebar: () => void;
+  toggleExplorerView: () => void;
   toggleAi: () => void;
   askAiSelection: () => void;
   openSettings: () => void;
@@ -245,6 +247,15 @@ export function createCommandItems(
       run: ctx.toggleSourceControl,
     },
     {
+      id: "explorer.toggleHidden",
+      title: i18next.t("commandPalette.item.toggleHiddenFiles"),
+      group: "View",
+      keywords: ["dotfiles", "hidden", "explorer", "gitignore", "env"],
+      icon: ViewIcon,
+      shortcutId: "explorer.toggleHidden",
+      run: ctx.toggleHiddenFiles,
+    },
+    {
       id: "search.content",
       title: i18next.t("commandPalette.item.searchContent"),
       group: "Search",
@@ -291,7 +302,7 @@ export function createCommandItems(
       keywords: ["sidebar", "files", "explorer"],
       icon: SidebarLeftIcon,
       shortcutId: "sidebar.toggle",
-      run: ctx.toggleSidebar,
+      run: ctx.toggleExplorerView,
     },
     {
       id: "ai.toggle",

@@ -35,6 +35,10 @@ type Props = {
   onNewEditor: () => void;
   onNewGitGraph: () => void;
   onClose: (id: number) => void;
+  /** Chrome-style: close every tab to the right of the given tab. */
+  onCloseTabsToRight: (id: number) => void;
+  /** Chrome-style: close every tab except the given tab. */
+  onCloseOtherTabs: (id: number) => void;
   /** Promote a preview (transient) tab to persistent. */
   onPin: (id: number) => void;
   /** Toggle pinned (locked in place, skipped during reorder). */
@@ -44,8 +48,12 @@ type Props = {
   /** Move a dragged tab to a new position (insertion gap index). */
   onReorder: (fromId: number, toGapIndex: number) => void;
   onOverrideLanguage?: (id: number, lang: string | null) => void;
+  /** Split a terminal tab's active pane in the given direction. */
+  onSplitPane?: (id: number, dir: "row" | "col") => void;
   onExternalReload?: (id: number) => void;
   onExternalKeep?: (id: number) => void;
+  /** Workspace root for the tab context menu's copy-path items. */
+  workspaceRoot?: string | null;
   onToggleSidebar: () => void;
   onOpenCommandPalette: () => void;
   onActivateAgent: (tabId: number, leafId: number) => void;
@@ -69,13 +77,17 @@ export function Header({
   onNewEditor,
   onNewGitGraph,
   onClose,
+  onCloseTabsToRight,
+  onCloseOtherTabs,
   onPin,
   onTogglePin,
   onRename,
   onReorder,
   onOverrideLanguage,
+  onSplitPane,
   onExternalReload,
   onExternalKeep,
+  workspaceRoot,
   onToggleSidebar,
   onOpenCommandPalette,
   onActivateAgent,
@@ -116,7 +128,7 @@ export function Header({
     <div
       ref={rootRef}
       data-tauri-drag-region
-      className={`flex h-10 shrink-0 items-center gap-2 border-b border-border/60 bg-card select-none ${
+      className={`flex h-10 shrink-0 items-center gap-2 select-none ${
         IS_MAC ? "pr-2 pl-20" : "pr-0 pl-2"
       }`}
     >
@@ -149,9 +161,13 @@ export function Header({
         )}
       </div>
 
-      {!IS_MAC && <span className="mx-1 h-full w-px shrink-0 bg-border/70" />}
+      {!IS_MAC && (
+        <span className="mx-1.5 h-4 w-px shrink-0 rounded-full bg-border" />
+      )}
 
-      {IS_MAC && <span className="mr-1 h-full w-px shrink-0 bg-border/70" />}
+      {IS_MAC && (
+        <span className="mr-1.5 h-4 w-px shrink-0 rounded-full bg-border" />
+      )}
 
       <div
         className="flex min-w-0 flex-1 items-center gap-2"
@@ -169,13 +185,17 @@ export function Header({
           onNewEditor={onNewEditor}
           onNewGitGraph={onNewGitGraph}
           onClose={onClose}
+          onCloseTabsToRight={onCloseTabsToRight}
+          onCloseOtherTabs={onCloseOtherTabs}
           onPin={onPin}
           onTogglePin={onTogglePin}
           onRename={onRename}
           onReorder={onReorder}
           onOverrideLanguage={onOverrideLanguage}
+          onSplitPane={onSplitPane}
           onExternalReload={onExternalReload}
           onExternalKeep={onExternalKeep}
+          workspaceRoot={workspaceRoot}
           compact={compact}
         />
         <div data-tauri-drag-region className="h-full min-w-2 flex-1" />

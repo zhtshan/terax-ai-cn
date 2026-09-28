@@ -9,6 +9,7 @@ export { allServers, LSP_PRESETS, type LspPreset } from "./lib/presets";
 export { useLspRuntimeStore } from "./lib/runtimeStore";
 export {
   lspFormatDocument,
+  lspRawRequest,
   notifyDocumentSaved,
   requestDocumentSymbols,
 } from "./lib/sessionManager";

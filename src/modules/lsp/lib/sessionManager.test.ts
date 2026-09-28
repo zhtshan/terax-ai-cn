@@ -8,6 +8,10 @@ let capabilities: Record<string, unknown> | undefined;
 let resolveInitialize: () => void;
 let initializePromise: Promise<void>;
 const textDocumentSymbol = vi.fn();
+const rawRequestMock = vi.fn();
+const setProgressMock = vi.fn();
+const storeProgress: Record<string, unknown> = {};
+const transportInstances: Array<{ onProgress?: unknown }> = [];
 
 vi.mock("@tauri-apps/api/core", () => ({
   invoke: (...a: unknown[]) => invoke(...a),
@@ -38,14 +42,23 @@ vi.mock("./runtimeStore", () => ({
       setFailed: vi.fn(),
       clearFailed: vi.fn(),
       bumpGeneration: vi.fn(),
+      progress: storeProgress,
+      setProgress: (key: string, value: unknown) => {
+        storeProgress[key] = value;
+        setProgressMock(key, value);
+      },
     }),
   },
 }));
 vi.mock("./transport", () => ({
   TauriLspTransport: class {
-    exitInfo = null;
+    exitInfo: null = null;
+    onProgress: ((e: unknown) => void) | null = null;
     start = transportStart;
     close = vi.fn();
+    constructor() {
+      transportInstances.push(this);
+    }
   },
 }));
 vi.mock("./client", () => ({
@@ -58,6 +71,7 @@ vi.mock("./client", () => ({
       return initializePromise;
     }
     textDocumentSymbol = textDocumentSymbol;
+    rawRequest = rawRequestMock;
     textDocumentDidClose = vi.fn();
     textDocumentDidSave = vi.fn();
     close = vi.fn();
@@ -68,7 +82,12 @@ vi.mock("./client", () => ({
   SynchronizationMethod: { Incremental: 1 },
 }));
 
-import { acquireDocExtension, requestDocumentSymbols } from "./sessionManager";
+import {
+  acquireDocExtension,
+  lspRawRequest,
+  requestDocumentSymbols,
+  stopPresetSessions,
+} from "./sessionManager";
 
 const FILE = "/repo/src/widget.ts";
 
@@ -124,6 +143,107 @@ describe("requestDocumentSymbols during server startup", () => {
 
     await expect(pending).resolves.toBeNull();
     expect(textDocumentSymbol).not.toHaveBeenCalled();
+    handle?.release();
+  });
+});
+
+describe("lspRawRequest", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    capabilities = { documentSymbolProvider: true };
+    initializePromise = Promise.resolve();
+    detectBinary.mockResolvedValue(true);
+    invoke.mockImplementation((cmd: string) =>
+      cmd === "lsp_resolve_root"
+        ? Promise.resolve("/repo")
+        : Promise.resolve(1),
+    );
+    transportStart.mockResolvedValue(undefined);
+  });
+
+  it("returns null when no session is open for the path", async () => {
+    expect(
+      await lspRawRequest(FILE, "ts", "textDocument/inlayHint", {}),
+    ).toBeNull();
+    expect(rawRequestMock).not.toHaveBeenCalled();
+  });
+
+  it("routes method and params to the client rawRequest", async () => {
+    rawRequestMock.mockResolvedValue([{ range: {} }]);
+    const handle = await acquireDocExtension(FILE, "ts");
+    const result = await lspRawRequest(FILE, "ts", "textDocument/inlayHint", {
+      range: { start: { line: 0, character: 0 } },
+    });
+    expect(result).toEqual([{ range: {} }]);
+    expect(rawRequestMock).toHaveBeenCalledWith("textDocument/inlayHint", {
+      range: { start: { line: 0, character: 0 } },
+    });
+    handle?.release();
+  });
+
+  it("returns null when the session exits while the request is pending", async () => {
+    await acquireDocExtension(FILE, "ts");
+    let resolveRaw!: (v: unknown) => void;
+    rawRequestMock.mockReturnValue(
+      new Promise((r) => {
+        resolveRaw = r;
+      }),
+    );
+    const pending = lspRawRequest(FILE, "ts", "textDocument/inlayHint", {});
+    // release() only arms the idle timer, so exit the session via
+    // closeSession (through stopPresetSessions), which flips `closing` and
+    // drops the map entry while the request is still in flight.
+    void stopPresetSessions("typescript");
+    resolveRaw([{ range: {} }]);
+    expect(await pending).toBeNull();
+    expect(rawRequestMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("progress wiring", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    transportInstances.length = 0;
+    capabilities = { documentSymbolProvider: true };
+    initializePromise = Promise.resolve();
+    detectBinary.mockResolvedValue(true);
+    invoke.mockImplementation((cmd: string) =>
+      cmd === "lsp_resolve_root"
+        ? Promise.resolve("/repo")
+        : Promise.resolve(1),
+    );
+    transportStart.mockResolvedValue(undefined);
+    for (const k of Object.keys(storeProgress)) delete storeProgress[k];
+  });
+
+  it("routes $/progress events into the runtime store", async () => {
+    const handle = await acquireDocExtension(FILE, "ts");
+    const transport = transportInstances[transportInstances.length - 1];
+    expect(transport).toBeDefined();
+    expect(typeof transport?.onProgress).toBe("function");
+    const notify = transport!.onProgress as (e: unknown) => void;
+    notify({ token: "t1", kind: "begin", title: "Indexing", percentage: 5 });
+    expect(setProgressMock).toHaveBeenCalledWith("typescript\u0000/repo", {
+      token: "t1",
+      title: "Indexing",
+      percentage: 5,
+    });
+    handle?.release();
+  });
+
+  it("keeps the begin title when a later report omits it", async () => {
+    await stopPresetSessions("typescript");
+    const handle = await acquireDocExtension(FILE, "ts");
+    const transport = transportInstances[transportInstances.length - 1];
+    expect(transport).toBeDefined();
+    const notify = transport!.onProgress as (e: unknown) => void;
+    notify({ token: "t1", kind: "begin", title: "Indexing", percentage: 0 });
+    notify({ token: "t1", kind: "report", percentage: 50 });
+    expect(storeProgress["typescript\u0000/repo"]).toEqual({
+      token: "t1",
+      title: "Indexing",
+      percentage: 50,
+    });
     handle?.release();
   });
 });
