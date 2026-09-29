@@ -311,8 +311,7 @@ fn build_git_command(
 ) -> Result<Command> {
     #[cfg(windows)]
     if let WorkspaceEnv::Wsl { distro } = _workspace {
-        validate_wsl_distro_name(distro)
-            .map_err(|_| GitError::command("unsafe WSL distro name", distro.clone()))?;
+        validate_wsl_distro_name(distro).map_err(GitError::InvalidWorkspace)?;
         let mut cmd = Command::new("wsl.exe");
         cmd.arg("-d").arg(distro);
         if let Some(cwd) = cwd.filter(|s| !s.is_empty()) {
