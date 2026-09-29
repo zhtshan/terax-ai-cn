@@ -26,6 +26,7 @@ pub enum GitError {
         context: &'static str,
         detail: String,
     },
+    InvalidWorkspace(String),
     Spawn(String),
     Io(std::io::Error),
 }
@@ -86,6 +87,7 @@ impl Display for GitError {
                     write!(f, "terax:git_command_failed {context}: {detail}")
                 }
             }
+            GitError::InvalidWorkspace(msg) => write!(f, "{msg}"),
             GitError::Spawn(err) => write!(f, "terax:git_spawn {err}"),
             GitError::Io(err) => write!(f, "terax:git_io {err}"),
         }
