@@ -18,3 +18,13 @@ export function shouldDisablePaneSwapShortcut(
     (terminalPaneCount === null || terminalPaneCount < 2)
   );
 }
+
+// Ctrl+B belongs to the shell inside a focused terminal (tmux prefix, Claude
+// Code's "run in background"). Cmd+B never reaches the PTY, so it always
+// toggles the sidebar, like Cmd+G.
+export function shouldDeferSidebarToggleToTerminal(
+  inTerminal: boolean,
+  e: Pick<KeyboardEvent, "ctrlKey" | "metaKey">,
+): boolean {
+  return inTerminal && e.ctrlKey && !e.metaKey;
+}

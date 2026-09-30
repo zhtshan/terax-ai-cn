@@ -58,6 +58,7 @@ import { openSettingsWindow } from "@/modules/settings/openSettingsWindow";
 import { usePreferencesStore } from "@/modules/settings/preferences";
 import { setShowHidden } from "@/modules/settings/store";
 import {
+  shouldDeferSidebarToggleToTerminal,
   shouldDisablePaneSwapShortcut,
   type ShortcutHandlers,
   type ShortcutId,
@@ -1188,17 +1189,12 @@ export default function App() {
         return !(activeTab?.kind === "terminal" && activeTab.blocks === true);
       }
       if (id === "sidebar.toggle") {
-        // Ctrl+B is also Claude Code's "run in background" key. While a terminal
-        // is focused, let Ctrl+B reach the shell/Claude instead of toggling the
-        // sidebar. Ctrl+Shift+B (second binding) still toggles it from anywhere.
         const target =
           (e.target as HTMLElement | null) ?? document.activeElement;
         const inTerminal = !!(target as HTMLElement | null)?.closest?.(
           ".xterm",
         );
-        // Only defer the plain (no-shift) Ctrl/⌘+B binding; the Shift variant
-        // is the always-on toggle and is never claimed by the terminal.
-        return inTerminal && !e.shiftKey;
+        return shouldDeferSidebarToggleToTerminal(inTerminal, e);
       }
       return false;
     },

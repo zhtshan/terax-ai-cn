@@ -13,4 +13,7 @@ export {
 } from "./lib/useGlobalShortcuts";
 export { useShortcutLabel } from "./lib/useShortcutLabel";
 export { shortcutLabel } from "./lib/shortcutLabel";
-export { shouldDisablePaneSwapShortcut } from "./lib/shortcutScope";
+export {
+  shouldDeferSidebarToggleToTerminal,
+  shouldDisablePaneSwapShortcut,
+} from "./lib/shortcutScope";

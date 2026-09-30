@@ -307,9 +307,9 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Toggle file explorer",
     group: "View",
     // Mod+B cycles the explorer view: hidden -> expand on explorer, another
-    // view shown -> switch to explorer, explorer shown -> collapse. In a
-    // focused terminal it is still handed to the shell (its "run in
-    // background" key). Mod+Shift+B opens source control (fixed open).
+    // view shown -> switch to explorer, explorer shown -> collapse. Ctrl+B in
+    // a focused terminal is handed to the shell (its "run in background"
+    // key); Cmd+B works everywhere. Mod+Shift+B opens source control.
     defaultBindings: [{ [MOD_PROP]: true, key: "b" }],
   },
   {
