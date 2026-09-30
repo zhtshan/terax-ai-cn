@@ -47,11 +47,12 @@ import {
   GitCompareIcon,
   Globe02Icon,
   IncognitoIcon,
+  LayoutTwoColumnIcon,
+  LayoutTwoRowIcon,
   Message02Icon,
   Pin02Icon,
   PencilEdit02Icon,
   PlusSignIcon,
-  SplitIcon,
   Tick02Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
@@ -754,7 +755,7 @@ export function TabBar({
                         onSelect={() => onSplitPane?.(t.id, "row")}
                       >
                         <HugeiconsIcon
-                          icon={SplitIcon}
+                          icon={LayoutTwoColumnIcon}
                           size={13}
                           strokeWidth={1.75}
                         />
@@ -766,10 +767,9 @@ export function TabBar({
                         onSelect={() => onSplitPane?.(t.id, "col")}
                       >
                         <HugeiconsIcon
-                          icon={SplitIcon}
+                          icon={LayoutTwoRowIcon}
                           size={13}
                           strokeWidth={1.75}
-                          className="rotate-90"
                         />
                         <span className="flex-1">{tr('tabs.splitDown')}</span>
                       </ContextMenuItem>
