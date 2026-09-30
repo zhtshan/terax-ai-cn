@@ -74,6 +74,11 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build CLI sidecar
+        run: pnpm run build:cli
+        env:
+          TERAX_CLI_TARGET: ${{ matrix.rust-target }}
+
       - name: Extract changelog for this version
         shell: bash
         run: |
