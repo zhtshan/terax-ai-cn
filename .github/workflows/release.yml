@@ -80,6 +80,7 @@ jobs:
           TERAX_CLI_TARGET: ${{ matrix.rust-target }}
 
       - name: Extract changelog for this version
+        id: changelog
         shell: bash
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -89,6 +90,11 @@ jobs:
             found && /^## / && index($0, "## [" ver "]") != 1 {found=0; exit}
             found {print}
           ' CHANGELOG.md > release-notes.md
+          {
+            echo 'notes<<CHANGELOG_EOF'
+            cat release-notes.md
+            echo 'CHANGELOG_EOF'
+          } >> "$GITHUB_OUTPUT"
 
       - id: tauri
         uses: tauri-apps/tauri-action@v1
@@ -101,7 +107,7 @@ jobs:
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Terax ${{ github.ref_name }}"
-          releaseBodyFile: release-notes.md
+          releaseBody: ${{ steps.changelog.outputs.notes }}
           releaseDraft: false
           prerelease: false
           args: ${{ matrix.args }}
