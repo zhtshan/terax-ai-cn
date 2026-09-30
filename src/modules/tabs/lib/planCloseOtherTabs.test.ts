@@ -61,4 +61,12 @@ describe("planCloseOtherTabs", () => {
       nextActiveId: 1,
     });
   });
+
+  it("keeps unsaved editor tabs open", () => {
+    const tabs = [{ ...tab(1, "a"), dirty: true } as Tab, tab(2, "a"), tab(3, "a")];
+    expect(planCloseOtherTabs(tabs, 2, 1)).toEqual({
+      closeIds: [3],
+      nextActiveId: 1,
+    });
+  });
 });

@@ -61,4 +61,12 @@ describe("planCloseTabsToRight", () => {
       nextActiveId: 1,
     });
   });
+
+  it("keeps unsaved editor tabs open", () => {
+    const tabs = [tab(1, "a"), { ...tab(2, "a"), dirty: true } as Tab, tab(3, "a")];
+    expect(planCloseTabsToRight(tabs, 1, 2)).toEqual({
+      closeIds: [3],
+      nextActiveId: 2,
+    });
+  });
 });

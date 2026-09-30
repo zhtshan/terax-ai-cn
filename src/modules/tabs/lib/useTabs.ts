@@ -153,6 +153,11 @@ type CloseTabsPlanResult = {
   nextActiveId: number;
 };
 
+// Bulk close bypasses the per-tab save prompt, so unsaved editors stay open.
+function isBulkClosable(t: Tab): boolean {
+  return !(t.kind === "editor" && t.dirty);
+}
+
 export function planCloseTabsToRight(
   tabs: Tab[],
   anchorId: number,
@@ -162,7 +167,10 @@ export function planCloseTabsToRight(
   if (!anchor) return { closeIds: [], nextActiveId: activeId };
   const sameSpace = tabs.filter((t) => t.spaceId === anchor.spaceId);
   const idx = sameSpace.findIndex((t) => t.id === anchorId);
-  const closeIds = sameSpace.slice(idx + 1).map((t) => t.id);
+  const closeIds = sameSpace
+    .slice(idx + 1)
+    .filter(isBulkClosable)
+    .map((t) => t.id);
   if (closeIds.length === 0) return { closeIds, nextActiveId: activeId };
   return {
     closeIds,
@@ -178,7 +186,9 @@ export function planCloseOtherTabs(
   const anchor = tabs.find((t) => t.id === anchorId);
   if (!anchor) return { closeIds: [], nextActiveId: activeId };
   const sameSpace = tabs.filter((t) => t.spaceId === anchor.spaceId);
-  const closeIds = sameSpace.filter((t) => t.id !== anchorId).map((t) => t.id);
+  const closeIds = sameSpace
+    .filter((t) => t.id !== anchorId && isBulkClosable(t))
+    .map((t) => t.id);
   if (closeIds.length === 0) return { closeIds, nextActiveId: activeId };
   return {
     closeIds,

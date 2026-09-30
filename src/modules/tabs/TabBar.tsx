@@ -671,6 +671,50 @@ export function TabBar({
                 </>
               );
 
+              const closeItems =
+                tabs.length > 1 ? (
+                  <>
+                    <ContextMenuSeparator />
+                    <ContextMenuItem
+                      className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                      onSelect={() => onClose(t.id)}
+                    >
+                      <HugeiconsIcon
+                        icon={Cancel01Icon}
+                        size={13}
+                        strokeWidth={1.75}
+                      />
+                      <span className="flex-1">{tr('common.close')}</span>
+                    </ContextMenuItem>
+                    {i < tabs.length - 1 && (
+                      <ContextMenuItem
+                        className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                        onSelect={() => onCloseTabsToRight(t.id)}
+                      >
+                        <HugeiconsIcon
+                          icon={ArrowRight01Icon}
+                          size={13}
+                          strokeWidth={1.75}
+                        />
+                        <span className="flex-1">
+                          {tr("tabs.closeRight")}
+                        </span>
+                      </ContextMenuItem>
+                    )}
+                    <ContextMenuItem
+                      className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
+                      onSelect={() => onCloseOtherTabs(t.id)}
+                    >
+                      <HugeiconsIcon
+                        icon={CancelCircleIcon}
+                        size={13}
+                        strokeWidth={1.75}
+                      />
+                      <span className="flex-1">{tr("tabs.closeOthers")}</span>
+                    </ContextMenuItem>
+                  </>
+                ) : null;
+
               const tabNode =
                 t.kind === "terminal" ? (
                   <ContextMenu>
@@ -735,52 +779,7 @@ export function TabBar({
                           {copyPathItems(t.cwd)}
                         </>
                       ) : null}
-                      {tabs.length > 1 && (
-                        <>
-                          <ContextMenuSeparator />
-                          <ContextMenuItem
-                            className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
-                            onSelect={() => onClose(t.id)}
-                          >
-                            <HugeiconsIcon
-                              icon={Cancel01Icon}
-                              size={13}
-                              strokeWidth={1.75}
-                            />
-                            <span className="flex-1">{tr('common.close')}</span>
-                          </ContextMenuItem>
-                          {i < tabs.length - 1 && (
-                            <ContextMenuItem
-                              className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
-                              onSelect={() => onCloseTabsToRight(t.id)}
-                            >
-                              <HugeiconsIcon
-                                icon={ArrowRight01Icon}
-                                size={13}
-                                strokeWidth={1.75}
-                              />
-                              <span className="flex-1">
-                                {tr("tabs.closeRight")}
-                              </span>
-                            </ContextMenuItem>
-                          )}
-                          {tabs.length > 1 && (
-                            <ContextMenuItem
-                              className="gap-2 rounded-xl px-2.5 py-1.5 text-[13px]"
-                              onSelect={() => onCloseOtherTabs(t.id)}
-                            >
-                              <HugeiconsIcon
-                                icon={CancelCircleIcon}
-                                size={13}
-                                strokeWidth={1.75}
-                              />
-                              <span className="flex-1">
-                                {tr("tabs.closeOthers")}
-                              </span>
-                            </ContextMenuItem>
-                          )}
-                        </>
-                      )}
+                      {closeItems}
                     </ContextMenuContent>
                   </ContextMenu>
                 ) : t.kind === "editor" ? (
@@ -791,6 +790,7 @@ export function TabBar({
                       onCloseAutoFocus={(e) => e.preventDefault()}
                     >
                       {copyPathItems(t.path)}
+                      {closeItems}
                     </ContextMenuContent>
                   </ContextMenu>
                 ) : (
